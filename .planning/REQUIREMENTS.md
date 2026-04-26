@@ -102,8 +102,44 @@
 
 ---
 
-## Traceability (to be filled by roadmapper)
+## Traceability
 
-| Phase | Requirements |
-|---|---|
-| TBD | TBD |
+**Roadmap:** see `.planning/ROADMAP.md`
+**Updated:** 2026-04-24
+
+| Requirement | Phase | Status |
+|---|---|---|
+| AUTH-01 | Phase 1 — Auth & Multi-tenancy Core | Pending |
+| AUTH-02 | Phase 1 — Auth & Multi-tenancy Core | Pending |
+| AUTH-03 | Phase 1 — Auth & Multi-tenancy Core | Pending |
+| AUTH-04 | Phase 1 — Auth & Multi-tenancy Core | Pending |
+| AUTH-05 | Phase 1 — Auth & Multi-tenancy Core | Pending |
+| PROP-01 | Phase 2 — Property & Paddock Structure | Pending |
+| PROP-02 | Phase 2 — Property & Paddock Structure | Pending |
+| PROP-03 | Phase 3 — Lots & Animals | Pending |
+| PROP-04 | Phase 3 — Lots & Animals | Pending |
+| PROP-05 | Phase 3 — Lots & Animals | Pending |
+| ANIM-01 | Phase 3 — Lots & Animals | Pending |
+| ANIM-02 | Phase 3 — Lots & Animals | Pending |
+| ANIM-03 | Phase 8 — Animal Dossier Consolidation | Pending |
+| ANIM-04 | Phase 3 — Lots & Animals | Pending |
+| ANIM-05 | Phase 3 — Lots & Animals | Pending |
+| ANIM-06 | Phase 3 — Lots & Animals | Pending |
+| MOV-01 | Phase 4 — Movements | Pending |
+| MOV-02 | Phase 4 — Movements | Pending |
+| REPR-01 | Phase 5 — Reproductive Module | Pending |
+| REPR-02 | Phase 5 — Reproductive Module | Pending |
+| REPR-03 | Phase 5 — Reproductive Module | Pending |
+| REPR-04 | Phase 5 — Reproductive Module | Pending |
+| REPR-05 | Phase 5 — Reproductive Module | Pending |
+| SANI-01 | Phase 6 — Sanitary Module | Pending |
+| SANI-02 | Phase 6 — Sanitary Module | Pending |
+| SANI-03 | Phase 6 — Sanitary Module | Pending |
+| SANI-04 | Phase 6 — Sanitary Module | Pending |
+| SANI-05 | Phase 6 — Sanitary Module | Pending |
+| GAST-01 | Phase 7 — Expenses by Paddock | Pending |
+| GAST-02 | Phase 7 — Expenses by Paddock | Pending |
+
+**Coverage:** 26/26 v1 requirements mapped (100%)
+**Orphans:** 0
+**Note:** Phase 0 (Foundation) has no requirement IDs — pure infrastructure prerequisite per research/SUMMARY.md.
