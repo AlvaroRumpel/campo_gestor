@@ -35,8 +35,8 @@
   5. Camada de Repository/Service base implementada — features futuras nunca importam Supabase SDK diretamente
 **Plans:** 6 plans
 Plans:
-- [ ] 00-01-PLAN.md — Wave 0 test scaffolding + verification scripts + analysis_options
-- [ ] 00-02-PLAN.md — Environment prereqs (Supabase CLI install) + .gitignore + launch.json.example + README
+- [x] 00-01-PLAN.md — Wave 0 test scaffolding + verification scripts + analysis_options
+- [x] 00-02-PLAN.md — Environment prereqs (Supabase CLI install) + .gitignore + launch.json.example + README
 - [ ] 00-03-PLAN.md — pubspec.yaml full Phase 0 stack + codegen pipeline validation
 - [ ] 00-04-PLAN.md — Core scaffolding (theme, env, SupabaseService, currentPropertyProvider, GoRouter, 5 placeholder screens)
 - [ ] 00-05-PLAN.md — Adaptive AppShell (NavigationRail/NavigationBar) + PropertySelector + wire into router
