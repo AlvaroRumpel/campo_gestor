@@ -748,27 +748,31 @@ Phase 0 não tem REQ IDs; mapeamento é por success criterion (SC) do ROADMAP.md
 
 **Total assumptions:** 9. Nenhuma é compliance/security crítica; A1, A3, A4 são as mais relevantes para `gsd-discuss-phase` confirmar com user antes do planner solidificar.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Pre-requirement install: Scoop está instalado?**
    - What we know: Docker está; Supabase CLI não está; Scoop status desconhecido.
    - What's unclear: Se user já tem Scoop, comando muda.
    - Recommendation: Plan inclui task condicional ou step com check `where scoop` antes de tentar `scoop bucket add`.
+   - **RESOLVED:** Plan 02 Task 1 inclui check condicional `where scoop` — se não instalado, instala Scoop primeiro, depois `scoop install supabase`.
 
 2. **`.vscode/launch.json.example` template — quais ENVs documentar?**
    - What we know: SUPABASE_URL, SUPABASE_ANON_KEY são obrigatórios.
    - What's unclear: Phase 0 precisa de outras (ex: SUPABASE_SERVICE_ROLE_KEY para testes futuros)? Provável que NÃO em Phase 0.
    - Recommendation: Apenas as duas. Phase futura adiciona se necessário.
+   - **RESOLVED:** Plan 02 Task 2 documenta apenas SUPABASE_URL e SUPABASE_ANON_KEY. Outras ENVs adicionadas em fases futuras conforme necessário.
 
 3. **Smoke test integration_test em Edge funciona out-of-box no Windows?**
    - What we know: `flutter test integration_test/ -d edge` é suportado em teoria.
    - What's unclear: Comportamento real em Windows — Microsoft Edge driver setup.
    - Recommendation: Plan tem fallback: se driver falhar, smoke test roda em Windows desktop target (`-d windows`) que valida boot/router/theme sem chrome-specifics.
+   - **RESOLVED:** Plan 06 Task 2 inclui fallback explícito — se Edge driver falhar, usar `-d windows` como alternativa válida.
 
 4. **freezed 2.x → 3.x: CLAUDE.md está oficialmente desatualizado?**
    - What we know: Versão atual da indústria é 3.2.5; CLAUDE.md ainda cita 2.4.4.
    - What's unclear: Se atualizar CLAUDE.md como parte de Phase 0 ou deixar para depois.
    - Recommendation: Plan inclui task pequena de atualizar versões em CLAUDE.md (sem mudar arquitetura) para evitar drift.
+   - **RESOLVED:** Plan 03 usa freezed 3.x per RESEARCH.md. Atualização de CLAUDE.md com versões corrigidas incluída como task em Plan 03.
 
 ## Sources
 
