@@ -1,17 +1,32 @@
-# campo_gestor
+# Campo Gestor
 
-A new Flutter project.
+App de gestão de propriedades rurais voltado para pecuária. Stack: Flutter web-first + Supabase.
 
-## Getting Started
+See `.planning/PROJECT.md` for vision and `.planning/ROADMAP.md` for phase plan.
 
-This project is a starting point for a Flutter application.
+## Bootstrap (new clone)
 
-A few resources to get you started if this is your first Flutter project:
+Prerequisites:
+- Flutter SDK >= 3.24 (`flutter --version`)
+- Docker Desktop (running)
+- Supabase CLI: `scoop install supabase` (Windows) or see https://supabase.com/docs/guides/cli/getting-started
+- Microsoft Edge (or Chrome) for web target
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Setup:
+1. `flutter pub get` — install Dart dependencies (after Plan 03 lands)
+2. `supabase start` — boot local Postgres + Studio + Auth (after Plan 06 lands)
+3. Copy local anon key from `supabase start` output into `.vscode/launch.json` (copy from `.vscode/launch.json.example` first)
+4. F5 in VSCode (or `flutter run -d edge --dart-define=...`) to launch the app
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Development
+
+- Tests: `rtk flutter test --no-pub`
+- Static analysis: `rtk flutter analyze`
+- Custom lint (no Supabase imports in features): `bash scripts/verify_no_supabase_in_features.sh`
+- Migrations check: `bash scripts/verify_supabase.sh`
+
+## Architecture
+
+Feature-first hybrid (`lib/core/` shared infra + `lib/features/{name}/{data,domain,presentation}`). Repository abstraction means features NEVER import `package:supabase_flutter` directly — only `lib/core/services/` does (per D-06).
+
+Phase 0 status: scaffolding only. Domain features land in Phase 1+.

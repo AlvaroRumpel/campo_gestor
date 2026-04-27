@@ -1,0 +1,28 @@
+{
+  // Copy this file to .vscode/launch.json and replace placeholder values.
+  // .vscode/launch.json is gitignored — never commit real keys.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (Edge, dev)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "edge",
+      "args": [
+        "--dart-define=SUPABASE_URL=http://127.0.0.1:54321",
+        "--dart-define=SUPABASE_ANON_KEY=PASTE_LOCAL_ANON_KEY_HERE"
+      ]
+    },
+    {
+      "name": "Flutter (Edge, profile)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "edge",
+      "flutterMode": "profile",
+      "args": [
+        "--dart-define=SUPABASE_URL=http://127.0.0.1:54321",
+        "--dart-define=SUPABASE_ANON_KEY=PASTE_LOCAL_ANON_KEY_HERE"
+      ]
+    }
+  ]
+}

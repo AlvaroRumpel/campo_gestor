@@ -43,3 +43,22 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+node_modules/
+
+# Phase 0: Foundation additions
+# VSCode debug config contains SUPABASE_URL/ANON_KEY via dart-define — never commit
+.vscode/launch.json
+
+# Codegen outputs (regenerated locally; do not commit)
+*.g.dart
+*.freezed.dart
+
+# Supabase local CLI artifacts
+supabase/.env
+supabase/.branches/
+supabase/.temp/
+
+# Coverage reports
+/coverage/
+lcov.info
