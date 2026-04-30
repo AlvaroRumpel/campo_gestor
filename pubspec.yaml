@@ -31,20 +31,65 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  flutter_localizations:
+    sdk: flutter
+
+  # Cupertino icons (Flutter template default — kept).
   cupertino_icons: ^1.0.8
+
+  # ─── State Management ───
+  # Plan specified Riverpod 2.x but the full stack (build_runner 2.14+, json_serializable 6.13+,
+  # freezed 3.x) requires analyzer/source_gen/build versions incompatible with riverpod 2.x tooling.
+  # Resolution: flutter_riverpod 3.x (runtime) + riverpod_annotation 4.x + riverpod_generator 4.x.
+  # No Riverpod code exists in Phase 0 so no API migration needed.
+  flutter_riverpod: ">=3.0.0 <4.0.0"
+  riverpod_annotation: ">=4.0.0 <5.0.0"
+
+  # ─── Navigation (web-friendly per CLAUDE.md; latest stable) ───
+  go_router: ^17.2.0
+
+  # ─── Backend client ───
+  supabase_flutter: ^2.12.0
+
+  # ─── Data classes & serialization (Freezed 3.x per RESEARCH.md Standard Stack) ───
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.11.0
+
+  # ─── Local storage (Hive/Isar PROHIBITED in MVP — see CLAUDE.md What NOT to Use) ───
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: ^2.5.0
+
+  # ─── UI helpers ───
+  flutter_svg: ^2.2.0
+  data_table_2: ^2.7.0
+
+  # ─── Localization (pt-BR per D-13) ───
+  intl: ^0.20.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  integration_test:
+    sdk: flutter
+
   flutter_lints: ^6.0.0
+
+  # ─── Codegen (per D-10 — pipeline configured but unused until Phase 1) ───
+  build_runner: ^2.14.0
+  freezed: ^3.2.0
+  json_serializable: ^6.13.0
+  riverpod_generator: ">=4.0.0 <5.0.0"
+
+  # ─── Lints ───
+  # NOTE: custom_lint + riverpod_lint are incompatible with flutter_riverpod 3.x + freezed 3.x +
+  # json_serializable 6.13.x due to transitive analyzer/freezed_annotation version conflicts.
+  # Deferred until the ecosystem aligns. Riverpod rules enforced via flutter_lints + code review.
+  # custom_lint: ^0.6.0   # BLOCKED: see deviation note in 00-03-SUMMARY.md
+  # riverpod_lint: ^2.3.0 # BLOCKED: depends on custom_lint
+
+  # ─── Mocking ───
+  mocktail: ^1.0.5
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
