@@ -33,13 +33,13 @@
   3. `currentPropertyProvider` (Riverpod) está implementado e disponível em qualquer feature, mesmo que ainda retorne null
   4. GoRouter está configurado com rotas web-friendly (URLs deep-linkables, back button funcional) e guards de auth ainda permissivos (placeholder)
   5. Camada de Repository/Service base implementada — features futuras nunca importam Supabase SDK diretamente
-**Plans:** 6 plans
+**Plans:** 5/6 plans executed
 Plans:
 - [x] 00-01-PLAN.md — Wave 0 test scaffolding + verification scripts + analysis_options
 - [x] 00-02-PLAN.md — Environment prereqs (Supabase CLI install) + .gitignore + launch.json.example + README
 - [x] 00-03-PLAN.md — pubspec.yaml full Phase 0 stack + codegen pipeline validation
 - [x] 00-04-PLAN.md — Core scaffolding (theme, env, SupabaseService, currentPropertyProvider, GoRouter, 5 placeholder screens)
-- [ ] 00-05-PLAN.md — Adaptive AppShell (NavigationRail/NavigationBar) + PropertySelector + wire into router
+- [x] 00-05-PLAN.md — Adaptive AppShell (NavigationRail/NavigationBar) + PropertySelector + wire into router
 - [ ] 00-06-PLAN.md — main.dart bootstrap + supabase init/start + SC-2 db reset + SC-1 integration smoke test
 **UI hint:** yes
 
@@ -151,7 +151,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Foundation | 0/6 | Not started | - |
+| 0. Foundation | 5/6 | In Progress|  |
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/0 | Not started | - |
