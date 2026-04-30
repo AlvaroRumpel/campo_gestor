@@ -1,30 +1,54 @@
-// TODO(plan-05): unskip when lib/core/widgets/app_shell.dart lands
-//
-// Validates SC-1 widget verification: AppShell renders NavigationRail at
-// width 1024 (web/desktop) and NavigationBar at width 360 (mobile).
-// Breakpoint is 600px per D-03 / Material 3 default.
-
+import 'package:campo_gestor/core/widgets/app_shell.dart';
+import 'package:campo_gestor/core/widgets/property_selector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+
+GoRouter _buildTestRouter() => GoRouter(
+      initialLocation: '/dashboard',
+      routes: [
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) =>
+              AppShell(navigationShell: navigationShell),
+          branches: [
+            StatefulShellBranch(routes: [GoRoute(path: '/dashboard', builder: (ctx, _) => const Center(child: Text('Dashboard')))]),
+            StatefulShellBranch(routes: [GoRoute(path: '/piquetes', builder: (ctx, _) => const Center(child: Text('Piquetes')))]),
+            StatefulShellBranch(routes: [GoRoute(path: '/animais', builder: (ctx, _) => const Center(child: Text('Animais')))]),
+            StatefulShellBranch(routes: [GoRoute(path: '/reproducao', builder: (ctx, _) => const Center(child: Text('Reprod.')))]),
+            StatefulShellBranch(routes: [GoRoute(path: '/sanitario', builder: (ctx, _) => const Center(child: Text('Sanitário')))]),
+          ],
+        ),
+      ],
+    );
+
+Future<void> _pumpAppShell(WidgetTester tester, Size size) async {
+  await tester.binding.setSurfaceSize(size);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(
+    ProviderScope(
+      child: MaterialApp.router(routerConfig: _buildTestRouter()),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
 
 void main() {
-  testWidgets(
-    'renders NavigationRail at width 1024',
-    (WidgetTester tester) async {
-      // Will pump AppShell wrapped in a MaterialApp at width 1024 once Plan 05
-      // creates lib/core/widgets/app_shell.dart.
-      // Expected: find.byType(NavigationRail) finds exactly one widget;
-      // find.byType(NavigationBar) finds zero widgets.
-    },
-    skip: true, // Wave 0 placeholder — unskip when production file lands (plan-05)
-  );
+  testWidgets('AppShell renders NavigationRail at wide viewport (1024x768)', (tester) async {
+    await _pumpAppShell(tester, const Size(1024, 768));
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+  });
 
-  testWidgets(
-    'renders NavigationBar at width 360',
-    (WidgetTester tester) async {
-      // Will pump AppShell wrapped in a MaterialApp at width 360.
-      // Expected: find.byType(NavigationBar) finds exactly one widget;
-      // find.byType(NavigationRail) finds zero widgets.
-    },
-    skip: true, // Wave 0 placeholder — unskip when production file lands (plan-05)
-  );
+  testWidgets('AppShell renders NavigationBar at narrow viewport (360x800)', (tester) async {
+    await _pumpAppShell(tester, const Size(360, 800));
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+  });
+
+  testWidgets('PropertySelector shows fallback text when provider is null', (tester) async {
+    await _pumpAppShell(tester, const Size(1024, 768));
+    expect(find.byType(PropertySelector), findsOneWidget);
+    expect(find.text('Selecionar propriedade'), findsOneWidget);
+  });
 }
