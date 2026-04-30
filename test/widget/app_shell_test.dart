@@ -15,7 +15,7 @@ void main() {
       // Expected: find.byType(NavigationRail) finds exactly one widget;
       // find.byType(NavigationBar) finds zero widgets.
     },
-    skip: 'Wave 0 placeholder — unskip when production file lands',
+    skip: true, // Wave 0 placeholder — unskip when production file lands (plan-05)
   );
 
   testWidgets(
@@ -25,6 +25,6 @@ void main() {
       // Expected: find.byType(NavigationBar) finds exactly one widget;
       // find.byType(NavigationRail) finds zero widgets.
     },
-    skip: 'Wave 0 placeholder — unskip when production file lands',
+    skip: true, // Wave 0 placeholder — unskip when production file lands (plan-05)
   );
 }

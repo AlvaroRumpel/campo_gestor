@@ -22,6 +22,6 @@ void main() {
       // Expected: tester.pumpWidget completes; tester.pumpAndSettle returns
       // without timeout; no exceptions thrown during the first frame.
     },
-    skip: 'Wave 0 placeholder — unskip when production file lands',
+    skip: true, // Wave 0 placeholder — unskip when production file lands (plan-05)
   );
 }
