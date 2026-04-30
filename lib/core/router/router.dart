@@ -10,6 +10,7 @@ import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/sanitario_screen.dart';
+import '../widgets/app_shell.dart';
 import 'routes.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -39,11 +40,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          // TODO(plan-05): replace _TempShell with AppShell from
-          // lib/core/widgets/app_shell.dart.
-          return _TempShell(navigationShell: navigationShell);
-        },
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
             navigatorKey: _shellDashboardKey,
@@ -120,21 +118,5 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
-  }
-}
-
-/// Temporary scaffold so the router compiles before Plan 05 lands the real
-/// [AppShell]. Visually a basic Scaffold so dev can see the active branch.
-class _TempShell extends StatelessWidget {
-  const _TempShell({required this.navigationShell});
-
-  final StatefulNavigationShell navigationShell;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Campo Gestor — AppShell stub (Plan 05)')),
-      body: navigationShell,
-    );
   }
 }
