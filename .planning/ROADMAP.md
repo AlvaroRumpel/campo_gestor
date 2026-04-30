@@ -38,7 +38,7 @@ Plans:
 - [x] 00-01-PLAN.md — Wave 0 test scaffolding + verification scripts + analysis_options
 - [x] 00-02-PLAN.md — Environment prereqs (Supabase CLI install) + .gitignore + launch.json.example + README
 - [x] 00-03-PLAN.md — pubspec.yaml full Phase 0 stack + codegen pipeline validation
-- [ ] 00-04-PLAN.md — Core scaffolding (theme, env, SupabaseService, currentPropertyProvider, GoRouter, 5 placeholder screens)
+- [x] 00-04-PLAN.md — Core scaffolding (theme, env, SupabaseService, currentPropertyProvider, GoRouter, 5 placeholder screens)
 - [ ] 00-05-PLAN.md — Adaptive AppShell (NavigationRail/NavigationBar) + PropertySelector + wire into router
 - [ ] 00-06-PLAN.md — main.dart bootstrap + supabase init/start + SC-2 db reset + SC-1 integration smoke test
 **UI hint:** yes
