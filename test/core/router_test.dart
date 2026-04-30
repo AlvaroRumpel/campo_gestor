@@ -1,29 +1,36 @@
-// TODO(plan-04): unskip when lib/core/router/router.dart lands
-//
-// Validates SC-4: GoRouter has 5 top-level routes (dashboard, piquetes,
-// animais, reproducao, sanitario) and uses path-based URL strategy
-// (no `#` in the URL on web).
+import 'dart:async';
 
+import 'package:campo_gestor/core/router/router.dart';
+import 'package:campo_gestor/core/router/routes.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test(
-    'GoRouter has 5 top-level routes (dashboard, piquetes, animais, reproducao, sanitario)',
-    () {
-      // Will exercise routerProvider once Plan 04 creates lib/core/router/router.dart.
-      // Expected: routerProvider exposes a GoRouter with exactly 5 top-level
-      // routes whose paths are /dashboard, /piquetes, /animais, /reproducao,
-      // /sanitario (StatefulShellRoute branches).
-    },
-    skip: 'Wave 0 placeholder — unskip when production file lands',
-  );
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  test(
-    'URL strategy is path-based (no # in URL)',
-    () {
-      // Will assert usePathUrlStrategy() effect once main.dart wires it.
-      // Expected: on web, routes appear as /dashboard not /#/dashboard.
-    },
-    skip: 'Wave 0 placeholder — unskip when production file lands',
-  );
+  test('AppRoutes contains 5 top-level paths', () {
+    expect(AppRoutes.all.length, 5);
+    expect(AppRoutes.all, contains('/dashboard'));
+    expect(AppRoutes.all, contains('/piquetes'));
+    expect(AppRoutes.all, contains('/animais'));
+    expect(AppRoutes.all, contains('/reproducao'));
+    expect(AppRoutes.all, contains('/sanitario'));
+  });
+
+  test('GoRouterRefreshStream swallows stream errors (Pitfall 2)', () async {
+    final controller = StreamController<dynamic>();
+    final listenable = GoRouterRefreshStream(controller.stream);
+    addTearDown(listenable.dispose);
+    addTearDown(controller.close);
+
+    // Should NOT throw — onError handler swallows the error.
+    controller.addError(Exception('simulated network failure'));
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    expect(true, isTrue); // arrived without crash
+  });
+
+  // Note: full router instantiation requires a live Supabase.instance, which
+  // requires Supabase.initialize(). That is exercised in the integration smoke
+  // test (Plan 05/06) where main() runs end-to-end. We test routerProvider's
+  // wiring there.
 }
