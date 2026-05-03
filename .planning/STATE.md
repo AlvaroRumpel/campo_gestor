@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: Not started
+current_phase: Phase 1 — Auth & Multi-tenancy Core
 current_plan: —
-status: unknown
-last_updated: "2026-04-30T19:14:59.572Z"
+status: in-progress
+last_updated: "2026-05-03T23:00:00.000Z"
 progress:
   total_phases: 9
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
-  completed_plans: 5
-  percent: 83
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -21,9 +21,9 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** Not started
+**Current phase:** Phase 1 — Auth & Multi-tenancy Core
 **Current plan:** —
-**Progress:** [████████░░] 83%
+**Progress:** [██████████] Phase 0 complete (1/9 phases)
 
 ---
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md
 
 | # | Phase | Status |
 |---|---|---|
-| 0 | Foundation | in-progress (3/6 plans) |
+| 0 | Foundation | complete (6/6 plans) |
 | 1 | Auth & Multi-tenancy Core | not-started |
 | 2 | Property & Paddock Structure | not-started |
 | 3 | Lots & Animals (Operational Core) | not-started |
@@ -50,8 +50,8 @@ See: .planning/PROJECT.md
 | Phases planned | 9 |
 | Phases complete | 0 |
 | Requirements mapped | 26/26 |
-| Plans complete | 4 (00-01, 00-02, 00-03, 00-04) |
-| Last activity | 2026-04-30 (00-04 core scaffolding) |
+| Plans complete | 6 (00-01 through 00-06) |
+| Last activity | 2026-05-03 (00-06 bootstrap + supabase init) |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
@@ -82,6 +82,13 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - Resolve 6 open decisions before starting Phase 1 implementation
 - Confirm with veterinarian domain expert before Phase 5/6 (DG math, UA validation)
 
+### Phase 0 Completion Notes
+
+- **`[analytics] enabled = false`** in `supabase/config.toml` — Docker socket unreachable from `supabase_vector` container on Windows WSL2. Safe for local dev.
+- **`integration_test` no web support** — SC-1 verified manually via `flutter run -d edge`. Use `-d windows` for automated integration tests.
+- **Riverpod 3.x** (upgraded from planned 2.x) — all future phases must use Riverpod 3.x / codegen 4.x APIs.
+- **custom_lint / riverpod_lint deferred** — incompatible with flutter_riverpod 3.x + freezed_annotation 3.x stack.
+
 ### Blockers
 
 None.
@@ -90,8 +97,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-30T19:14:59.568Z
-**Next action:** Execute 00-04 (core scaffolding), 00-05 (AppShell), 00-06 (main.dart + supabase init)
+**Last session:** 2026-05-03T23:00:00.000Z
+**Next action:** Plan and execute Phase 1 (Auth & Multi-tenancy Core) — resolve 6 open decisions first
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints

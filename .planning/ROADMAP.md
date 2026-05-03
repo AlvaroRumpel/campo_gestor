@@ -9,7 +9,7 @@
 
 ## Phases
 
-- [ ] **Phase 0: Foundation** — Flutter scaffold, Supabase init, AppShell, currentPropertyProvider; sem features de domínio
+- [x] **Phase 0: Foundation** — Flutter scaffold, Supabase init, AppShell, currentPropertyProvider; sem features de domínio
 - [ ] **Phase 1: Auth & Multi-tenancy Core** — Login email/senha, perfis, vínculo veterinário↔propriedade, propriedade ativa, RLS completo
 - [ ] **Phase 2: Property & Paddock Structure** — CRUD de propriedade e piquete; protótipos de risco (numeração RPC, snapshot JSONB, ATF partial unique index)
 - [ ] **Phase 3: Lots & Animals (Operational Core)** — Lote operacional CRUD, criação em batch de animais via RPC, edição e ficha do animal, busca/filtro, baixa
@@ -40,7 +40,7 @@ Plans:
 - [x] 00-03-PLAN.md — pubspec.yaml full Phase 0 stack + codegen pipeline validation
 - [x] 00-04-PLAN.md — Core scaffolding (theme, env, SupabaseService, currentPropertyProvider, GoRouter, 5 placeholder screens)
 - [x] 00-05-PLAN.md — Adaptive AppShell (NavigationRail/NavigationBar) + PropertySelector + wire into router
-- [ ] 00-06-PLAN.md — main.dart bootstrap + supabase init/start + SC-2 db reset + SC-1 integration smoke test
+- [x] 00-06-PLAN.md — main.dart bootstrap + supabase init/start + SC-2 db reset + SC-1 integration smoke test
 **UI hint:** yes
 
 ### Phase 1: Auth & Multi-tenancy Core
@@ -151,7 +151,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Foundation | 5/6 | In Progress|  |
+| 0. Foundation | 6/6 | Complete | 2026-05-03 |
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/0 | Not started | - |
