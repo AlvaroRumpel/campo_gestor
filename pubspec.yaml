@@ -63,6 +63,10 @@ dependencies:
   flutter_svg: ^2.2.0
   data_table_2: ^2.7.0
 
+  # ─── Web URL strategy (usePathUrlStrategy — Pitfall 7) ───
+  flutter_web_plugins:
+    sdk: flutter
+
   # ─── Localization (pt-BR per D-13) ───
   intl: ^0.20.0
 
