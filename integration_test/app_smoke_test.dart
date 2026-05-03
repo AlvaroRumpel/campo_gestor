@@ -1,27 +1,29 @@
-// TODO(plan-05): unskip when lib/main.dart is finalized
-//
-// Validates SC-1 end-to-end: the app boots in a real Flutter web target
-// without crashing. Run with:
-//   flutter test integration_test/app_smoke_test.dart -d edge \
-//     --dart-define=SUPABASE_URL=http://localhost:54321 \
-//     --dart-define=SUPABASE_ANON_KEY=<local-anon-key>
-
-// import 'package:integration_test/integration_test.dart';
-// (uncomment in Plan 03 once integration_test is added to dev_dependencies)
-
+import 'package:campo_gestor/main.dart' as app;
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
 
 void main() {
-  // IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  // (uncomment in Plan 03 once integration_test is added to dev_dependencies)
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets(
-    'App boots without crashing',
-    (WidgetTester tester) async {
-      // Will pump CampoGestorApp() once Plan 05 finalizes lib/main.dart.
-      // Expected: tester.pumpWidget completes; tester.pumpAndSettle returns
-      // without timeout; no exceptions thrown during the first frame.
-    },
-    skip: true, // Wave 0 placeholder — unskip when production file lands (plan-05)
-  );
+  testWidgets('App boots and renders the default route without crashing',
+      (tester) async {
+    // Run the real main(): this initializes Supabase using the dart-define
+    // values passed at the command line. The test command MUST include:
+    //   --dart-define=SUPABASE_URL=http://127.0.0.1:54321
+    //   --dart-define=SUPABASE_ANON_KEY=<local anon key>
+    // Local Supabase must be running (`supabase start`).
+    await app.main();
+    await tester.pumpAndSettle(const Duration(seconds: 3));
+
+    // Either NavigationRail or NavigationBar must render (depending on
+    // viewport — integration test usually defaults to the device size).
+    final hasRail = find.byType(NavigationRail).evaluate().isNotEmpty;
+    final hasBar = find.byType(NavigationBar).evaluate().isNotEmpty;
+    expect(hasRail || hasBar, isTrue,
+        reason: 'AppShell did not render either navigation widget');
+
+    // The default route is /dashboard, which renders the placeholder text.
+    expect(find.text('Dashboard'), findsAtLeastNWidgets(1));
+  });
 }
