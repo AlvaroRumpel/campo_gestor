@@ -572,7 +572,7 @@ test('usuário A não lê dados da propriedade do usuário B', () async {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`additional_redirect_urls` para produção**
    - O que sabemos: dev usa `http://127.0.0.1:3000`. Em produção precisará da URL real do app web.
