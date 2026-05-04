@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: auth-multi-tenancy-core
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-05-04
+reviewed_at: 2026-05-04
 ---
 
 # Phase 1 — Auth & Multi-tenancy Core: UI Design Contract
