@@ -8,10 +8,16 @@ class _MockSupabaseService extends Mock implements SupabaseService {}
 
 class _MockGoTrueClient extends Mock implements GoTrueClient {}
 
+class _FakeUserAttributes extends Fake implements UserAttributes {}
+
 void main() {
   late _MockSupabaseService service;
   late _MockGoTrueClient auth;
   late AuthRepository repo;
+
+  setUpAll(() {
+    registerFallbackValue(_FakeUserAttributes());
+  });
 
   setUp(() {
     service = _MockSupabaseService();
@@ -59,8 +65,14 @@ void main() {
   });
 
   test('updatePassword calls updateUser with new password', () async {
-    when(() => auth.updateUser(any()))
-        .thenAnswer((_) async => UserResponse(user: null));
+    when(() => auth.updateUser(any())).thenAnswer(
+      (_) async => UserResponse.fromJson({
+        'id': '',
+        'aud': '',
+        'created_at': '',
+        'app_metadata': <String, dynamic>{},
+      }),
+    );
 
     await repo.updatePassword('newpass1');
 
