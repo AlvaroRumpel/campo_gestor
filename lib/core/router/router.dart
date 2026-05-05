@@ -6,6 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/animais/presentation/animais_screen.dart';
+import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/no_access_screen.dart';
+import '../../features/auth/presentation/reset_password_screen.dart';
+import '../../features/auth/presentation/signup_screen.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
@@ -22,10 +27,12 @@ final _shellSanitarioKey = GlobalKey<NavigatorState>(debugLabel: 'sanitario');
 
 /// Provider exposing the singleton GoRouter for the app.
 ///
-/// keepAlive: router persists for the app's lifetime; reconstruction would
-/// reset navigation history. Auth state changes refresh the router via
-/// [GoRouterRefreshStream] which wraps Supabase's `onAuthStateChange` with the
-/// mandatory `onError` handler (Pitfall 2 — token refresh on bad network).
+/// Phase 1 changes:
+/// - Adds /login /signup /reset-password /sem-acesso routes (root-level, NOT shell).
+/// - Replaces the permissive redirect with an auth guard that observes
+///   [authNotifierProvider]. Pitfall 1: returns null while AsyncValue.isLoading
+///   to avoid bouncing users on cold start. Pitfall 2: passwordRecovery is
+///   checked BEFORE isLoggedIn so the user lands on /reset-password.
 final routerProvider = Provider<GoRouter>((ref) {
   final authStream = Supabase.instance.client.auth.onAuthStateChange;
 
@@ -35,10 +42,59 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: false,
     refreshListenable: GoRouterRefreshStream(authStream),
     redirect: (context, state) {
-      // Phase 0: permissive — always allow. Phase 1 enforces auth.
+      final authAsync = ref.read(authNotifierProvider);
+
+      // Pitfall 1: don't redirect while initial auth resolution is pending.
+      if (authAsync.isLoading) return null;
+
+      final authState = authAsync.asData?.value;
+      final session = authState?.session;
+      final isLoggedIn = session != null;
+      final isPasswordRecovery =
+          authState?.event == AuthChangeEvent.passwordRecovery;
+
+      final loc = state.matchedLocation;
+      final onAuthRoute = AppRoutes.authRoutes.contains(loc);
+
+      // Pitfall 2: passwordRecovery wins over signedIn. Send the user to
+      // the new-password form even if they technically have a session.
+      if (isPasswordRecovery && loc != AppRoutes.resetPassword) {
+        return AppRoutes.resetPassword;
+      }
+
+      // Not logged in: only auth routes are reachable.
+      if (!isLoggedIn) {
+        return onAuthRoute ? null : AppRoutes.login;
+      }
+
+      // Logged in but sitting on /login or /signup: bounce to dashboard.
+      // Stay on /reset-password (recovery flow may still be in progress) and
+      // /sem-acesso (the user has no memberships — Plan 03 will route here).
+      if (loc == AppRoutes.login || loc == AppRoutes.signup) {
+        return AppRoutes.dashboard;
+      }
+
       return null;
     },
     routes: [
+      // Auth routes (root-level, outside the AppShell)
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (ctx, _) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.signup,
+        builder: (ctx, _) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        builder: (ctx, _) => const ResetPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.noAccess,
+        builder: (ctx, _) => const NoAccessScreen(),
+      ),
+      // Shell routes (Phase 0)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             AppShell(navigationShell: navigationShell),
@@ -107,7 +163,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
           (_) => notifyListeners(),
           onError: (_) {
             // Swallow stream errors to keep router alive across token refresh
-            // failures. Real error handling lives at the auth layer in Phase 1.
+            // failures. Real error handling lives at the auth layer.
           },
         );
   }
