@@ -15,6 +15,7 @@ import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/sanitario_screen.dart';
+import '../providers/current_property_provider.dart';
 import '../widgets/app_shell.dart';
 import 'routes.dart';
 
@@ -56,8 +57,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loc = state.matchedLocation;
       final onAuthRoute = AppRoutes.authRoutes.contains(loc);
 
-      // Pitfall 2: passwordRecovery wins over signedIn. Send the user to
-      // the new-password form even if they technically have a session.
+      // Pitfall 2: passwordRecovery wins over signedIn.
       if (isPasswordRecovery && loc != AppRoutes.resetPassword) {
         return AppRoutes.resetPassword;
       }
@@ -67,10 +67,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         return onAuthRoute ? null : AppRoutes.login;
       }
 
-      // Logged in but sitting on /login or /signup: bounce to dashboard.
-      // Stay on /reset-password (recovery flow may still be in progress) and
-      // /sem-acesso (the user has no memberships — Plan 03 will route here).
+      // Logged in. Check membership.
+      final members = ref.read(memberPropertiesProvider);
+      if (members.isLoading) return null;
+      final membersList = members.asData?.value;
+
+      // Empty memberships (D-03): route to /sem-acesso.
+      if (membersList != null && membersList.isEmpty) {
+        return loc == AppRoutes.noAccess ? null : AppRoutes.noAccess;
+      }
+
+      // Has memberships on /login or /signup: bounce to dashboard.
       if (loc == AppRoutes.login || loc == AppRoutes.signup) {
+        return AppRoutes.dashboard;
+      }
+
+      // Has memberships but sitting on /sem-acesso (post re-membership): bounce.
+      if (loc == AppRoutes.noAccess &&
+          membersList != null &&
+          membersList.isNotEmpty) {
         return AppRoutes.dashboard;
       }
 
