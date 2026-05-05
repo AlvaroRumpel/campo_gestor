@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/data/auth_repository.dart';
+import '../providers/current_property_provider.dart';
 import 'property_selector.dart';
 
 /// Adaptive shell widget rendering NavigationRail (>=600px) or NavigationBar
@@ -55,6 +57,16 @@ class AppShell extends ConsumerWidget {
         return Scaffold(
           appBar: AppBar(
             title: const PropertySelector(),
+            actions: [
+              IconButton(
+                tooltip: 'Sair',
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  await ref.read(authRepositoryProvider).signOut();
+                  await ref.read(currentPropertyProvider.notifier).clear();
+                },
+              ),
+            ],
           ),
           body: isWide
               ? Row(
