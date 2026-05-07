@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 01
-current_plan: 1
-status: unknown
-last_updated: "2026-05-05T12:46:41.128Z"
+current_phase: 02
+current_plan: 0
+status: ready
+last_updated: "2026-05-07T00:00:00.000Z"
 progress:
   total_phases: 9
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 9
-  completed_plans: 6
-  percent: 67
+  completed_plans: 9
+  percent: 22
 ---
 
 # Project State
@@ -21,9 +21,9 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 01
-**Current plan:** 1
-**Progress:** [██████████] Phase 0 complete (1/9 phases)
+**Current phase:** 02
+**Current plan:** —
+**Progress:** [██████████████████████] Phase 0–1 complete (2/9 phases)
 
 ---
 
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md
 | # | Phase | Status |
 |---|---|---|
 | 0 | Foundation | complete (6/6 plans) |
-| 1 | Auth & Multi-tenancy Core | not-started |
+| 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | not-started |
 | 3 | Lots & Animals (Operational Core) | not-started |
 | 4 | Movements | not-started |
