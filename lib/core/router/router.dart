@@ -89,6 +89,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoutes.dashboard;
       }
 
+      // Pitfall 3: currentPropertyProvider is async — hold until it resolves so
+      // shell screens never receive a null active property on cold start.
+      // All screens inside the shell MUST still handle the loading/null case
+      // via .when() or .isLoading checks; this guard only covers the redirect.
+      final currentProp = ref.read(currentPropertyProvider);
+      if (currentProp.isLoading) return null;
+
       return null;
     },
     routes: [
