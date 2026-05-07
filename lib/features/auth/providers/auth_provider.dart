@@ -29,7 +29,14 @@ class AuthNotifier extends AsyncNotifier<AuthState?> {
         state = AsyncData(data);
       },
       onError: (Object err, StackTrace st) {
-        // Network errors during refresh — keep last known state, don't crash.
+        if (err is AuthException) {
+          // Session is gone — force unauthenticated state so the router
+          // redirects to /login. Non-AuthException errors (socket, etc.) keep
+          // the last known state; the router will retry on the next auth event.
+          state = const AsyncData(null);
+        }
+        // Non-auth errors (e.g. SocketException on refresh): keep last known
+        // state — the user may still be online and the session may recover.
       },
     );
     ref.onDispose(() => _sub?.cancel());
