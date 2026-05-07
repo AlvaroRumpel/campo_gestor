@@ -20,7 +20,10 @@
       "Skill(gsd-code-review)",
       "Skill(gsd-code-review:*)",
       "Bash(rtk git *)",
-      "Bash(measure-object -line)"
+      "Bash(measure-object -line)",
+      "Skill(gsd-complete-milestone)",
+      "Skill(gsd-complete-milestone:*)",
+      "Bash(rtk flutter *)"
     ]
   }
 }

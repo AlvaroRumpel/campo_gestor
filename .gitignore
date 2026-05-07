@@ -62,3 +62,9 @@ supabase/.temp/
 # Coverage reports
 /coverage/
 lcov.info
+
+# Claude Code worktrees (temporary, created by parallel agents)
+.claude/worktrees/
+
+# Graphify cache (local, regenerated on demand)
+graphify-out/cache/
