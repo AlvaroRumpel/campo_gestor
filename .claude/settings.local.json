@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Skill(gsd-new-project)",
-      "Skill(gsd-new-project:*)"
+      "Skill(gsd-new-project:*)",
+      "Bash(rm -rf \".git/worktrees/agent-ad5ede2896ef6e617\")",
+      "Bash(git worktree *)",
+      "Bash(git branch *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter test *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs roadmap update-plan-progress 01 01-03 completed)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs config-get workflow.code_review)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs config-get workflow.security_enforcement --raw)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs verify schema-drift 01)",
+      "Bash(echo \"EXIT:$?\")",
+      "Skill(gsd-code-review)",
+      "Skill(gsd-code-review:*)",
+      "Bash(rtk git *)",
+      "Bash(measure-object -line)"
     ]
   }
 }

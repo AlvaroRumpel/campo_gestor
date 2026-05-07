@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: Phase 1 — Auth & Multi-tenancy Core
-current_plan: —
+current_phase: 01
+current_plan: 1
 status: unknown
-last_updated: "2026-05-04T21:57:03.120Z"
+last_updated: "2026-05-05T12:46:41.128Z"
 progress:
   total_phases: 9
   completed_phases: 1
@@ -21,8 +21,8 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** Phase 1 — Auth & Multi-tenancy Core
-**Current plan:** —
+**Current phase:** 01
+**Current plan:** 1
 **Progress:** [██████████] Phase 0 complete (1/9 phases)
 
 ---
