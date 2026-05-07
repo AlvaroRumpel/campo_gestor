@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/providers/supabase_providers.dart';
 import '../../../core/services/supabase_service.dart';
 
@@ -13,11 +14,15 @@ class AuthRepository {
   AuthRepository(this._service);
   final SupabaseService _service;
 
-  /// Reset email lands here. Must match supabase/config.toml
-  /// `additional_redirect_urls`. http://127.0.0.1:3000 is the dev URL
-  /// served by `flutter run -d edge`.
-  static const String resetRedirect =
-      'http://127.0.0.1:3000/reset-password';
+  /// Reset email redirect URL, built from the injected [AppConfig.appOrigin].
+  ///
+  /// Must be listed in supabase/config.toml `additional_redirect_urls` (local)
+  /// and in the production Supabase project's allowed redirect URLs.
+  /// Inject the origin at build time:
+  ///   flutter run --dart-define=APP_ORIGIN=http://127.0.0.1:3000
+  ///   flutter build web --dart-define=APP_ORIGIN=https://app.campogestor.com.br
+  static String get resetRedirect =>
+      '${AppConfig.appOrigin}/reset-password';
 
   Future<AuthResponse> signUp({
     required String email,
