@@ -48,7 +48,13 @@ class PropertyRepository {
 
     return (rows as List).map((row) {
       final r = row as Map<String, dynamic>;
-      final p = r['propriedades'] as Map<String, dynamic>;
+      final rawProp = r['propriedades'];
+      if (rawProp == null) {
+        // Membership row exists but the joined property is not readable —
+        // RLS blocked it (e.g., mid-query membership revocation). Skip it.
+        return null;
+      }
+      final p = rawProp as Map<String, dynamic>;
       return PropertyMembership(
         property: Property(
           id: p['id'] as String,
@@ -56,7 +62,7 @@ class PropertyRepository {
         ),
         perfil: r['perfil'] as String,
       );
-    }).toList();
+    }).whereType<PropertyMembership>().toList();
   }
 }
 
