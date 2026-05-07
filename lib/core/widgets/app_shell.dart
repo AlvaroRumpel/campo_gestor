@@ -62,8 +62,12 @@ class AppShell extends ConsumerWidget {
                 tooltip: 'Sair',
                 icon: const Icon(Icons.logout),
                 onPressed: () async {
-                  await ref.read(authRepositoryProvider).signOut();
+                  // Clear persisted property ID BEFORE signOut so SharedPreferences
+                  // is clean before the auth event fires and triggers a router
+                  // redirect. Reversing the order risks a stale active_property_id
+                  // surviving a logout if the app rebuilds mid-sequence.
                   await ref.read(currentPropertyProvider.notifier).clear();
+                  await ref.read(authRepositoryProvider).signOut();
                 },
               ),
             ],
