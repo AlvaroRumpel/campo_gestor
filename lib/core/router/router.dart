@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/animais/presentation/animais_screen.dart';
+import '../../features/auth/data/property_repository.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/no_access_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
@@ -41,7 +42,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootKey,
     initialLocation: AppRoutes.dashboard,
     debugLogDiagnostics: false,
-    refreshListenable: GoRouterRefreshStream(authStream),
+    refreshListenable: _RouterRefreshNotifier(authStream, ref),
     redirect: (context, state) {
       final authAsync = ref.read(authNotifierProvider);
 
@@ -175,26 +176,30 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-/// Adapter: turns a [Stream] into a [Listenable] that GoRouter can consume.
-/// onError is mandatory — Supabase auth stream emits errors on token refresh
-/// failure with bad network (RESEARCH.md Pitfall 2).
-class GoRouterRefreshStream extends ChangeNotifier {
-  GoRouterRefreshStream(Stream<dynamic> stream) {
+/// Combines auth stream + [memberPropertiesProvider] into one [Listenable].
+///
+/// GoRouter only re-evaluates redirect when its refreshListenable fires.
+/// Wiring only the auth stream misses the case where the user is already
+/// logged in but memberPropertiesProvider transitions loading→data after
+/// the auth event — without this the router would stay stuck on /login.
+class _RouterRefreshNotifier extends ChangeNotifier {
+  _RouterRefreshNotifier(Stream<dynamic> authStream, Ref ref) {
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen(
+    _authSub = authStream.asBroadcastStream().listen(
           (_) => notifyListeners(),
-          onError: (_) {
-            // Swallow stream errors to keep router alive across token refresh
-            // failures. Real error handling lives at the auth layer.
-          },
+          onError: (_) {},
         );
+    ref.listen<AsyncValue<List<PropertyMembership>>>(
+      memberPropertiesProvider,
+      (_, _) => notifyListeners(),
+    );
   }
 
-  late final StreamSubscription<dynamic> _subscription;
+  late final StreamSubscription<dynamic> _authSub;
 
   @override
   void dispose() {
-    _subscription.cancel();
+    _authSub.cancel();
     super.dispose();
   }
 }

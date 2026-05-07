@@ -6,7 +6,7 @@
 
 String testSupabaseUrl() => const String.fromEnvironment(
       'SUPABASE_URL',
-      defaultValue: 'http://localhost:54321',
+      defaultValue: 'http://127.0.0.1:54321',
     );
 
 String testSupabaseAnonKey() => const String.fromEnvironment(
