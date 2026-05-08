@@ -23,7 +23,12 @@
       "Bash(measure-object -line)",
       "Skill(gsd-complete-milestone)",
       "Skill(gsd-complete-milestone:*)",
-      "Bash(rtk flutter *)"
+      "Bash(rtk flutter *)",
+      "Bash(Get-ChildItem -Path \"E:\\\\Obsidian\\\\claude brain\\\\campo_gestor\\\\data\\\\\" -Force | Select-Object Name, FullName | Format-Table -AutoSize)",
+      "Bash(chmod +x \"C:/Users/alvar/.claude/hooks/vault-planning-summary.sh\" \"C:/Users/alvar/.claude/hooks/vault-schema-extract.sh\" \"C:/Users/alvar/.claude/hooks/vault-models-inventory.sh\")",
+      "Bash(bash \"C:/Users/alvar/.claude/hooks/vault-schema-extract.sh\")",
+      "Bash(bash \"C:/Users/alvar/.claude/hooks/vault-models-inventory.sh\")",
+      "Bash(git merge *)"
     ]
   }
 }
