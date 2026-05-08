@@ -64,7 +64,10 @@ class PropriedadesScreen extends ConsumerWidget {
     SelectedProperty? current,
     List<PropertyMembership>? members,
   ) {
-    if (current == null || members == null) return false;
+    if (members == null) return false;
+    // No memberships → allow creating the first property.
+    if (members.isEmpty) return true;
+    if (current == null) return false;
     final role = members
         .where((m) => m.property.id == current.id)
         .map((m) => m.role)

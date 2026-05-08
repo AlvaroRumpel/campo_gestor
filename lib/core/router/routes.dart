@@ -38,10 +38,11 @@ abstract final class AppRoutes {
   ];
 
   /// All auth routes — used by router redirect to detect "is on auth route".
+  /// noAccess is intentionally excluded: after signOut from /sem-acesso the
+  /// redirect must still land on /login (not stay put).
   static const authRoutes = <String>[
     login,
     signup,
     resetPassword,
-    noAccess,
   ];
 }
