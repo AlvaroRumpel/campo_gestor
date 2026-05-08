@@ -28,7 +28,17 @@
       "Bash(chmod +x \"C:/Users/alvar/.claude/hooks/vault-planning-summary.sh\" \"C:/Users/alvar/.claude/hooks/vault-schema-extract.sh\" \"C:/Users/alvar/.claude/hooks/vault-models-inventory.sh\")",
       "Bash(bash \"C:/Users/alvar/.claude/hooks/vault-schema-extract.sh\")",
       "Bash(bash \"C:/Users/alvar/.claude/hooks/vault-models-inventory.sh\")",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(# Restore orchestrator-owned files from backup *)",
+      "Bash(dart run *)",
+      "PowerShell(dart run build_runner build --delete-conflicting-outputs 2>&1)",
+      "PowerShell(dart run build_runner build 2>&1)",
+      "PowerShell(rtk flutter test test/ 2>&1)",
+      "PowerShell(supabase db reset --local 2>&1)",
+      "PowerShell(supabase test db supabase/tests/02_property_paddock_test.sql 2>&1)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

@@ -5,56 +5,50 @@ import '../../../core/services/supabase_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'propriedade_model.dart';
 
-/// CRUD repository for propriedades (PROP-01).
+/// CRUD repository for properties (PROP-01).
 ///
 /// All methods route through SupabaseService — widgets must NEVER import
 /// supabase_flutter directly (D-06 from Phase 0).
-class PropriedadeRepository {
-  PropriedadeRepository(this._service);
+class PropertyRepository {
+  PropertyRepository(this._service);
   final SupabaseService _service;
 
-  /// Fetch all propriedades the user is a member of, excluding soft-deleted.
-  /// Used by /propriedades management screen.
-  Future<List<Propriedade>> fetchPropriedades() async {
-    // Gated by RLS members_can_read_their_properties; we still pass the
-    // deleted_at filter for clarity and to allow future query optimizer use.
+  /// Fetch all properties the user is a member of, excluding soft-deleted.
+  Future<List<Property>> fetchProperties() async {
     final rows = await _service.client
-        .from('propriedades')
+        .from('properties')
         .select()
         .isFilter('deleted_at', null)
-        .order('nome');
+        .order('name');
     return (rows as List)
-        .map((r) => Propriedade.fromJson(r as Map<String, dynamic>))
+        .map((r) => Property.fromJson(r as Map<String, dynamic>))
         .toList();
   }
 
-  /// Create a propriedade and immediately register the creator as
-  /// veterinario member (D-04). Two-step because RLS prevents
+  /// Create a property and immediately register the creator as
+  /// veterinarian member (D-04). Two-step because RLS prevents
   /// arbitrary INSERT into property_members.
   ///
-  /// Returns the created Propriedade. Throws on RLS or network failure.
+  /// Returns the created Property. Throws on RLS or network failure.
   ///
   /// NOTE (T-02-12): If step 2 (membership INSERT) fails after step 1
-  /// (propriedade INSERT), an orphan propriedade row is left in the DB.
+  /// (property INSERT), an orphan property row is left in the DB.
   /// Accepted for MVP: the row is invisible (no membership → RLS blocks reads).
   /// A future phase will wrap both inserts in a Postgres function atomically.
-  Future<Propriedade> createPropriedadeWithMembership({
-    required String nome,
-    required String proprietario,
+  Future<Property> createPropertyWithMembership({
+    required String name,
+    String? owner,
   }) async {
-    // Step 1: insert propriedade. RLS allows any authenticated user to INSERT.
     final propRow = await _service.client
-        .from('propriedades')
+        .from('properties')
         .insert({
-          'nome': nome,
-          'proprietario': proprietario,
+          'name': name,
+          if (owner != null) 'owner': owner,
         })
         .select()
         .single();
-    final created = Propriedade.fromJson(propRow);
+    final created = Property.fromJson(propRow);
 
-    // Step 2: insert membership row with perfil='veterinario' (D-04).
-    // RLS WITH CHECK enforces user_id = auth.uid().
     final userId = _service.auth.currentUser?.id;
     if (userId == null) {
       throw StateError('Usuário não autenticado ao criar propriedade');
@@ -62,49 +56,46 @@ class PropriedadeRepository {
     await _service.client.from('property_members').insert({
       'user_id': userId,
       'property_id': created.id,
-      'perfil': 'veterinario',
+      'role': 'veterinarian',
     });
 
     return created;
   }
 
-  /// Update a propriedade's editable fields. RLS requires get_perfil = veterinario.
-  Future<Propriedade> updatePropriedade({
+  /// Update a property's editable fields. RLS requires get_role = veterinarian.
+  Future<Property> updateProperty({
     required String id,
-    required String nome,
-    required String proprietario,
+    required String name,
+    String? owner,
   }) async {
     final row = await _service.client
-        .from('propriedades')
+        .from('properties')
         .update({
-          'nome': nome,
-          'proprietario': proprietario,
+          'name': name,
+          'owner': owner,
         })
         .eq('id', id)
         .select()
         .single();
-    return Propriedade.fromJson(row);
+    return Property.fromJson(row);
   }
 
-  /// Soft-delete: sets deleted_at = now(). RLS requires veterinario perfil.
-  /// Hard DELETE is intentionally not granted in the schema.
-  Future<void> softDeletePropriedade(String id) async {
+  /// Soft-delete: sets deleted_at = now(). RLS requires veterinarian role.
+  Future<void> softDeleteProperty(String id) async {
     await _service.client
-        .from('propriedades')
+        .from('properties')
         .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
         .eq('id', id);
   }
 }
 
-final propriedadeRepositoryProvider = Provider<PropriedadeRepository>(
-  (ref) => PropriedadeRepository(ref.watch(supabaseServiceProvider)),
+final propertyRepositoryProvider = Provider<PropertyRepository>(
+  (ref) => PropertyRepository(ref.watch(supabaseServiceProvider)),
 );
 
-/// List of propriedades the active user can see (filtered by RLS + soft-delete).
-final propriedadeListProvider =
-    FutureProvider<List<Propriedade>>((ref) async {
-  // Re-fetch when auth state changes to handle login/logout cleanly.
+/// List of properties the active user can see (filtered by RLS + soft-delete).
+final propertyListProvider = FutureProvider<List<Property>>((ref) async {
   ref.watch(authNotifierProvider);
-  final repo = ref.read(propriedadeRepositoryProvider);
-  return repo.fetchPropriedades();
+  final repo = ref.read(propertyRepositoryProvider);
+  return repo.fetchProperties();
 });

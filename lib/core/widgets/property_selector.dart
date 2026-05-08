@@ -11,13 +11,13 @@ import '../providers/current_property_provider.dart';
 class PropertySelector extends ConsumerWidget {
   const PropertySelector({super.key});
 
-  static String _perfilLabel(String raw) {
+  static String _roleLabel(String raw) {
     switch (raw) {
-      case 'proprietario':
+      case 'owner':
         return 'Proprietário';
-      case 'veterinario':
+      case 'veterinarian':
         return 'Veterinário';
-      case 'leitor':
+      case 'reader':
         return 'Leitor';
       default:
         return raw;
@@ -40,7 +40,7 @@ class PropertySelector extends ConsumerWidget {
         // With 1 prop: plain Text (no dropdown — D-05).
         final list = members.asData?.value ?? const <PropertyMembership>[];
         if (list.length <= 1) {
-          return Text(property.nome, style: const TextStyle(fontSize: 18));
+          return Text(property.name, style: const TextStyle(fontSize: 18));
         }
         // With 2+ props: dropdown via PopupMenuButton.
         return PopupMenuButton<PropertyMembership>(
@@ -56,11 +56,11 @@ class PropertySelector extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(m.property.nome,
+                      Text(m.property.name,
                           style: const TextStyle(fontSize: 16)),
                       const SizedBox(height: 4),
                       Text(
-                        _perfilLabel(m.perfil),
+                        _roleLabel(m.role),
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context)
@@ -77,7 +77,7 @@ class PropertySelector extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(property.nome, style: const TextStyle(fontSize: 18)),
+              Text(property.name, style: const TextStyle(fontSize: 18)),
               const SizedBox(width: 4),
               const Icon(Icons.arrow_drop_down, size: 24),
             ],

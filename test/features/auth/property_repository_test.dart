@@ -1,21 +1,19 @@
 import 'package:campo_gestor/core/providers/current_property_provider.dart'
-    show Property;
+    show SelectedProperty;
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('PropertyMembership is exported with property and perfil fields', () {
-    // Compile-only assertion — proves the API surface exists.
+  test('PropertyMembership is exported with property and role fields', () {
     const m = PropertyMembership(
-      property: Property(id: 'p1', nome: 'Fazenda Teste'),
-      perfil: 'proprietario',
+      property: SelectedProperty(id: 'p1', name: 'Fazenda Teste'),
+      role: 'owner',
     );
     expect(m.property.id, 'p1');
-    expect(m.perfil, 'proprietario');
+    expect(m.role, 'owner');
   });
 
-  test('PropertyRepository exposes fetchMemberProperties signature', () {
-    // The class must exist and the method must return Future<List<PropertyMembership>>.
-    expect(PropertyRepository, isA<Type>());
+  test('MembershipRepository exposes fetchMemberProperties signature', () {
+    expect(MembershipRepository, isA<Type>());
   });
 }

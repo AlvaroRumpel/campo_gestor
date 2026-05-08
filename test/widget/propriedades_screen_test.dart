@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          propriedadeListProvider.overrideWith((ref) async => <Propriedade>[]),
+          propertyListProvider.overrideWith((ref) async => <Property>[]),
         ],
         child: const MaterialApp(home: PropriedadesScreen()),
       ),

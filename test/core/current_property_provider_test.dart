@@ -7,8 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 ProviderContainer _makeContainer(List<PropertyMembership> memberships) {
   return ProviderContainer(
     overrides: [
-      // Override memberPropertiesProvider so we don't have to wire a fake
-      // authNotifier and SupabaseService.
       memberPropertiesProvider.overrideWith((ref) async => memberships),
     ],
   );
@@ -30,8 +28,8 @@ void main() {
   test('auto-selects with 1 property (D-05)', () async {
     final container = _makeContainer(const [
       PropertyMembership(
-        property: Property(id: 'p1', nome: 'Fazenda Solo'),
-        perfil: 'proprietario',
+        property: SelectedProperty(id: 'p1', name: 'Fazenda Solo'),
+        role: 'owner',
       ),
     ]);
     addTearDown(container.dispose);
@@ -39,7 +37,7 @@ void main() {
     final v = await container.read(currentPropertyProvider.future);
     expect(v, isNotNull);
     expect(v!.id, 'p1');
-    expect(v.nome, 'Fazenda Solo');
+    expect(v.name, 'Fazenda Solo');
   });
 
   test('with N properties uses saved id from SharedPreferences (D-06)',
@@ -48,12 +46,12 @@ void main() {
 
     final container = _makeContainer(const [
       PropertyMembership(
-        property: Property(id: 'p1', nome: 'Alpha'),
-        perfil: 'proprietario',
+        property: SelectedProperty(id: 'p1', name: 'Alpha'),
+        role: 'owner',
       ),
       PropertyMembership(
-        property: Property(id: 'p2', nome: 'Beta'),
-        perfil: 'veterinario',
+        property: SelectedProperty(id: 'p2', name: 'Beta'),
+        role: 'veterinarian',
       ),
     ]);
     addTearDown(container.dispose);
@@ -70,12 +68,12 @@ void main() {
 
     final container = _makeContainer(const [
       PropertyMembership(
-        property: Property(id: 'p1', nome: 'Alpha'),
-        perfil: 'proprietario',
+        property: SelectedProperty(id: 'p1', name: 'Alpha'),
+        role: 'owner',
       ),
       PropertyMembership(
-        property: Property(id: 'p2', nome: 'Beta'),
-        perfil: 'leitor',
+        property: SelectedProperty(id: 'p2', name: 'Beta'),
+        role: 'reader',
       ),
     ]);
     addTearDown(container.dispose);
@@ -87,12 +85,12 @@ void main() {
   test('selectProperty persists id and updates state', () async {
     final container = _makeContainer(const [
       PropertyMembership(
-        property: Property(id: 'p1', nome: 'Alpha'),
-        perfil: 'proprietario',
+        property: SelectedProperty(id: 'p1', name: 'Alpha'),
+        role: 'owner',
       ),
       PropertyMembership(
-        property: Property(id: 'p2', nome: 'Beta'),
-        perfil: 'veterinario',
+        property: SelectedProperty(id: 'p2', name: 'Beta'),
+        role: 'veterinarian',
       ),
     ]);
     addTearDown(container.dispose);
@@ -100,7 +98,7 @@ void main() {
     await container.read(currentPropertyProvider.future);
     await container
         .read(currentPropertyProvider.notifier)
-        .selectProperty(const Property(id: 'p2', nome: 'Beta'));
+        .selectProperty(const SelectedProperty(id: 'p2', name: 'Beta'));
 
     final updated = container.read(currentPropertyProvider).asData?.value;
     expect(updated?.id, 'p2');
@@ -114,8 +112,8 @@ void main() {
 
     final container = _makeContainer(const [
       PropertyMembership(
-        property: Property(id: 'p1', nome: 'Alpha'),
-        perfil: 'proprietario',
+        property: SelectedProperty(id: 'p1', name: 'Alpha'),
+        role: 'owner',
       ),
     ]);
     addTearDown(container.dispose);

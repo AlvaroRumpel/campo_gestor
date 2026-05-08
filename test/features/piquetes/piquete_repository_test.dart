@@ -3,73 +3,70 @@ import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('Piquete model has all 7 required fields', () {
-    // Compile-only assertion — proves the API surface exists and all fields
-    // are correctly typed. No Supabase connection required.
-    final p = Piquete(
+  test('Paddock model has all 7 required fields', () {
+    final p = Paddock(
       id: 'piq-1',
-      propriedadeId: 'prop-1',
-      nome: 'Piquete Norte',
+      propertyId: 'prop-1',
+      name: 'Paddock North',
       areaHa: 12.5,
-      capacidadeUa: 50.0,
+      uaCapacity: 50.0,
       createdAt: DateTime(2026, 5, 8),
       deletedAt: null,
     );
     expect(p.id, 'piq-1');
-    expect(p.propriedadeId, 'prop-1');
-    expect(p.nome, 'Piquete Norte');
+    expect(p.propertyId, 'prop-1');
+    expect(p.name, 'Paddock North');
     expect(p.areaHa, 12.5);
-    expect(p.capacidadeUa, 50.0);
+    expect(p.uaCapacity, 50.0);
     expect(p.createdAt, DateTime(2026, 5, 8));
     expect(p.deletedAt, isNull);
   });
 
-  test('Piquete supports copyWith (freezed contract)', () {
-    final original = Piquete(
+  test('Paddock supports copyWith (freezed contract)', () {
+    final original = Paddock(
       id: 'piq-1',
-      propriedadeId: 'prop-1',
-      nome: 'Piquete Norte',
+      propertyId: 'prop-1',
+      name: 'Paddock North',
       areaHa: 12.5,
-      capacidadeUa: 50.0,
+      uaCapacity: 50.0,
       createdAt: DateTime(2026, 5, 8),
     );
-    final updated = original.copyWith(nome: 'Piquete Sul');
-    expect(updated.nome, 'Piquete Sul');
+    final updated = original.copyWith(name: 'Paddock South');
+    expect(updated.name, 'Paddock South');
     expect(updated.id, 'piq-1');
   });
 
-  test('Piquete.fromJson deserializes snake_case keys', () {
+  test('Paddock.fromJson deserializes snake_case keys', () {
     final json = {
       'id': 'piq-2',
-      'propriedade_id': 'prop-2',
-      'nome': 'Piquete Leste',
+      'property_id': 'prop-2',
+      'name': 'Paddock East',
       'area_ha': 8.0,
-      'capacidade_ua': 30.0,
+      'ua_capacity': 30.0,
       'created_at': '2026-05-08T00:00:00.000Z',
       'deleted_at': null,
     };
-    final p = Piquete.fromJson(json);
+    final p = Paddock.fromJson(json);
     expect(p.id, 'piq-2');
-    expect(p.propriedadeId, 'prop-2');
+    expect(p.propertyId, 'prop-2');
     expect(p.areaHa, 8.0);
-    expect(p.capacidadeUa, 30.0);
+    expect(p.uaCapacity, 30.0);
     expect(p.deletedAt, isNull);
   });
 
-  test('PiqueteRepository class exists and has expected method signatures', () {
-    // Compile-only assertion — proves the repository surface exists.
-    expect(PiqueteRepository, isA<Type>());
+  test('PaddockRepository class exists and has expected method signatures', () {
+    expect(PaddockRepository, isA<Type>());
   });
 
-  test('piqueteRepositoryProvider is a non-null provider', () {
-    expect(piqueteRepositoryProvider, isNotNull);
+  test('paddockRepositoryProvider is a non-null provider', () {
+    expect(paddockRepositoryProvider, isNotNull);
   });
 
-  test('piqueteListProvider is a non-null FutureProvider', () {
-    expect(piqueteListProvider, isNotNull);
+  test('paddockListProvider is a non-null FutureProvider', () {
+    expect(paddockListProvider, isNotNull);
   });
 
-  test('piqueteByIdProvider is a non-null FutureProvider.family', () {
-    expect(piqueteByIdProvider, isNotNull);
+  test('paddockByIdProvider is a non-null FutureProvider.family', () {
+    expect(paddockByIdProvider, isNotNull);
   });
 }

@@ -3,22 +3,23 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'propriedade_model.freezed.dart';
 part 'propriedade_model.g.dart';
 
-/// Data class for a rural property (propriedade).
+/// Full domain model for a rural property.
 ///
-/// D-05: `proprietario` is a free-text field (NOT a FK to auth.users) so that
-/// the veterinário can register the owner's name without requiring an account.
-/// D-11: soft-delete via `deleted_at`; hard DELETE is not granted by RLS.
+/// D-05: `owner` is free-text (NOT a FK to auth.users) — veterinarian registers
+/// the owner's name without requiring an account.
+/// D-11: soft-delete via `deletedAt`; hard DELETE is not granted by RLS.
 @freezed
-@JsonSerializable(fieldRename: FieldRename.snake)
-sealed class Propriedade with _$Propriedade {
-  const factory Propriedade({
+sealed class Property with _$Property {
+  // ignore: invalid_annotation_target
+  @JsonSerializable(fieldRename: FieldRename.snake)
+  const factory Property({
     required String id,
-    required String nome,
-    required String proprietario,
+    required String name,
+    String? owner,
     required DateTime createdAt,
     DateTime? deletedAt,
-  }) = _Propriedade;
+  }) = _Property;
 
-  factory Propriedade.fromJson(Map<String, dynamic> json) =>
-      _$PropriedadeFromJson(json);
+  factory Property.fromJson(Map<String, dynamic> json) =>
+      _$PropertyFromJson(json);
 }

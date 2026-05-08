@@ -6,7 +6,7 @@
 -- ============================================================
 -- 1. Properties (deterministic UUIDs)
 -- ============================================================
-INSERT INTO propriedades (id, nome) VALUES
+INSERT INTO properties (id, name) VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001', 'Fazenda Alpha'),
   ('bbbbbbbb-0000-0000-0000-000000000002', 'Fazenda Beta')
 ON CONFLICT (id) DO NOTHING;
@@ -108,14 +108,14 @@ ON CONFLICT (provider, provider_id) DO NOTHING;
 
 -- ============================================================
 -- 3. Property memberships (D-04: seed-only)
--- userA → Fazenda Alpha (proprietario)
--- userB → Fazenda Beta  (proprietario)
+-- userA → Fazenda Alpha (owner)
+-- userB → Fazenda Beta  (owner)
 -- ============================================================
-INSERT INTO property_members (user_id, property_id, perfil) VALUES
+INSERT INTO property_members (user_id, property_id, role) VALUES
   ('aaaa1111-0000-0000-0000-000000000001',
    'aaaaaaaa-0000-0000-0000-000000000001',
-   'proprietario'),
+   'owner'),
   ('bbbb2222-0000-0000-0000-000000000002',
    'bbbbbbbb-0000-0000-0000-000000000002',
-   'proprietario')
+   'owner')
 ON CONFLICT (user_id, property_id) DO NOTHING;

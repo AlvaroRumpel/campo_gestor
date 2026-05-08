@@ -4,19 +4,19 @@ part 'piquete_model.freezed.dart';
 part 'piquete_model.g.dart';
 
 @freezed
-sealed class Piquete with _$Piquete {
+sealed class Paddock with _$Paddock {
   // ignore: invalid_annotation_target
   @JsonSerializable(fieldRename: FieldRename.snake)
-  const factory Piquete({
+  const factory Paddock({
     required String id,
-    required String propriedadeId,
-    required String nome,
+    required String propertyId,
+    required String name,
     required double areaHa,
-    required double capacidadeUa,
+    required double uaCapacity,
     required DateTime createdAt,
     DateTime? deletedAt,
-  }) = _Piquete;
+  }) = _Paddock;
 
-  factory Piquete.fromJson(Map<String, dynamic> json) =>
-      _$PiqueteFromJson(json);
+  factory Paddock.fromJson(Map<String, dynamic> json) =>
+      _$PaddockFromJson(json);
 }

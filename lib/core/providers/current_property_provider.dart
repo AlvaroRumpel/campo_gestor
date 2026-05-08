@@ -4,27 +4,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/auth/data/property_repository.dart';
 import '../../features/auth/providers/auth_provider.dart';
 
-/// Active rural property the user is operating on.
+/// Lightweight shell DTO for the currently active property.
 ///
-/// Phase 0 placeholder. Phase 1 connects to property_members + SharedPreferences.
-class Property {
-  const Property({required this.id, required this.nome});
+/// Used by AppShell, PropertySelector, and router — only needs id + name.
+/// The full domain model (Property) lives in propriedade_model.dart.
+class SelectedProperty {
+  const SelectedProperty({required this.id, required this.name});
   final String id;
-  final String nome;
+  final String name;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Property && other.id == id && other.nome == nome;
+      other is SelectedProperty && other.id == id && other.name == name;
 
   @override
-  int get hashCode => Object.hash(id, nome);
+  int get hashCode => Object.hash(id, name);
 }
 
 /// SharedPreferences key for the persisted active property (D-06).
 const _kActivePropertyIdKey = 'active_property_id';
 
-/// All properties the current user is a member of, joined with their perfil.
+/// All properties the current user is a member of, joined with their role.
 ///
 /// Re-fetches whenever auth state changes. Returns [] when no session.
 final memberPropertiesProvider =
@@ -33,39 +34,33 @@ final memberPropertiesProvider =
   final session = auth.asData?.value?.session;
   if (session == null) return const [];
 
-  final repo = ref.read(propertyRepositoryProvider);
+  final repo = ref.read(membershipRepositoryProvider);
   return repo.fetchMemberProperties();
 });
 
-class CurrentPropertyNotifier extends AsyncNotifier<Property?> {
+class CurrentPropertyNotifier extends AsyncNotifier<SelectedProperty?> {
   @override
-  Future<Property?> build() async {
+  Future<SelectedProperty?> build() async {
     final memberships = await ref.watch(memberPropertiesProvider.future);
 
-    // 0 propriedades → router envia para /sem-acesso (Task 4).
     if (memberships.isEmpty) return null;
 
-    // 1 propriedade: auto-seleciona (D-05).
     if (memberships.length == 1) {
       return memberships.first.property;
     }
 
-    // 2+ propriedades: respeita saved_id; senão first (Pitfall 4 — stale id).
     final prefs = await SharedPreferences.getInstance();
     final savedId = prefs.getString(_kActivePropertyIdKey);
     final match = memberships.where((m) => m.property.id == savedId);
     return match.isNotEmpty ? match.first.property : memberships.first.property;
   }
 
-  /// Set the active property (used by selector dropdown). Persists in
-  /// SharedPreferences so the next reload bypasses the picker.
-  Future<void> selectProperty(Property property) async {
+  Future<void> selectProperty(SelectedProperty property) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kActivePropertyIdKey, property.id);
     state = AsyncData(property);
   }
 
-  /// Clear active property (used on logout). Removes the persisted id too.
   Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kActivePropertyIdKey);
@@ -74,6 +69,6 @@ class CurrentPropertyNotifier extends AsyncNotifier<Property?> {
 }
 
 final currentPropertyProvider =
-    AsyncNotifierProvider<CurrentPropertyNotifier, Property?>(
+    AsyncNotifierProvider<CurrentPropertyNotifier, SelectedProperty?>(
   CurrentPropertyNotifier.new,
 );

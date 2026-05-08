@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 02
-current_plan: 1
+current_plan: —
 status: unknown
-last_updated: "2026-05-08T13:14:13.086Z"
+last_updated: "2026-05-08T08:03:43.710Z"
 progress:
   total_phases: 9
   completed_phases: 2
@@ -22,7 +22,7 @@ See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 02
-**Current plan:** 1
+**Current plan:** —
 **Progress:** [██████████████████████] Phase 0–1 complete (2/9 phases)
 
 ---

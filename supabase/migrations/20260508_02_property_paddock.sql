@@ -1,66 +1,63 @@
 -- 20260508_02_property_paddock.sql
 -- Phase 2 — Property & Paddock Structure
--- Adds: propriedades.proprietario + deleted_at, piquetes table, get_perfil() helper,
---       owner-write RLS, animais skeleton, animais_lote_atf skeleton + ATF partial unique index,
---       aplicacoes_sanitarias skeleton + composicao_snapshot immutability trigger,
---       gerar_numero_animal RPC.
+-- Adds: properties.owner + deleted_at, paddocks table, get_role() helper,
+--       owner-write RLS, animals skeleton, animal_atf_memberships skeleton + ATF partial unique index,
+--       sanitary_applications skeleton + composition_snapshot immutability trigger,
+--       generate_animal_number RPC.
 -- References: PROP-01, PROP-02 / D-01 D-02 D-04 D-05 D-07 D-08 D-11 D-17 D-18 D-19 D-20 D-21 D-22
 
 -- ============================================================
--- 1. Extend propriedades — add proprietario (free text, D-05) + deleted_at (D-11)
+-- 1. Extend properties — add owner (free text, D-05) + deleted_at (D-11)
 -- ============================================================
-ALTER TABLE propriedades
-  ADD COLUMN proprietario text,
-  ADD COLUMN deleted_at   timestamptz;
+ALTER TABLE properties
+  ADD COLUMN owner      text,
+  ADD COLUMN deleted_at timestamptz;
 
-CREATE INDEX propriedades_active_idx
-  ON propriedades (id) WHERE deleted_at IS NULL;
+CREATE INDEX properties_active_idx
+  ON properties (id) WHERE deleted_at IS NULL;
 
 -- ============================================================
--- 2. get_perfil() helper — SECURITY DEFINER (D-08)
+-- 2. get_role() helper — SECURITY DEFINER (D-08)
 -- ============================================================
-CREATE OR REPLACE FUNCTION get_perfil(p_property_id uuid)
-RETURNS perfil_enum
+CREATE OR REPLACE FUNCTION get_role(p_property_id uuid)
+RETURNS role_enum
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
 SET search_path = public, auth
 AS $$
-  SELECT perfil FROM property_members
+  SELECT role FROM property_members
   WHERE user_id = auth.uid()
     AND property_id = p_property_id
   LIMIT 1;
 $$;
 
-REVOKE ALL ON FUNCTION get_perfil(uuid) FROM public;
-GRANT EXECUTE ON FUNCTION get_perfil(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION get_role(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION get_role(uuid) TO authenticated;
 
 -- ============================================================
--- 3. propriedades — owner-write RLS (D-01, D-04, D-07)
---    INSERT: any authenticated user can create a propriedade (will become owner via Plan 02 RPC).
---    UPDATE/soft-delete: only veterinario.
+-- 3. properties — owner-write RLS (D-01, D-04, D-07)
+--    INSERT: any authenticated user can create a property (will become owner via Plan 02 RPC).
+--    UPDATE/soft-delete: only veterinarian.
 -- ============================================================
-CREATE POLICY "any_authenticated_can_create_propriedade"
-  ON propriedades
+CREATE POLICY "any_authenticated_can_create_property"
+  ON properties
   FOR INSERT
   TO authenticated
   WITH CHECK (true);
 
-CREATE POLICY "veterinario_can_update_propriedade"
-  ON propriedades
+CREATE POLICY "veterinarian_can_update_property"
+  ON properties
   FOR UPDATE
   TO authenticated
-  USING (is_member_of(id) AND get_perfil(id) = 'veterinario'::perfil_enum)
-  WITH CHECK (is_member_of(id) AND get_perfil(id) = 'veterinario'::perfil_enum);
+  USING (is_member_of(id) AND get_role(id) = 'veterinarian'::role_enum)
+  WITH CHECK (is_member_of(id) AND get_role(id) = 'veterinarian'::role_enum);
 
 -- Hard DELETE intentionally NOT granted — soft-delete via UPDATE deleted_at.
--- Update the existing SELECT policy to also hide soft-deleted rows is NOT done here:
--- the UI/repository filters deleted_at IS NULL. Direct SELECT can still see them
--- (needed for restore in a future phase).
 
 -- ============================================================
--- 4. property_members — allow self-INSERT for the propriedade creator (D-04)
---    A user creates a propriedade then INSERTs themselves with perfil='veterinario'.
+-- 4. property_members — allow self-INSERT for the property creator (D-04)
+--    A user creates a property then INSERTs themselves with role='veterinarian'.
 --    RLS WITH CHECK ensures user_id = auth.uid() (no impersonation).
 -- ============================================================
 CREATE POLICY "self_insert_membership"
@@ -70,82 +67,82 @@ CREATE POLICY "self_insert_membership"
   WITH CHECK (user_id = auth.uid());
 
 -- ============================================================
--- 5. piquetes (D-13, D-17, D-18, D-19)
+-- 5. paddocks (D-13, D-17, D-18, D-19)
 -- ============================================================
-CREATE TABLE piquetes (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  propriedade_id  uuid NOT NULL REFERENCES propriedades(id) ON DELETE CASCADE,
-  nome            text NOT NULL,
-  area_ha         numeric(8,2) NOT NULL CHECK (area_ha > 0),
-  capacidade_ua   numeric(8,2) NOT NULL CHECK (capacidade_ua > 0),
-  created_at      timestamptz NOT NULL DEFAULT now(),
-  deleted_at      timestamptz
+CREATE TABLE paddocks (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  name        text NOT NULL,
+  area_ha     numeric(8,2) NOT NULL CHECK (area_ha > 0),
+  ua_capacity numeric(8,2) NOT NULL CHECK (ua_capacity > 0),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  deleted_at  timestamptz
 );
 
-CREATE INDEX piquetes_propriedade_idx ON piquetes (propriedade_id);
-CREATE INDEX piquetes_active_idx
-  ON piquetes (propriedade_id) WHERE deleted_at IS NULL;
+CREATE INDEX paddocks_property_idx ON paddocks (property_id);
+CREATE INDEX paddocks_active_idx
+  ON paddocks (property_id) WHERE deleted_at IS NULL;
 
-ALTER TABLE piquetes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE piquetes FORCE ROW LEVEL SECURITY;
+ALTER TABLE paddocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE paddocks FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY "members_can_read_piquetes"
-  ON piquetes FOR SELECT TO authenticated
-  USING (is_member_of(propriedade_id));
+CREATE POLICY "members_can_read_paddocks"
+  ON paddocks FOR SELECT TO authenticated
+  USING (is_member_of(property_id));
 
-CREATE POLICY "veterinario_can_insert_piquete"
-  ON piquetes FOR INSERT TO authenticated
+CREATE POLICY "veterinarian_can_insert_paddock"
+  ON paddocks FOR INSERT TO authenticated
   WITH CHECK (
-    is_member_of(propriedade_id)
-    AND get_perfil(propriedade_id) = 'veterinario'::perfil_enum
+    is_member_of(property_id)
+    AND get_role(property_id) = 'veterinarian'::role_enum
   );
 
-CREATE POLICY "veterinario_can_update_piquete"
-  ON piquetes FOR UPDATE TO authenticated
+CREATE POLICY "veterinarian_can_update_paddock"
+  ON paddocks FOR UPDATE TO authenticated
   USING (
-    is_member_of(propriedade_id)
-    AND get_perfil(propriedade_id) = 'veterinario'::perfil_enum
+    is_member_of(property_id)
+    AND get_role(property_id) = 'veterinarian'::role_enum
   )
   WITH CHECK (
-    is_member_of(propriedade_id)
-    AND get_perfil(propriedade_id) = 'veterinario'::perfil_enum
+    is_member_of(property_id)
+    AND get_role(property_id) = 'veterinarian'::role_enum
   );
 
 -- No DELETE policy — soft-delete via UPDATE.
 
 -- ============================================================
--- 6. animais skeleton (Phase 3 will ALTER to add full columns)
---    Required for gerar_numero_animal RPC (D-20).
+-- 6. animals skeleton (Phase 3 will ALTER to add full columns)
+--    Required for generate_animal_number RPC (D-20).
 -- ============================================================
-CREATE TABLE animais (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  propriedade_id uuid NOT NULL REFERENCES propriedades(id) ON DELETE CASCADE,
-  categoria      text NOT NULL,
-  numero         integer NOT NULL,
-  deleted_at     timestamptz,
-  created_at     timestamptz NOT NULL DEFAULT now()
+CREATE TABLE animals (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  category    text NOT NULL,
+  number      integer NOT NULL,
+  deleted_at  timestamptz,
+  created_at  timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX animais_propriedade_categoria_idx
-  ON animais (propriedade_id, categoria);
+CREATE INDEX animals_property_category_idx
+  ON animals (property_id, category);
 
-CREATE UNIQUE INDEX animais_propriedade_numero_idx
-  ON animais (propriedade_id, numero) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX animals_property_number_idx
+  ON animals (property_id, number) WHERE deleted_at IS NULL;
 
-ALTER TABLE animais ENABLE ROW LEVEL SECURITY;
-ALTER TABLE animais FORCE ROW LEVEL SECURITY;
+ALTER TABLE animals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE animals FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY "members_can_read_animais"
-  ON animais FOR SELECT TO authenticated
-  USING (is_member_of(propriedade_id));
+CREATE POLICY "members_can_read_animals"
+  ON animals FOR SELECT TO authenticated
+  USING (is_member_of(property_id));
 
 -- ============================================================
--- 7. gerar_numero_animal RPC (D-20)
---    Atomic per-(propriedade, categoria) sequence via advisory lock.
+-- 7. generate_animal_number RPC (D-20)
+--    Atomic per-(property, category) sequence via advisory lock.
 -- ============================================================
-CREATE OR REPLACE FUNCTION gerar_numero_animal(
-  p_propriedade_id uuid,
-  p_categoria text
+CREATE OR REPLACE FUNCTION generate_animal_number(
+  p_property_id uuid,
+  p_category    text
 ) RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -155,46 +152,46 @@ DECLARE
   v_next     integer;
   v_lock_key bigint;
 BEGIN
-  v_lock_key := hashtextextended(p_propriedade_id::text || '|' || p_categoria, 0);
+  v_lock_key := hashtextextended(p_property_id::text || '|' || p_category, 0);
   PERFORM pg_advisory_xact_lock(v_lock_key);
 
-  SELECT COALESCE(MAX(numero), 0) + 1
+  SELECT COALESCE(MAX(number), 0) + 1
   INTO v_next
-  FROM animais
-  WHERE propriedade_id = p_propriedade_id
-    AND categoria = p_categoria;
+  FROM animals
+  WHERE property_id = p_property_id
+    AND category = p_category;
 
   RETURN v_next;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION gerar_numero_animal(uuid, text) FROM public;
-GRANT EXECUTE ON FUNCTION gerar_numero_animal(uuid, text) TO authenticated;
+REVOKE ALL ON FUNCTION generate_animal_number(uuid, text) FROM public;
+GRANT EXECUTE ON FUNCTION generate_animal_number(uuid, text) TO authenticated;
 
 -- ============================================================
--- 8. animais_lote_atf skeleton + partial unique index (D-22)
+-- 8. animal_atf_memberships skeleton + partial unique index (D-22)
 -- ============================================================
-CREATE TABLE animais_lote_atf (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  animal_id     uuid NOT NULL,
-  lote_atf_id   uuid NOT NULL,
-  ativo         boolean NOT NULL DEFAULT true,
-  created_at    timestamptz NOT NULL DEFAULT now()
+CREATE TABLE animal_atf_memberships (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  animal_id    uuid NOT NULL,
+  atf_batch_id uuid NOT NULL,
+  active       boolean NOT NULL DEFAULT true,
+  created_at   timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX animais_lote_atf_ativo_idx
-  ON animais_lote_atf (animal_id) WHERE ativo = true;
+CREATE UNIQUE INDEX animal_atf_memberships_active_idx
+  ON animal_atf_memberships (animal_id) WHERE active = true;
 
-ALTER TABLE animais_lote_atf ENABLE ROW LEVEL SECURITY;
-ALTER TABLE animais_lote_atf FORCE ROW LEVEL SECURITY;
+ALTER TABLE animal_atf_memberships ENABLE ROW LEVEL SECURITY;
+ALTER TABLE animal_atf_memberships FORCE ROW LEVEL SECURITY;
 -- No policies in Phase 2 — Phase 5 owns this table; reads/writes blocked until then.
 
 -- ============================================================
--- 9. aplicacoes_sanitarias skeleton + composicao_snapshot immutability trigger (D-21)
+-- 9. sanitary_applications skeleton + composition_snapshot immutability trigger (D-21)
 -- ============================================================
-CREATE TABLE aplicacoes_sanitarias (
+CREATE TABLE sanitary_applications (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  composicao_snapshot  jsonb NOT NULL,
+  composition_snapshot jsonb NOT NULL,
   created_at           timestamptz NOT NULL DEFAULT now()
 );
 
@@ -203,15 +200,15 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  RAISE EXCEPTION 'snapshot is immutable — aplicacoes_sanitarias rows cannot be modified or deleted';
+  RAISE EXCEPTION 'snapshot is immutable — sanitary_applications rows cannot be modified or deleted';
 END;
 $$;
 
 CREATE TRIGGER trg_snapshot_immutable
-  BEFORE UPDATE OR DELETE ON aplicacoes_sanitarias
+  BEFORE UPDATE OR DELETE ON sanitary_applications
   FOR EACH ROW
   EXECUTE FUNCTION prevent_snapshot_mutation();
 
-ALTER TABLE aplicacoes_sanitarias ENABLE ROW LEVEL SECURITY;
-ALTER TABLE aplicacoes_sanitarias FORCE ROW LEVEL SECURITY;
+ALTER TABLE sanitary_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sanitary_applications FORCE ROW LEVEL SECURITY;
 -- No policies in Phase 2 — Phase 6 owns this table.

@@ -11,7 +11,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          piqueteListProvider.overrideWith((ref) async => <Piquete>[]),
+          paddockListProvider.overrideWith((ref) async => <Paddock>[]),
         ],
         child: const MaterialApp(home: PiquetesScreen()),
       ),

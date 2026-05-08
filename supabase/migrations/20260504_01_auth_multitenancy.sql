@@ -1,32 +1,32 @@
 -- 20260504_01_auth_multitenancy.sql
 -- Phase 1 — Auth & Multi-tenancy Core
--- Creates: propriedades, property_members, perfil_enum, is_member_of(), RLS policies
+-- Creates: properties, property_members, role_enum, is_member_of(), RLS policies
 -- References: AUTH-02, AUTH-03, AUTH-05 / D-07, D-08
 
 -- ============================================================
--- 1. Enum for membership profiles (D-07)
+-- 1. Enum for membership roles (D-07)
 -- ============================================================
-CREATE TYPE perfil_enum AS ENUM ('proprietario', 'veterinario', 'leitor');
+CREATE TYPE role_enum AS ENUM ('owner', 'veterinarian', 'reader');
 
 -- ============================================================
--- 2. Propriedades (rural properties — multi-tenant root)
+-- 2. Properties (rural properties — multi-tenant root)
 -- ============================================================
-CREATE TABLE propriedades (
+CREATE TABLE properties (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome        text NOT NULL,
+  name        text NOT NULL,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE propriedades ENABLE ROW LEVEL SECURITY;
-ALTER TABLE propriedades FORCE ROW LEVEL SECURITY;
+ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE properties FORCE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- 3. Property members (auth multi-tenant binding)
 -- ============================================================
 CREATE TABLE property_members (
   user_id      uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  property_id  uuid NOT NULL REFERENCES propriedades(id) ON DELETE CASCADE,
-  perfil       perfil_enum NOT NULL DEFAULT 'leitor',
+  property_id  uuid NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  role         role_enum NOT NULL DEFAULT 'reader',
   created_at   timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, property_id)
 );
@@ -61,15 +61,15 @@ REVOKE ALL ON FUNCTION is_member_of(uuid) FROM public;
 GRANT EXECUTE ON FUNCTION is_member_of(uuid) TO authenticated;
 
 -- ============================================================
--- 5. RLS Policies — propriedades
+-- 5. RLS Policies — properties
 -- ============================================================
 CREATE POLICY "members_can_read_their_properties"
-  ON propriedades
+  ON properties
   FOR SELECT
   TO authenticated
   USING (is_member_of(id));
 
--- INSERT/UPDATE/DELETE for propriedades is intentionally NOT granted in Phase 1.
+-- INSERT/UPDATE/DELETE for properties is intentionally NOT granted in Phase 1.
 -- Phase 2 (PROP-01) adds owner-write policies. Until then, only seed/admin can write.
 
 -- ============================================================
