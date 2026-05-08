@@ -2,6 +2,7 @@
 ///
 /// Phase 0 added the 5 shell branches (dashboard..sanitario).
 /// Phase 1 adds the auth routes (login, signup, reset-password, sem-acesso).
+/// Phase 2 adds /propriedades (property management, root-level outside shell).
 ///
 /// Shell screen convention (WR-03):
 /// Every screen rendered inside the AppShell MUST handle the case where
@@ -16,6 +17,9 @@ abstract final class AppRoutes {
   static const signup = '/signup';
   static const resetPassword = '/reset-password';
   static const noAccess = '/sem-acesso';
+
+  // Management (Phase 2) — outside the AppShell
+  static const propriedades = '/propriedades';
 
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../features/auth/data/property_repository.dart';
 import '../providers/current_property_provider.dart';
+import '../router/routes.dart';
 
 /// AppBar title: shows the active property. With 2+ properties, becomes a
 /// PopupMenuButton dropdown showing all memberships with their perfil label.
@@ -37,10 +39,26 @@ class PropertySelector extends ConsumerWidget {
             style: TextStyle(fontSize: 18),
           );
         }
-        // With 1 prop: plain Text (no dropdown — D-05).
+        // With 1 prop: plain Text + "Gerenciar fazendas" link below (D-05).
         final list = members.asData?.value ?? const <PropertyMembership>[];
         if (list.length <= 1) {
-          return Text(property.name, style: const TextStyle(fontSize: 18));
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(property.name, style: const TextStyle(fontSize: 18)),
+              InkWell(
+                onTap: () => context.push(AppRoutes.propriedades),
+                child: Text(
+                  'Gerenciar fazendas',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          );
         }
         // With 2+ props: dropdown via PopupMenuButton.
         return PopupMenuButton<PropertyMembership>(
@@ -48,32 +66,44 @@ class PropertySelector extends ConsumerWidget {
           onSelected: (m) => ref
               .read(currentPropertyProvider.notifier)
               .selectProperty(m.property),
-          itemBuilder: (context) => list
-              .map(
-                (m) => PopupMenuItem<PropertyMembership>(
-                  value: m,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(m.property.name,
-                          style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 4),
-                      Text(
-                        _roleLabel(m.role),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        ),
+          itemBuilder: (context) => [
+            ...list.map(
+              (m) => PopupMenuItem<PropertyMembership>(
+                value: m,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(m.property.name,
+                        style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text(
+                      _roleLabel(m.role),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              )
-              .toList(),
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<PropertyMembership>(
+              value: null,
+              onTap: () => context.push(AppRoutes.propriedades),
+              child: const Row(
+                children: [
+                  Icon(Icons.settings_outlined, size: 18),
+                  SizedBox(width: 8),
+                  Text('Gerenciar fazendas'),
+                ],
+              ),
+            ),
+          ],
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

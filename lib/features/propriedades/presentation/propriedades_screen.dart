@@ -40,7 +40,7 @@ class PropriedadesScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             itemCount: properties.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, i) => _PropertyCard(
               property: properties[i],
               canEdit: canEdit,
