@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/animais/presentation/animais_screen.dart';
 import '../../features/auth/data/property_repository.dart';
+import '../../features/propriedades/presentation/propriedades_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/no_access_screen.dart';
 import '../../features/auth/presentation/reset_password_screen.dart';
@@ -116,6 +117,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.noAccess,
         builder: (ctx, _) => const NoAccessScreen(),
+      ),
+      // Management routes (Phase 2) — outside the AppShell
+      GoRoute(
+        path: AppRoutes.propriedades,
+        builder: (ctx, _) => const PropriedadesScreen(),
       ),
       // Shell routes (Phase 0)
       StatefulShellRoute.indexedStack(
