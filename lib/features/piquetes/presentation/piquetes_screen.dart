@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../features/auth/data/property_repository.dart';
@@ -67,7 +68,7 @@ class PiquetesScreen extends ConsumerWidget {
         .where((m) => m.property.id == current.id)
         .map((m) => m.role)
         .firstOrNull;
-    return role == 'owner' || role == 'veterinarian';
+    return role == 'veterinarian';
   }
 
   Future<void> _openForm(
@@ -179,6 +180,7 @@ class _PaddockCard extends StatelessWidget {
         subtitle: Text(
           '${paddock.areaHa.toStringAsFixed(1).replaceAll('.', ',')} ha · ${paddock.uaCapacity.toStringAsFixed(1).replaceAll('.', ',')} UA',
         ),
+        onTap: () => context.go('/piquetes/${paddock.id}'),
         trailing: canEdit
             ? PopupMenuButton<String>(
                 onSelected: (v) {

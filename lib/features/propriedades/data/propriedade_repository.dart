@@ -39,27 +39,14 @@ class PropertyRepository {
     required String name,
     String? owner,
   }) async {
-    final propRow = await _service.client
-        .from('properties')
-        .insert({
-          'name': name,
-          if (owner != null) 'owner': owner,
-        })
-        .select()
-        .single();
-    final created = Property.fromJson(propRow);
-
-    final userId = _service.auth.currentUser?.id;
-    if (userId == null) {
-      throw StateError('Usuário não autenticado ao criar propriedade');
-    }
-    await _service.client.from('property_members').insert({
-      'user_id': userId,
-      'property_id': created.id,
-      'role': 'veterinarian',
-    });
-
-    return created;
+    final result = await _service.client.rpc(
+      'create_property_with_membership',
+      params: {
+        'p_name': name,
+        if (owner != null) 'p_owner': owner,
+      },
+    );
+    return Property.fromJson(result as Map<String, dynamic>);
   }
 
   /// Update a property's editable fields. RLS requires get_role = veterinarian.

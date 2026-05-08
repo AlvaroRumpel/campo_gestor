@@ -69,7 +69,7 @@ class PropriedadesScreen extends ConsumerWidget {
         .where((m) => m.property.id == current.id)
         .map((m) => m.role)
         .firstOrNull;
-    return role == 'owner' || role == 'veterinarian';
+    return role == 'veterinarian';
   }
 
   Future<void> _openForm(
