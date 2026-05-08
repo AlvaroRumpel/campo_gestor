@@ -14,6 +14,7 @@ import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/piquetes/presentation/paddock_detail_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/sanitario_screen.dart';
@@ -143,6 +144,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.piquetes,
                 builder: (ctx, _) => const PiquetesScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (ctx, state) => PaddockDetailScreen(
+                      paddockId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
