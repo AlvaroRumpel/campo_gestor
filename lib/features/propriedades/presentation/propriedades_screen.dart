@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/router/routes.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../data/propriedade_model.dart';
 import '../data/propriedade_repository.dart';
@@ -52,7 +54,11 @@ class PropriedadesScreen extends ConsumerWidget {
       ),
       floatingActionButton: canEdit
           ? FloatingActionButton(
-              onPressed: () => _openForm(context, ref),
+              onPressed: () => _openForm(
+                context,
+                ref,
+                isFirstProperty: membersAsync.asData?.value.isEmpty ?? false,
+              ),
               tooltip: 'Nova fazenda',
               child: const Icon(Icons.add),
             )
@@ -79,6 +85,7 @@ class PropriedadesScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     Property? property,
+    bool isFirstProperty = false,
   }) async {
     final result = await showDialog<bool>(
       context: context,
@@ -87,6 +94,9 @@ class PropriedadesScreen extends ConsumerWidget {
     if (result == true) {
       ref.invalidate(propertyListProvider);
       ref.invalidate(memberPropertiesProvider);
+      if (isFirstProperty && context.mounted) {
+        context.go(AppRoutes.dashboard);
+      }
     }
   }
 

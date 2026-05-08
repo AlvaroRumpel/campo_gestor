@@ -42,7 +42,7 @@ class NoAccessScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
                   FilledButton(
-                    onPressed: () => context.go(AppRoutes.propriedades),
+                    onPressed: () => context.push(AppRoutes.propriedades),
                     child: const Text('Criar minha fazenda'),
                   ),
                   const SizedBox(height: 12),
