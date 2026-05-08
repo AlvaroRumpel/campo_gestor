@@ -41,9 +41,16 @@ class PropertyRepository {
   final SupabaseService _service;
 
   Future<List<PropertyMembership>> fetchMemberProperties() async {
+    // `propriedades!inner(...)` is a PostgREST INNER JOIN — rows with no
+    // matching propriedade (e.g., mid-query RLS revocation) are dropped
+    // automatically, eliminating the null-check path.
+    // `.isFilter('propriedades.deleted_at', null)` uses PostgREST embedded
+    // resource filter syntax to exclude soft-deleted propriedades from the
+    // PropertySelector dropdown (Pitfall 1 — T-02-10 mitigation).
     final rows = await _service.client
         .from('property_members')
-        .select('perfil, propriedades(id, nome)')
+        .select('perfil, propriedades!inner(id, nome, deleted_at)')
+        .isFilter('propriedades.deleted_at', null)
         .order('propriedades(nome)');
 
     return (rows as List).map((row) {
