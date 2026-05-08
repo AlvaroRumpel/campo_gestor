@@ -76,8 +76,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final membersList = members.asData?.value;
 
       // Empty memberships (D-03): route to /sem-acesso.
+      // Exception: /propriedades is reachable — vet can create their first property there.
       if (membersList != null && membersList.isEmpty) {
-        return loc == AppRoutes.noAccess ? null : AppRoutes.noAccess;
+        if (loc == AppRoutes.noAccess || loc == AppRoutes.propriedades) {
+          return null;
+        }
+        return AppRoutes.noAccess;
       }
 
       // Has memberships on /login or /signup: bounce to dashboard.

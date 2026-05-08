@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/providers/current_property_provider.dart';
+import '../../../core/router/routes.dart';
 import '../data/auth_repository.dart';
 
 class NoAccessScreen extends ConsumerWidget {
@@ -38,9 +41,18 @@ class NoAccessScreen extends ConsumerWidget {
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 32),
+                  FilledButton(
+                    onPressed: () => context.go(AppRoutes.propriedades),
+                    child: const Text('Criar minha fazenda'),
+                  ),
+                  const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () =>
-                        ref.read(authRepositoryProvider).signOut(),
+                    onPressed: () async {
+                      await ref
+                          .read(currentPropertyProvider.notifier)
+                          .clear();
+                      await ref.read(authRepositoryProvider).signOut();
+                    },
                     child: const Text('Sair'),
                   ),
                 ],
