@@ -1,7 +1,7 @@
 # Graph Report - F:\_geral\Projetos\campo_gestor  (2026-05-08)
 
 ## Corpus Check
-- 56 files · ~29,196 words
+- 56 files · ~29,277 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
