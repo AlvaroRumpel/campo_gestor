@@ -66,13 +66,7 @@ Plans:
   3. RPC de numeração de animais existe, foi testada sob concorrência simulada (2+ requests paralelos) e nunca produz número duplicado
   4. Estrutura de coluna JSONB para snapshot está definida com triggers que bloqueiam UPDATE/DELETE no nível do banco
   5. Partial unique index `WHERE deleted_at IS NULL` para ATF uniqueness está criado e validado com teste que tenta inserir 2 ATFs ativos para o mesmo animal e recebe erro de banco
-**Plans:** 5 plans
-Plans:
-- [ ] 02-01-PLAN.md — Wave 0 test stubs + Phase 2 schema migration + pgTAP suite + supabase db push (BLOCKING)
-- [ ] 02-02-PLAN.md — Propriedade data layer (freezed model + repository + soft-delete filter on PropertySelector)
-- [ ] 02-03-PLAN.md — Piquete data layer (freezed model + repository scoped to currentPropertyProvider)
-- [ ] 02-04-PLAN.md — Propriedades UI (list + adaptive form + NoAccess CTA + PropertySelector menu + perfilProvider)
-- [ ] 02-05-PLAN.md — Piquetes UI (list + adaptive form + detail screen + UAT gate)
+**Plans:** TBD
 **UI hint:** yes
 
 ### Phase 3: Lots & Animals (Operational Core)
@@ -159,7 +153,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 0. Foundation | 6/6 | Complete | 2026-05-03 |
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
-| 2. Property & Paddock Structure | 0/5 | Planned | - |
+| 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/0 | Not started | - |
 | 4. Movements | 0/0 | Not started | - |
 | 5. Reproductive Module | 0/0 | Not started | - |
