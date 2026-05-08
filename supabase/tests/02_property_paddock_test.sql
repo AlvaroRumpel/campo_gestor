@@ -41,6 +41,7 @@ PREPARE dup_atf AS
   SELECT animal_id, gen_random_uuid(), true
   FROM animais_lote_atf LIMIT 1;
 SELECT throws_ok('EXECUTE dup_atf', '23505',
+  NULL,
   'duplicate active ATF for same animal raises unique_violation (D-22)');
 
 -- composicao_snapshot trigger blocks UPDATE.
@@ -48,14 +49,14 @@ INSERT INTO aplicacoes_sanitarias (composicao_snapshot)
   VALUES ('{"animais": []}'::jsonb);
 PREPARE upd_snap AS
   UPDATE aplicacoes_sanitarias SET composicao_snapshot = '{"animais":[1]}'::jsonb;
-SELECT throws_ok('EXECUTE upd_snap', NULL,
-  'snapshot is immutable',
+SELECT throws_ok('EXECUTE upd_snap', 'P0001',
+  NULL,
   'composicao_snapshot UPDATE is blocked by trigger (D-21)');
 
 -- composicao_snapshot trigger blocks DELETE.
 PREPARE del_snap AS DELETE FROM aplicacoes_sanitarias;
-SELECT throws_ok('EXECUTE del_snap', NULL,
-  'snapshot is immutable',
+SELECT throws_ok('EXECUTE del_snap', 'P0001',
+  NULL,
   'composicao_snapshot DELETE is blocked by trigger (D-21)');
 
 SELECT * FROM finish();
