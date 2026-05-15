@@ -1,24 +1,138 @@
 // ANIM-04 — BaixaDialog: motivo (Venda/Morte/Descarte) + data.
 // Wave 0 stubs. Implementation lands in Plan 06 (BaixaDialog).
 // Decisions enforced: D-17 (3 reasons mapped to enum 'sale'|'death'|'discard').
+import 'package:campo_gestor/core/services/supabase_service.dart';
+import 'package:campo_gestor/features/animais/data/animal_constants.dart';
+import 'package:campo_gestor/features/animais/data/animal_model.dart';
+import 'package:campo_gestor/features/animais/data/animal_repository.dart';
+import 'package:campo_gestor/features/animais/presentation/baixa_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
+
+// ---------------------------------------------------------------------------
+// Fake repository — extends AnimalRepository; overrides never call _service
+// ---------------------------------------------------------------------------
+
+class _FakeAnimalRepo extends AnimalRepository {
+  // SupabaseService() is safe to construct — client getter is never called
+  // because we override all methods that would access it.
+  _FakeAnimalRepo() : super(SupabaseService());
+
+  @override
+  Future<void> registerBaixa({
+    required String id,
+    required BaixaReason reason,
+    required DateTime date,
+    String? observation,
+  }) async {
+    // no-op: just succeed silently
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sample animal
+// ---------------------------------------------------------------------------
+
+final _sampleAnimal = Animal(
+  id: 'animal-42',
+  propertyId: 'prop-1',
+  lotId: 'lot-a',
+  category: 'vaca',
+  number: 42,
+  createdAt: DateTime(2025, 1, 1),
+);
+
+// ---------------------------------------------------------------------------
+// Widget builder
+// ---------------------------------------------------------------------------
+
+Widget _buildDialog({Animal? animal}) {
+  return ProviderScope(
+    overrides: [
+      animalRepositoryProvider.overrideWithValue(_FakeAnimalRepo()),
+      animalListByPropertyProvider.overrideWith((ref) async => []),
+      animalByIdProvider.overrideWith((ref, id) async => null),
+    ],
+    child: MaterialApp(
+      localizationsDelegates: const [
+        DefaultMaterialLocalizations.delegate,
+        DefaultWidgetsLocalizations.delegate,
+      ],
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => Center(
+            child: BaixaDialog(animal: animal ?? _sampleAnimal),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
 
 void main() {
   group('BaixaDialog (ANIM-04)', () {
     testWidgets('renders title "Confirmar baixa do animal #<N>?"',
-        // skip: pending Plan 06 implementation
-        (tester) async {}, skip: true);
+        (tester) async {
+      await tester.pumpWidget(_buildDialog());
+      await tester.pump();
+
+      expect(
+        find.text('Confirmar baixa do animal #42?'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('renders 3 motivo options labeled "Venda", "Morte", "Descarte"',
-        // skip: pending Plan 06 implementation
-        (tester) async {}, skip: true);
-    testWidgets('renders Data da baixa field with date picker, defaulting to today (DD/MM/AAAA)',
-        // skip: pending Plan 06 implementation
-        (tester) async {}, skip: true);
-    testWidgets('confirm button labeled "Confirmar baixa", uses colorScheme.error background',
-        // skip: pending Plan 06 implementation
-        (tester) async {}, skip: true);
-    testWidgets('rejects submit when motivo not selected',
-        // skip: pending Plan 06 implementation
-        (tester) async {}, skip: true);
+        (tester) async {
+      await tester.pumpWidget(_buildDialog());
+      await tester.pump();
+
+      for (final lbl in const ['Venda', 'Morte', 'Descarte']) {
+        expect(find.text(lbl), findsOneWidget,
+            reason: 'Expected segment label "$lbl"');
+      }
+    });
+
+    testWidgets(
+        'renders Data da baixa field with date picker, defaulting to today (DD/MM/AAAA)',
+        (tester) async {
+      await tester.pumpWidget(_buildDialog());
+      await tester.pump();
+
+      final todayStr = DateFormat('dd/MM/yyyy').format(DateTime.now());
+      expect(find.text(todayStr), findsOneWidget);
+    });
+
+    testWidgets(
+        'confirm button labeled "Confirmar baixa", uses colorScheme.error background',
+        (tester) async {
+      await tester.pumpWidget(_buildDialog());
+      await tester.pump();
+
+      expect(
+        find.widgetWithText(FilledButton, 'Confirmar baixa'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('rejects submit when motivo not selected', (tester) async {
+      await tester.pumpWidget(_buildDialog());
+      await tester.pump();
+
+      // Tap confirm without selecting a reason
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirmar baixa'));
+      await tester.pump();
+
+      expect(
+        find.text('Selecione o motivo da baixa'),
+        findsOneWidget,
+      );
+    });
   });
 }

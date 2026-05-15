@@ -1,16 +1,381 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
-/// Placeholder until Plan 06 implements the full detail screen.
+import '../../../core/providers/current_property_provider.dart';
+import '../../../core/router/routes.dart';
+import '../../auth/data/property_repository.dart';
+import '../../lotes/data/lote_repository.dart';
+import '../../piquetes/data/piquete_repository.dart';
+import '../data/animal_constants.dart';
+import '../data/animal_model.dart';
+import '../data/animal_repository.dart';
+import 'animal_edit_dialog.dart';
+import 'baixa_dialog.dart';
+
+/// Full animal record screen (Plan 06). Replaces the Plan 04 stub.
+///
+/// AppBar: '#N — Categoria'. Body: AnimalInfoCard + 2 placeholder sections
+/// (Histórico Reprodutivo, Histórico Sanitário). Veterinarian-only edit/baixa
+/// actions inside the card footer (T-3-21, T-3-22).
 class AnimalDetailScreen extends ConsumerWidget {
   const AnimalDetailScreen({super.key, required this.animalId});
   final String animalId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Animal')),
-      body: Center(child: Text('AnimalDetailScreen stub — animalId=$animalId')),
+    final animalAsync = ref.watch(animalByIdProvider(animalId));
+    final currentPropAsync = ref.watch(currentPropertyProvider);
+    final membersAsync = ref.watch(memberPropertiesProvider);
+
+    final canEdit = _canEdit(
+      currentPropAsync.asData?.value,
+      membersAsync.asData?.value,
+    );
+
+    return animalAsync.when(
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Animal')),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, st) => Scaffold(
+        appBar: AppBar(title: const Text('Animal')),
+        body: const Center(child: Text('Erro ao carregar animal.')),
+      ),
+      data: (animal) {
+        if (animal == null) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Animal')),
+            body: const Center(child: Text('Animal não encontrado.')),
+          );
+        }
+
+        final categoryLabel =
+            kCategoryLabels[animal.category] ?? animal.category;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('#${animal.number} — $categoryLabel'),
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              AnimalInfoCard(
+                animal: animal,
+                canEdit: canEdit,
+                onEdit: () async {
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AnimalEditDialog(animal: animal),
+                  );
+                  if (ok == true) {
+                    ref.invalidate(animalByIdProvider(animalId));
+                  }
+                },
+                onBaixa: () async {
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => BaixaDialog(animal: animal),
+                  );
+                  if (ok == true) {
+                    ref.invalidate(animalByIdProvider(animalId));
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              const _PlaceholderSection(
+                title: 'Histórico Reprodutivo',
+                body: 'Disponível na Fase 5.',
+              ),
+              const SizedBox(height: 16),
+              const _PlaceholderSection(
+                title: 'Histórico Sanitário',
+                body: 'Disponível na Fase 6.',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool _canEdit(
+    SelectedProperty? current,
+    List<PropertyMembership>? members,
+  ) {
+    if (current == null || members == null) return false;
+    final role = members
+        .where((m) => m.property.id == current.id)
+        .map((m) => m.role)
+        .firstOrNull;
+    return role == 'veterinarian';
+  }
+}
+
+/// Info card with animal fields + veterinarian-only action buttons.
+class AnimalInfoCard extends ConsumerWidget {
+  const AnimalInfoCard({
+    super.key,
+    required this.animal,
+    required this.canEdit,
+    required this.onEdit,
+    required this.onBaixa,
+  });
+
+  final Animal animal;
+  final bool canEdit;
+  final VoidCallback onEdit;
+  final VoidCallback onBaixa;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final dateFmt = DateFormat('dd/MM/yyyy', 'pt_BR');
+
+    final lotAsync = ref.watch(loteByIdProvider(animal.lotId));
+    final paddockId = lotAsync.asData?.value?.paddockId;
+    final paddockAsync = paddockId != null
+        ? ref.watch(paddockByIdProvider(paddockId))
+        : null;
+
+    final isActive = animal.deletedAt == null;
+
+    String statusLabel;
+    Color statusBgColor;
+    Color statusTextColor;
+
+    if (isActive) {
+      statusLabel = 'Ativo';
+      statusBgColor = Colors.green.shade100;
+      statusTextColor = Colors.green.shade800;
+    } else {
+      final reasonLabel = switch (animal.baixaReason) {
+        'sale' => 'Vendido',
+        'death' => 'Morto',
+        'discard' => 'Descartado',
+        _ => 'Arquivado',
+      };
+      final dateStr = animal.baixaDate != null
+          ? ' em ${dateFmt.format(animal.baixaDate!)}'
+          : '';
+      statusLabel = 'Arquivado — $reasonLabel$dateStr';
+      statusBgColor = colorScheme.errorContainer;
+      statusTextColor = colorScheme.onErrorContainer;
+    }
+
+    return Card(
+      color: colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _KvRow(
+              label: 'Número',
+              value: Text('#${animal.number}'),
+            ),
+            const SizedBox(height: 8),
+            _KvRow(
+              label: 'Categoria',
+              value: Text(
+                  kCategoryLabels[animal.category] ?? animal.category),
+            ),
+            const SizedBox(height: 8),
+            _KvRow(
+              label: 'Raça',
+              value: Text(animal.breed ?? '—'),
+            ),
+            const SizedBox(height: 8),
+            _KvRow(
+              label: 'Estado corporal',
+              value: Text(
+                animal.bodyCondition != null
+                    ? '${animal.bodyCondition} / 5'
+                    : '—',
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Lote atual (tappable)
+            _KvRow(
+              label: 'Lote atual',
+              value: lotAsync.when(
+                loading: () => const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                error: (e, st) => const Text('—'),
+                data: (lot) => lot == null
+                    ? const Text('—')
+                    : InkWell(
+                        onTap: () =>
+                            context.go(AppRoutes.loteDetail(lot.id)),
+                        child: Text(
+                          lot.name,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Piquete atual (tappable)
+            _KvRow(
+              label: 'Piquete atual',
+              value: paddockAsync == null
+                  ? const Text('—')
+                  : paddockAsync.when(
+                      loading: () => const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      error: (e, st) => const Text('—'),
+                      data: (paddock) => paddock == null
+                          ? const Text('—')
+                          : InkWell(
+                              onTap: () => context.go(
+                                '/piquetes/${paddock.id}',
+                              ),
+                              child: Text(
+                                paddock.name,
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                    ),
+            ),
+            const SizedBox(height: 8),
+            _KvRow(
+              label: 'Cadastrado em',
+              value: Text(dateFmt.format(animal.createdAt.toLocal())),
+            ),
+            const SizedBox(height: 8),
+            // Status badge
+            _KvRow(
+              label: 'Status',
+              value: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: statusBgColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: statusTextColor,
+                  ),
+                ),
+              ),
+            ),
+            // Action buttons (veterinarian only)
+            if (canEdit) ...[
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    onPressed: onEdit,
+                    child: const Text('Editar animal'),
+                  ),
+                  if (isActive) ...[
+                    const SizedBox(width: 8),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: colorScheme.error,
+                      ),
+                      onPressed: onBaixa,
+                      child: const Text('Dar baixa'),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Key-value row: label (fixed width 120) + expanded value widget.
+class _KvRow extends StatelessWidget {
+  const _KvRow({required this.label, required this.value});
+
+  final String label;
+  final Widget value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: value),
+      ],
+    );
+  }
+}
+
+/// Placeholder section card for future features.
+///
+/// Shows a card with title (titleMedium) + body text (bodyMedium).
+class _PlaceholderSection extends StatelessWidget {
+  const _PlaceholderSection({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withValues(alpha: 0.38),
+        ),
+      ),
+      color: theme.colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              body,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
