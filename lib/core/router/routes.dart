@@ -21,6 +21,14 @@ abstract final class AppRoutes {
   // Management (Phase 2) — outside the AppShell
   static const propriedades = '/propriedades';
 
+  // Phase 3 detail routes — root-level (outside shell, D-03)
+  static const lotes = '/lotes';
+  static const loteById = '/lotes/:loteId'; // template — used by GoRoute path
+  static const animalById = ':id'; // relative — sub-route under /animais shell branch
+
+  static String loteDetail(String id) => '/lotes/$id';
+  static String animalDetail(String id) => '/animais/$id';
+
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';
   static const piquetes = '/piquetes';

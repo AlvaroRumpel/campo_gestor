@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/animais/presentation/animal_detail_screen.dart';
 import '../../features/animais/presentation/animais_screen.dart';
 import '../../features/auth/data/property_repository.dart';
 import '../../features/propriedades/presentation/propriedades_screen.dart';
@@ -15,6 +16,7 @@ import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/piquetes/presentation/paddock_detail_screen.dart';
+import '../../features/lotes/presentation/lote_detail_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/sanitario_screen.dart';
@@ -128,6 +130,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.propriedades,
         builder: (ctx, _) => const PropriedadesScreen(),
       ),
+      // Phase 3 detail routes — root-level, outside any shell branch (D-03)
+      GoRoute(
+        path: AppRoutes.loteById,
+        builder: (ctx, state) => LoteDetailScreen(
+          loteId: state.pathParameters['loteId']!,
+        ),
+      ),
       // Shell routes (Phase 0)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -165,6 +174,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.animais,
                 builder: (ctx, _) => const AnimaisScreen(),
+                routes: [
+                  GoRoute(
+                    path: AppRoutes.animalById, // ':id'
+                    builder: (ctx, state) => AnimalDetailScreen(
+                      animalId: state.pathParameters['id']!,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
