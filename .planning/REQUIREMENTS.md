@@ -17,7 +17,7 @@
 
 ### Propriedade / Piquete / Lote (PROP)
 
-- [x] **PROP-01**: Usuário pode criar, editar e listar propriedades (nome, proprietário)
+- [ ] **PROP-01**: Usuário pode criar, editar e listar propriedades (nome, proprietário)
 - [ ] **PROP-02**: Usuário pode criar, editar e listar piquetes de uma propriedade (nome, área em ha, capacidade)
 - [ ] **PROP-03**: Usuário pode criar, editar e listar lotes operacionais de um piquete (nome, piquete)
 - [ ] **PROP-04**: Ao criar lote, usuário informa composição inicial por categoria e sistema gera animais em batch automaticamente
@@ -114,7 +114,7 @@
 | AUTH-03 | Phase 1 — Auth & Multi-tenancy Core | Pending |
 | AUTH-04 | Phase 1 — Auth & Multi-tenancy Core | Pending |
 | AUTH-05 | Phase 1 — Auth & Multi-tenancy Core | Pending |
-| PROP-01 | Phase 2 — Property & Paddock Structure | Complete |
+| PROP-01 | Phase 2 — Property & Paddock Structure | Pending |
 | PROP-02 | Phase 2 — Property & Paddock Structure | Pending |
 | PROP-03 | Phase 3 — Lots & Animals | Pending |
 | PROP-04 | Phase 3 — Lots & Animals | Pending |
