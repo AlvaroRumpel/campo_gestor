@@ -79,14 +79,7 @@ Plans:
   3. Usuário pode buscar animal por número dentro da propriedade ativa e o resultado abre a ficha (mesmo que ainda parcial — sem reprodutivo/sanitário)
   4. Usuário pode filtrar lista de animais por categoria, lote e piquete combinadamente, e ver contagem por categoria + UA total atualizada
   5. Usuário pode registrar baixa de animal com motivo (venda/morte/descarte) e data; animal sai da composição ativa do lote mas permanece referenciável em históricos
-**Plans:** 6 plans
-Plans:
-- [ ] 03-01-PLAN.md — Wave 0 test scaffolds (7 stub files for Nyquist sampling)
-- [ ] 03-02-PLAN.md — Migration: lots table + animals extension + generate_animal_number fix + create_lot_with_animals RPC + db push
-- [ ] 03-03-PLAN.md — Data layer: Lot/Animal freezed models, repositories, providers, animal_constants (kBreeds/kUaWeights/BaixaReason)
-- [ ] 03-04-PLAN.md — Routing (/lotes/:id root + /animais/:id nested) + PaddockDetailScreen expansion + LoteFormDialog (batch creation)
-- [ ] 03-05-PLAN.md — LoteDetailScreen (header + animal list + FAB) + AnimalFormDialog (individual creation) + lot-card subtitle composition
-- [ ] 03-06-PLAN.md — AnimaisScreen (search + filters + archived toggle) + AnimalDetailScreen + AnimalEditDialog + BaixaDialog
+**Plans:** TBD
 **UI hint:** yes
 
 ### Phase 4: Movements
@@ -161,7 +154,7 @@ Plans:
 | 0. Foundation | 6/6 | Complete | 2026-05-03 |
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
-| 3. Lots & Animals | 0/6 | Not started | - |
+| 3. Lots & Animals | 0/0 | Not started | - |
 | 4. Movements | 0/0 | Not started | - |
 | 5. Reproductive Module | 0/0 | Not started | - |
 | 6. Sanitary Module | 0/0 | Not started | - |

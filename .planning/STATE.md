@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 03
-current_plan: —
-status: unknown
-last_updated: "2026-05-14T19:34:19.365Z"
+current_phase: 02
+current_plan: 0
+status: ready
+last_updated: "2026-05-07T00:00:00.000Z"
 progress:
   total_phases: 9
-  completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
-  percent: 100
+  completed_phases: 2
+  total_plans: 9
+  completed_plans: 9
+  percent: 22
 ---
 
 # Project State
@@ -21,9 +21,9 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 03
+**Current phase:** 02
 **Current plan:** —
-**Progress:** [██████████] 100%
+**Progress:** [██████████████████████] Phase 0–1 complete (2/9 phases)
 
 ---
 
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md
 |---|---|---|
 | 0 | Foundation | complete (6/6 plans) |
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
-| 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
+| 2 | Property & Paddock Structure | not-started |
 | 3 | Lots & Animals (Operational Core) | not-started |
 | 4 | Movements | not-started |
 | 5 | Reproductive Module (LoteATF) | not-started |
@@ -55,7 +55,6 @@ See: .planning/PROJECT.md
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
-| Phase 02 P04 | 7 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -98,8 +97,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-05-14T19:34:19.360Z
-**Next action:** Plan and execute Phase 3 (Lots & Animals — Operational Core)
+**Last session:** 2026-05-04T10:32:12.859Z
+**Next action:** Plan and execute Phase 1 (Auth & Multi-tenancy Core) — resolve 6 open decisions first
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
