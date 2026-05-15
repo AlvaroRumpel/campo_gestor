@@ -23,7 +23,39 @@
       "Bash(measure-object -line)",
       "Skill(gsd-complete-milestone)",
       "Skill(gsd-complete-milestone:*)",
-      "Bash(rtk flutter *)"
+      "Bash(rtk flutter *)",
+      "Bash(Get-ChildItem -Path \"E:\\\\Obsidian\\\\claude brain\\\\campo_gestor\\\\data\\\\\" -Force | Select-Object Name, FullName | Format-Table -AutoSize)",
+      "Bash(chmod +x \"C:/Users/alvar/.claude/hooks/vault-planning-summary.sh\" \"C:/Users/alvar/.claude/hooks/vault-schema-extract.sh\" \"C:/Users/alvar/.claude/hooks/vault-models-inventory.sh\")",
+      "Bash(bash \"C:/Users/alvar/.claude/hooks/vault-schema-extract.sh\")",
+      "Bash(bash \"C:/Users/alvar/.claude/hooks/vault-models-inventory.sh\")",
+      "Bash(git merge *)",
+      "Bash(# Restore orchestrator-owned files from backup *)",
+      "Bash(dart run *)",
+      "PowerShell(dart run build_runner build --delete-conflicting-outputs 2>&1)",
+      "PowerShell(dart run build_runner build 2>&1)",
+      "PowerShell(rtk flutter test test/ 2>&1)",
+      "PowerShell(supabase db reset --local 2>&1)",
+      "PowerShell(supabase test db supabase/tests/02_property_paddock_test.sql 2>&1)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs roadmap update-plan-progress 02 02-01 completed)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs roadmap update-plan-progress 02 02-02 completed)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs roadmap update-plan-progress 02 02-03 completed)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs init execute-phase 02)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('plans:', [p['id'] for p in d.get\\('plans',[]\\)]\\); print\\('incomplete:', [p['id'] for p in d.get\\('incomplete_plans',[]\\)]\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('plans:', d.get\\('plans',[]\\)\\); print\\('plan_count:', d.get\\('plan_count'\\)\\); print\\('incomplete_count:', d.get\\('incomplete_count'\\)\\)\")",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs agent-skills gsd-executor)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs config-get workflow.use_worktrees)",
+      "Bash(git reset *)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs roadmap update-plan-progress 02)",
+      "Bash(node __TRACKED_VAR__/.claude/get-shit-done/bin/gsd-tools.cjs requirements mark-complete PROP-01)",
+      "Bash(flutter run *)",
+      "Bash(supabase status *)",
+      "Bash(supabase db *)",
+      "Bash(supabase test *)",
+      "Skill(gsd-verify-work)",
+      "Skill(gsd-verify-work:*)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }
