@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
+import '../../animais/data/animal_constants.dart';
+import '../../animais/data/animal_model.dart';
+import '../../animais/data/animal_repository.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
 import 'lote_form_dialog.dart';
@@ -111,6 +114,24 @@ class _EmptyLotsState extends StatelessWidget {
   }
 }
 
+String _composeSummary(List<Animal> animals) {
+  final active = animals.where((a) => a.deletedAt == null).toList();
+  if (active.isEmpty) return 'Sem animais';
+  final counts = <String, int>{};
+  for (final a in active) {
+    counts[a.category] = (counts[a.category] ?? 0) + 1;
+  }
+  final entries = counts.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  final top = entries
+      .take(2)
+      .map((e) => '${e.value} ${kCategoryLabelsPlural[e.key]}')
+      .join(' · ');
+  final more = entries.length > 2 ? ' (+${entries.length - 2})' : '';
+  final ua = calcTotalUa(active);
+  return '$top$more · ${ua.toStringAsFixed(1).replaceAll('.', ',')} UA';
+}
+
 class _LotCard extends StatelessWidget {
   const _LotCard({
     required this.lot,
@@ -128,7 +149,18 @@ class _LotCard extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.group_work_outlined),
         title: Text(lot.name),
-        subtitle: const Text('Toque para ver composição'),
+        subtitle: Consumer(
+          builder: (ctx, ref, _) {
+            final asyncAnimals = ref.watch(animalListByLotProvider(lot.id));
+            return Text(
+              asyncAnimals.when(
+                data: _composeSummary,
+                loading: () => '—',
+                error: (e, _) => 'Erro',
+              ),
+            );
+          },
+        ),
         trailing: canEdit
             ? PopupMenuButton<String>(
                 onSelected: (v) {
