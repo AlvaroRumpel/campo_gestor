@@ -54,6 +54,13 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loadingNumber = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível gerar o número automaticamente. Informe um número manualmente.',
+          ),
+        ),
+      );
     }
   }
 
