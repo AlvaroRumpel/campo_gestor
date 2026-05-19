@@ -186,14 +186,9 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
               // List
               Expanded(
                 child: filtered.isEmpty
-                    ? (animals.where((aw) =>
-                                _showArchived || aw.animal.deletedAt == null)
-                            .isEmpty &&
-                        animals.isEmpty)
+                    ? animals.isEmpty
                         ? const _EmptyAllState()
-                        : filtered.isEmpty && animals.isNotEmpty
-                            ? const _EmptyFilterState()
-                            : const _EmptyAllState()
+                        : const _EmptyFilterState()
                     : ListView.builder(
                         itemCount: filtered.length,
                         itemBuilder: (ctx, i) => _AnimalListTile(
