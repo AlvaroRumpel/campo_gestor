@@ -81,12 +81,12 @@ Plans:
   5. Usuário pode registrar baixa de animal com motivo (venda/morte/descarte) e data; animal sai da composição ativa do lote mas permanece referenciável em históricos
 **Plans:** 6 plans
 Plans:
-- [ ] 03-01-PLAN.md — Wave 0 test scaffolds (7 stub files for Nyquist sampling)
-- [ ] 03-02-PLAN.md — Migration: lots table + animals extension + generate_animal_number fix + create_lot_with_animals RPC + db push
-- [ ] 03-03-PLAN.md — Data layer: Lot/Animal freezed models, repositories, providers, animal_constants (kBreeds/kUaWeights/BaixaReason)
-- [ ] 03-04-PLAN.md — Routing (/lotes/:id root + /animais/:id nested) + PaddockDetailScreen expansion + LoteFormDialog (batch creation)
-- [ ] 03-05-PLAN.md — LoteDetailScreen (header + animal list + FAB) + AnimalFormDialog (individual creation) + lot-card subtitle composition
-- [ ] 03-06-PLAN.md — AnimaisScreen (search + filters + archived toggle) + AnimalDetailScreen + AnimalEditDialog + BaixaDialog
+- [x] 03-01-PLAN.md — Wave 0 test scaffolds (7 stub files for Nyquist sampling)
+- [x] 03-02-PLAN.md — Migration: lots table + animals extension + generate_animal_number fix + create_lot_with_animals RPC + db push
+- [x] 03-03-PLAN.md — Data layer: Lot/Animal freezed models, repositories, providers, animal_constants (kBreeds/kUaWeights/BaixaReason)
+- [x] 03-04-PLAN.md — Routing (/lotes/:id root + /animais/:id nested) + PaddockDetailScreen expansion + LoteFormDialog (batch creation)
+- [x] 03-05-PLAN.md — LoteDetailScreen (header + animal list + FAB) + AnimalFormDialog (individual creation) + lot-card subtitle composition
+- [x] 03-06-PLAN.md — AnimaisScreen (search + filters + archived toggle) + AnimalDetailScreen + AnimalEditDialog + BaixaDialog
 **UI hint:** yes
 
 ### Phase 4: Movements
