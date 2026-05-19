@@ -64,8 +64,9 @@ class LotsSection extends ConsumerWidget {
     );
   }
 
-  void _openEditDialog(BuildContext context, WidgetRef ref, Lot lot) {
-    showDialog<bool>(
+  Future<void> _openEditDialog(
+      BuildContext context, WidgetRef ref, Lot lot) async {
+    final ok = await showDialog<bool>(
       context: context,
       builder: (_) => LoteFormDialog(
         paddockId: paddockId,
@@ -73,6 +74,9 @@ class LotsSection extends ConsumerWidget {
         existing: lot,
       ),
     );
+    if (ok == true) {
+      ref.invalidate(loteListByPaddockProvider(paddockId));
+    }
   }
 }
 
