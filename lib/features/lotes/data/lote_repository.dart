@@ -98,13 +98,13 @@ final loteRepositoryProvider = Provider<LoteRepository>(
 /// Active lots for a specific paddock, ordered by name.
 final loteListByPaddockProvider =
     FutureProvider.family<List<Lot>, String>((ref, paddockId) async {
-  final repo = ref.read(loteRepositoryProvider);
+  final repo = ref.watch(loteRepositoryProvider);
   return repo.fetchLotsByPaddock(paddockId);
 });
 
 /// Single lot by id (for LoteDetailScreen).
 final loteByIdProvider =
     FutureProvider.family<Lot?, String>((ref, id) async {
-  final repo = ref.read(loteRepositoryProvider);
+  final repo = ref.watch(loteRepositoryProvider);
   return repo.fetchLot(id);
 });

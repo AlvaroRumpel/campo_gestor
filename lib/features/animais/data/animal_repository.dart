@@ -192,7 +192,7 @@ final animalRepositoryProvider = Provider<AnimalRepository>(
 /// Active animals in a lot, ordered by number.
 final animalListByLotProvider =
     FutureProvider.family<List<Animal>, String>((ref, lotId) async {
-  final repo = ref.read(animalRepositoryProvider);
+  final repo = ref.watch(animalRepositoryProvider);
   return repo.fetchAnimalsByLot(lotId);
 });
 
@@ -204,13 +204,13 @@ final animalListByPropertyProvider =
     FutureProvider<List<AnimalWithContext>>((ref) async {
   final property = await ref.watch(currentPropertyProvider.future);
   if (property == null) return const [];
-  final repo = ref.read(animalRepositoryProvider);
+  final repo = ref.watch(animalRepositoryProvider);
   return repo.fetchAnimalsByProperty(property.id, includeArchived: true);
 });
 
 /// Single animal by id (for /animais/:id detail screen).
 final animalByIdProvider =
     FutureProvider.family<Animal?, String>((ref, id) async {
-  final repo = ref.read(animalRepositoryProvider);
+  final repo = ref.watch(animalRepositoryProvider);
   return repo.fetchAnimal(id);
 });
