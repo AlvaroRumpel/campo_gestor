@@ -12,7 +12,8 @@ O histórico técnico do animal individual — reprodutivo e sanitário — aces
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Estruturar propriedade com piquetes e lotes (hierarquia Propriedade → Piquete → Lote → Animal) — Validated in Phase 2
+- [x] Gerar e controlar animais individualmente por lote — Validated in Phase 3: lote operacional com composição inicial, numeração única global, edição individual, busca, filtros combinados, baixa com soft-delete
 
 ### Active
 
