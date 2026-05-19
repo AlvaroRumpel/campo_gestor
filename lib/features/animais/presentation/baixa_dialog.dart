@@ -30,13 +30,21 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
   BaixaReason? _reason;
   DateTime _date = DateTime.now();
   final _obsCtrl = TextEditingController();
+  late final TextEditingController _dateCtrl;
   bool _saving = false;
   // dd/MM/yyyy pattern doesn't need locale symbol data — safe to create eagerly.
   final _dateFmt = DateFormat('dd/MM/yyyy');
 
   @override
+  void initState() {
+    super.initState();
+    _dateCtrl = TextEditingController(text: _dateFmt.format(_date));
+  }
+
+  @override
   void dispose() {
     _obsCtrl.dispose();
+    _dateCtrl.dispose();
     super.dispose();
   }
 
@@ -49,7 +57,10 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
       locale: const Locale('pt', 'BR'),
     );
     if (picked != null && mounted) {
-      setState(() => _date = picked);
+      setState(() {
+        _date = picked;
+        _dateCtrl.text = _dateFmt.format(picked);
+      });
     }
   }
 
@@ -136,9 +147,7 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
                     onPressed: _pickDate,
                   ),
                 ),
-                controller: TextEditingController(
-                  text: _dateFmt.format(_date),
-                ),
+                controller: _dateCtrl,
               ),
               const SizedBox(height: 16),
               // Observação
