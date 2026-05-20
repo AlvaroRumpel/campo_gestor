@@ -98,7 +98,11 @@ Plans:
   2. Usuário pode mover um lote inteiro para outro piquete via uma única ação; todos animais migram atomicamente (RPC) — falha em qualquer passo reverte tudo
   3. Movimentações são bloqueadas para usuários com perfil "leitor"
   4. Tentativa de mover animal para lote de propriedade diferente é rejeitada pelo RLS/RPC com erro claro
-**Plans:** TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 04-01-PLAN.md — Wave 0 Nyquist test scaffolds (5 new + 1 extended test file)
+- [ ] 04-02-PLAN.md — MOV-01: AnimalRepository.moveAnimal + loteListByPropertyProvider + MoverAnimalDialog + AnimalDetailScreen button wiring
+- [ ] 04-03-PLAN.md — MOV-02: move_lot_to_paddock RPC migration + LoteRepository.moveLot + MoverLoteDialog + LoteDetailScreen button wiring + supabase db push
 **UI hint:** yes
 
 ### Phase 5: Reproductive Module (LoteATF)
@@ -162,7 +166,7 @@ Plans:
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
-| 4. Movements | 0/0 | Not started | - |
+| 4. Movements | 0/3 | Not started | - |
 | 5. Reproductive Module | 0/0 | Not started | - |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
