@@ -12,6 +12,7 @@ import '../../../features/auth/data/property_repository.dart';
 import '../../../features/piquetes/data/piquete_repository.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
+import 'mover_lote_dialog.dart';
 
 class LoteDetailScreen extends ConsumerWidget {
   const LoteDetailScreen({super.key, required this.loteId});
@@ -46,7 +47,31 @@ class LoteDetailScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              _LoteHeaderCard(lot: lot, animalsAsync: animalsAsync),
+              _LoteHeaderCard(
+                lot: lot,
+                animalsAsync: animalsAsync,
+                canEdit: canEdit,
+                onMover: () async {
+                  final activeCount = animalsAsync.asData?.value
+                          .where((a) => a.deletedAt == null)
+                          .length ??
+                      0;
+                  final result = await showDialog<Map<String, String>>(
+                    context: context,
+                    builder: (_) => MoverLoteDialog(
+                      lot: lot,
+                      activeAnimalCount: activeCount,
+                    ),
+                  );
+                  if (result != null && context.mounted) {
+                    final paddockName = result['paddockName'] ?? '';
+                    ref.invalidate(loteByIdProvider(loteId));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lote movido para $paddockName')),
+                    );
+                  }
+                },
+              ),
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -99,9 +124,16 @@ class LoteDetailScreen extends ConsumerWidget {
 }
 
 class _LoteHeaderCard extends ConsumerWidget {
-  const _LoteHeaderCard({required this.lot, required this.animalsAsync});
+  const _LoteHeaderCard({
+    required this.lot,
+    required this.animalsAsync,
+    required this.canEdit,
+    required this.onMover,
+  });
   final Lot lot;
   final AsyncValue<List<Animal>> animalsAsync;
+  final bool canEdit;
+  final VoidCallback onMover;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -175,6 +207,29 @@ class _LoteHeaderCard extends ConsumerWidget {
                       ),
                     ),
                   ],
+                );
+              },
+            ),
+            // MOV-02: footer button — gated by canEdit + lot active + at least 1 active animal
+            Builder(
+              builder: (context) {
+                final activeCount = animalsAsync.asData?.value
+                        .where((a) => a.deletedAt == null)
+                        .length ??
+                    0;
+                final showButton =
+                    canEdit && lot.deletedAt == null && activeCount > 0;
+                if (!showButton) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton.icon(
+                      onPressed: onMover,
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('Mover para piquete'),
+                    ),
+                  ),
                 );
               },
             ),
