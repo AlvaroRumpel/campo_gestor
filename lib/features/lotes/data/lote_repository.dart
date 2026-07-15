@@ -89,6 +89,56 @@ class LoteRepository {
         .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
         .eq('id', id);
   }
+
+  /// Fetch active lots for a property with paddock name + active animal count (MOV-01, D-03).
+  ///
+  /// Returns one row per active lot (deleted_at IS NULL), each enriched with:
+  /// - `paddockName` from joined paddocks table
+  /// - `activeAnimalCount` (animals where deleted_at IS NULL)
+  ///
+  /// Used by [MoverAnimalDialog] picker. Excludes archived lots (Pitfall 4).
+  ///
+  /// Uses two queries to avoid PostgREST embedded-aggregate ambiguity:
+  /// (1) lots + paddock name, (2) animal counts grouped by lot_id (computed
+  /// in Dart from a single property-wide animals query).
+  Future<List<LotWithPaddockCount>> fetchLotsWithCountByProperty(
+    String propertyId,
+  ) async {
+    // Query 1: active lots with embedded paddock name
+    final lotRows = await _service.client
+        .from('lots')
+        .select('*, paddocks!inner(name)')
+        .eq('property_id', propertyId)
+        .isFilter('deleted_at', null)
+        .order('name');
+
+    // Query 2: active animals for the property — count grouped by lot_id in Dart
+    final animalRows = await _service.client
+        .from('animals')
+        .select('lot_id')
+        .eq('property_id', propertyId)
+        .isFilter('deleted_at', null);
+
+    final counts = <String, int>{};
+    for (final row in animalRows as List) {
+      final map = row as Map<String, dynamic>;
+      final lotId = map['lot_id'] as String?;
+      if (lotId == null) continue;
+      counts[lotId] = (counts[lotId] ?? 0) + 1;
+    }
+
+    return (lotRows as List).map((row) {
+      final map = row as Map<String, dynamic>;
+      final paddockJson = map['paddocks'] as Map<String, dynamic>;
+      final clean = Map<String, dynamic>.from(map)..remove('paddocks');
+      final lot = Lot.fromJson(clean);
+      return LotWithPaddockCount(
+        lot: lot,
+        paddockName: paddockJson['name'] as String,
+        activeAnimalCount: counts[lot.id] ?? 0,
+      );
+    }).toList();
+  }
 }
 
 final loteRepositoryProvider = Provider<LoteRepository>(
@@ -108,3 +158,30 @@ final loteByIdProvider =
   final repo = ref.watch(loteRepositoryProvider);
   return repo.fetchLot(id);
 });
+
+/// Active lots in the given property, joined with paddock name + active animal count.
+///
+/// Family by `propertyId` — re-fetches when property changes. Used by
+/// [MoverAnimalDialog] picker (MOV-01, D-02, D-03).
+final loteListByPropertyProvider =
+    FutureProvider.family<List<LotWithPaddockCount>, String>(
+  (ref, propertyId) async {
+    final repo = ref.watch(loteRepositoryProvider);
+    return repo.fetchLotsWithCountByProperty(propertyId);
+  },
+);
+
+/// Lot joined with its paddock name and active animal count for picker display (D-03, MOV-01).
+///
+/// Built from the embedded-resource select in [LoteRepository.fetchLotsWithCountByProperty].
+/// Not a Supabase row by itself.
+class LotWithPaddockCount {
+  const LotWithPaddockCount({
+    required this.lot,
+    required this.paddockName,
+    required this.activeAnimalCount,
+  });
+  final Lot lot;
+  final String paddockName;
+  final int activeAnimalCount;
+}
