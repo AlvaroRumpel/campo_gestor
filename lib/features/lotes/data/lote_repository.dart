@@ -91,6 +91,35 @@ class LoteRepository {
         .eq('id', id);
   }
 
+  /// Move a lot to a different paddock atomically via plpgsql RPC (MOV-02, D-08).
+  ///
+  /// The RPC `move_lot_to_paddock` validates:
+  /// 1. Lot exists and is active (deleted_at IS NULL)
+  /// 2. Caller is a member of the lot's property
+  /// 3. Caller's role on the property = veterinarian
+  /// 4. Source paddock != destination paddock (prevents no-op)
+  /// 5. Destination paddock belongs to the same property AND is active
+  ///
+  /// On any validation failure, the RPC raises a PostgrestException whose
+  /// `code` is '42501' (permission), '23503' (FK violation), or '23514'
+  /// (check violation). The caller (MoverLoteDialog) catches generically
+  /// and shows the standard 'Erro ao mover. Tente novamente.' SnackBar.
+  ///
+  /// Returns `void` — the caller invalidates [loteByIdProvider] and the
+  /// two affected [loteListByPaddockProvider] families to refetch UI state.
+  Future<void> moveLot({
+    required String lotId,
+    required String newPaddockId,
+  }) async {
+    await _service.client.rpc(
+      'move_lot_to_paddock',
+      params: {
+        'p_lot_id': lotId,
+        'p_paddock_id': newPaddockId,
+      },
+    );
+  }
+
   /// Fetch active lots for a property with paddock name + active animal count (MOV-01, D-03).
   ///
   /// Returns one row per active lot (deleted_at IS NULL), each enriched with:
