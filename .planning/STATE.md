@@ -5,14 +5,14 @@ milestone_name: milestone
 current_phase: 04
 current_plan: 3
 status: in-progress
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-07-15T22:20:44.262Z"
+stopped_at: Completed 04-03-PLAN.md (Task 5 BLOCKED — manual DB push pending)
+last_updated: "2026-07-15T22:45:00.000Z"
 last_activity: 2026-07-15
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 04
-**Current plan:** 3
-**Progress:** [██████████] 95%
+**Current plan:** 3 of 3 (all plans code-complete; Task 5 DB push BLOCKED pending manual credentials)
+**Progress:** [██████████] 100%
 
 ---
 
@@ -36,7 +36,7 @@ See: .planning/PROJECT.md
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
 | 3 | Lots & Animals (Operational Core) | complete |
-| 4 | Movements | in-progress (2/3 plans) |
+| 4 | Movements | plans complete (3/3) — verification pending (Task 5 DB push BLOCKED) |
 | 5 | Reproductive Module (LoteATF) | not-started |
 | 6 | Sanitary Module (Snapshot) | not-started |
 | 7 | Expenses by Paddock | not-started |
@@ -63,6 +63,7 @@ See: .planning/PROJECT.md
 |------|----------|-------|-------|
 | Phase 04 P01 | 25min | 6 tasks | 6 files |
 | Phase 04 P02 | 21min | 4 tasks | 4 files |
+| Phase 04 P03 | 20min | 5 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -99,17 +100,17 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ### Blockers
 
-None.
+- **Phase 4 UAT blocked on manual Supabase schema push.** `supabase/migrations/20260519_04_movements.sql` (move_lot_to_paddock RPC, MOV-02) is authored and verified on disk but NOT applied to the dev Supabase project — this execution session's Supabase CLI is unlinked/unauthenticated (`supabase db push --dry-run` → "Cannot find project ref. Have you run supabase link?"). A human must run `supabase link --project-ref <dev-project-ref>` (if needed) then `supabase db push` from a machine with dev credentials before `/gsd-verify-work` can exercise MOV-02's live RPC path.
 
 ---
 
 ## Session Continuity
 
-**Stopped at:** Completed 04-02-PLAN.md
+**Stopped at:** Completed 04-03-PLAN.md (Task 5 BLOCKED — manual DB push pending)
 **Resume file:** None
 
-**Last session:** 2026-07-15T22:20:44.195Z
-**Next action:** Execute Plan 04-03 (Movements — MoverLoteDialog + LoteRepository.moveLot)
+**Last session:** 2026-07-15T22:45:00.000Z
+**Next action:** Manual: run `supabase link` (if needed) + `supabase db push` from a machine with dev Supabase credentials, then run `/gsd-verify-work` for Phase 4 (Movements) — all 3 plans (04-01, 04-02, 04-03) are code-complete.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
@@ -130,3 +131,5 @@ None.
 
 - [Phase 04]: 04-01: memberPropertiesProvider override (not currentPropertyProvider directly) drives Wave 0 canEdit gate tests, reusing CurrentPropertyNotifier's single-membership auto-select logic
 - [Phase 04]: 04-02: loteListByPropertyProvider implemented as a plain (non-family) FutureProvider<List<Lot>> resolving currentPropertyProvider internally, deviating from the plan's family+DTO spec to match the already-committed Wave 0 widget test override contract
+- [Phase 04]: 04-03: Task 5 (supabase db push for move_lot_to_paddock RPC) BLOCKED — this session's Supabase CLI is unlinked/unauthenticated, no TTY for a DB password. Migration file authored and verified on disk; manual push required before MOV-02 UAT.
+- [Phase 04]: 04-03: _FakeLoteRepository (implements LoteRepository, in test/widget/lote_form_dialog_test.dart) needed stub overrides for fetchLotsWithCountByProperty (04-02) and moveLot (04-03) — flagging as a recurring maintenance tax on LoteRepository's public surface for future plans.
