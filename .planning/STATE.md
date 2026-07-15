@@ -2,16 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_plan: Not started
-status: unknown
-last_updated: "2026-05-19T04:58:51.400Z"
+current_phase: 04
+current_plan: 2
+status: in-progress
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-07-15T22:02:54.125Z"
+last_activity: 2026-07-15
 progress:
-  total_phases: 9
+  total_phases: 5
   completed_phases: 4
-  total_plans: 16
+  total_plans: 19
   completed_plans: 17
-  percent: 100
 ---
 
 # Project State
@@ -21,9 +22,9 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 4
-**Current plan:** Not started
-**Progress:** [██████████] 100%
+**Current phase:** 04
+**Current plan:** 2
+**Progress:** [█████████░] 89%
 
 ---
 
@@ -34,8 +35,8 @@ See: .planning/PROJECT.md
 | 0 | Foundation | complete (6/6 plans) |
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
-| 3 | Lots & Animals (Operational Core) | not-started |
-| 4 | Movements | not-started |
+| 3 | Lots & Animals (Operational Core) | complete |
+| 4 | Movements | in-progress (1/3 plans) |
 | 5 | Reproductive Module (LoteATF) | not-started |
 | 6 | Sanitary Module (Snapshot) | not-started |
 | 7 | Expenses by Paddock | not-started |
@@ -51,11 +52,16 @@ See: .planning/PROJECT.md
 | Phases complete | 0 |
 | Requirements mapped | 26/26 |
 | Plans complete | 6 (00-01 through 00-06) |
-| Last activity | 2026-05-03 (00-06 bootstrap + supabase init) |
+| Last activity | 2026-07-15 |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
 | Phase 02 P04 | 7 | 2 tasks | 5 files |
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 04 P01 | 25min | 6 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -98,8 +104,11 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-05-19T04:58:51.394Z
-**Next action:** Plan and execute Phase 3 (Lots & Animals — Operational Core)
+**Stopped at:** Completed 04-01-PLAN.md
+**Resume file:** None
+
+**Last session:** 2026-07-15T22:02:46.032Z
+**Next action:** Execute Plan 04-02 (Movements — MoverAnimalDialog + AnimalRepository.moveAnimal)
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
@@ -115,3 +124,7 @@ None.
 - Two independent lot types: Lote (operacional) and LoteATF (reprodutivo). Different tables, never enum-merged.
 - Snapshot sanitário is immutable post-INSERT — enforced by trigger + RLS.
 - Animal número único per propriedade (exact key tuple to be confirmed by Open Decision #1).
+
+## Decisions
+
+- [Phase 04]: 04-01: memberPropertiesProvider override (not currentPropertyProvider directly) drives Wave 0 canEdit gate tests, reusing CurrentPropertyNotifier's single-membership auto-select logic

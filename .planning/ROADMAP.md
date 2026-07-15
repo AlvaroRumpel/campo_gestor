@@ -24,135 +24,168 @@
 ## Phase Details
 
 ### Phase 0: Foundation
+
 **Goal:** Aplicação Flutter web roda localmente conectada ao Supabase, com shell de navegação e gerenciamento de estado pronto para receber features de domínio.
 **Depends on:** Nothing (first phase)
 **Requirements:** (none — pure infrastructure, prerequisite for all)
 **Success Criteria** (what must be TRUE):
+
   1. Desenvolvedor consegue rodar `flutter run -d chrome` (ou `-d edge`) e ver a app shell renderizada (header, navegação lateral, área de conteúdo) em <2s de TTI em 4G simulado
   2. Migrações SQL versionadas no git executam contra Supabase local (`supabase db reset`) sem erro
   3. `currentPropertyProvider` (Riverpod) está implementado e disponível em qualquer feature, mesmo que ainda retorne null
   4. GoRouter está configurado com rotas web-friendly (URLs deep-linkables, back button funcional) e guards de auth ainda permissivos (placeholder)
   5. Camada de Repository/Service base implementada — features futuras nunca importam Supabase SDK diretamente
+
 **Plans:** 5/6 plans executed
 Plans:
+
 - [x] 00-01-PLAN.md — Wave 0 test scaffolding + verification scripts + analysis_options
 - [x] 00-02-PLAN.md — Environment prereqs (Supabase CLI install) + .gitignore + launch.json.example + README
 - [x] 00-03-PLAN.md — pubspec.yaml full Phase 0 stack + codegen pipeline validation
 - [x] 00-04-PLAN.md — Core scaffolding (theme, env, SupabaseService, currentPropertyProvider, GoRouter, 5 placeholder screens)
 - [x] 00-05-PLAN.md — Adaptive AppShell (NavigationRail/NavigationBar) + PropertySelector + wire into router
 - [x] 00-06-PLAN.md — main.dart bootstrap + supabase init/start + SC-2 db reset + SC-1 integration smoke test
+
 **UI hint:** yes
 
 ### Phase 1: Auth & Multi-tenancy Core
+
 **Goal:** Usuário se cadastra, faz login, vê apenas dados das propriedades às quais pertence, e troca a propriedade ativa quando tem acesso a múltiplas.
 **Depends on:** Phase 0
 **Requirements:** AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05
 **Success Criteria** (what must be TRUE):
+
   1. Usuário pode se cadastrar com email/senha, receber email de confirmação e fazer login; sessão persiste entre reloads
   2. Usuário com 0 propriedades vê tela de "sem acesso"; com 1 propriedade entra direto; com N propriedades vê seletor e pode trocar a propriedade ativa via UI
   3. Tabela `property_members` define perfil (proprietário/veterinário/leitor) por (user_id, property_id); UI consulta o perfil ativo
   4. Teste negativo automatizado prova que usuário A NÃO consegue ler/escrever dados da propriedade do usuário B via API direta (RLS fechada em todas tabelas com `FORCE ROW LEVEL SECURITY`)
   5. Logout limpa sessão e redireciona para tela de login
+
 **Plans:** TBD
 **UI hint:** yes
 
 ### Phase 2: Property & Paddock Structure
+
 **Goal:** Usuário (proprietário) estrutura sua fazenda criando a propriedade e seus piquetes; protótipos críticos validados em ambiente real.
 **Depends on:** Phase 1
 **Requirements:** PROP-01, PROP-02
 **Success Criteria** (what must be TRUE):
+
   1. Usuário pode criar, editar, listar e dar soft-delete em propriedades das quais é proprietário
   2. Dentro de uma propriedade ativa, usuário pode criar/editar/listar piquetes com nome, área (ha) e capacidade
   3. RPC de numeração de animais existe, foi testada sob concorrência simulada (2+ requests paralelos) e nunca produz número duplicado
   4. Estrutura de coluna JSONB para snapshot está definida com triggers que bloqueiam UPDATE/DELETE no nível do banco
   5. Partial unique index `WHERE deleted_at IS NULL` para ATF uniqueness está criado e validado com teste que tenta inserir 2 ATFs ativos para o mesmo animal e recebe erro de banco
+
 **Plans:** TBD
 **UI hint:** yes
 
 ### Phase 3: Lots & Animals (Operational Core)
+
 **Goal:** Usuário cria lote operacional informando composição inicial e o sistema gera os animais individualmente; usuário consulta, edita, busca, filtra e dá baixa em animais.
 **Depends on:** Phase 2
 **Requirements:** PROP-03, PROP-04, PROP-05, ANIM-01, ANIM-02, ANIM-04, ANIM-05, ANIM-06
 **Success Criteria** (what must be TRUE):
+
   1. Ao criar lote informando "10 vacas, 8 terneiros, 1 touro", o sistema gera 19 animais com números únicos e contínuos por categoria via RPC; lote aparece na lista com composição correta
   2. Usuário pode editar atributos individuais do animal (raça, estado corporal 1–5, observação) e ver mudanças refletidas imediatamente
   3. Usuário pode buscar animal por número dentro da propriedade ativa e o resultado abre a ficha (mesmo que ainda parcial — sem reprodutivo/sanitário)
   4. Usuário pode filtrar lista de animais por categoria, lote e piquete combinadamente, e ver contagem por categoria + UA total atualizada
   5. Usuário pode registrar baixa de animal com motivo (venda/morte/descarte) e data; animal sai da composição ativa do lote mas permanece referenciável em históricos
+
 **Plans:** 6 plans
 Plans:
+
 - [x] 03-01-PLAN.md — Wave 0 test scaffolds (7 stub files for Nyquist sampling)
 - [x] 03-02-PLAN.md — Migration: lots table + animals extension + generate_animal_number fix + create_lot_with_animals RPC + db push
 - [x] 03-03-PLAN.md — Data layer: Lot/Animal freezed models, repositories, providers, animal_constants (kBreeds/kUaWeights/BaixaReason)
 - [x] 03-04-PLAN.md — Routing (/lotes/:id root + /animais/:id nested) + PaddockDetailScreen expansion + LoteFormDialog (batch creation)
 - [x] 03-05-PLAN.md — LoteDetailScreen (header + animal list + FAB) + AnimalFormDialog (individual creation) + lot-card subtitle composition
 - [x] 03-06-PLAN.md — AnimaisScreen (search + filters + archived toggle) + AnimalDetailScreen + AnimalEditDialog + BaixaDialog
+
 **UI hint:** yes
 
 ### Phase 4: Movements
+
 **Goal:** Usuário move animais entre lotes e lotes inteiros entre piquetes sem nunca observar estados parciais ou perder dados.
 **Depends on:** Phase 3
 **Requirements:** MOV-01, MOV-02
 **Success Criteria** (what must be TRUE):
+
   1. Usuário pode mover um animal individual para outro lote da mesma propriedade; composição dos dois lotes atualiza imediatamente
   2. Usuário pode mover um lote inteiro para outro piquete via uma única ação; todos animais migram atomicamente (RPC) — falha em qualquer passo reverte tudo
   3. Movimentações são bloqueadas para usuários com perfil "leitor"
   4. Tentativa de mover animal para lote de propriedade diferente é rejeitada pelo RLS/RPC com erro claro
-**Plans:** 3 plans
+
+**Plans:** 1/3 plans executed
 Plans:
-- [ ] 04-01-PLAN.md — Wave 0 Nyquist test scaffolds (5 new + 1 extended test file)
+
+- [x] 04-01-PLAN.md — Wave 0 Nyquist test scaffolds (5 new + 1 extended test file)
 - [ ] 04-02-PLAN.md — MOV-01: AnimalRepository.moveAnimal + loteListByPropertyProvider + MoverAnimalDialog + AnimalDetailScreen button wiring
 - [ ] 04-03-PLAN.md — MOV-02: move_lot_to_paddock RPC migration + LoteRepository.moveLot + MoverLoteDialog + LoteDetailScreen button wiring + supabase db push
+
 **UI hint:** yes
 
 ### Phase 5: Reproductive Module (LoteATF)
+
 **Goal:** Usuário gerencia ciclos reprodutivos criando LoteATF, registrando DGs por animal e consultando o histórico reprodutivo de cada animal.
 **Depends on:** Phase 3 (animais existem)
 **Requirements:** REPR-01, REPR-02, REPR-03, REPR-04, REPR-05
 **Success Criteria** (what must be TRUE):
+
   1. Usuário cria LoteATF informando nome, data de implantação, data de inseminação, touro e observação
   2. Ao adicionar animais ao LoteATF, sistema só apresenta vacas e novilhas; sistema rejeita animais já em outro ATF ativo com mensagem clara
   3. Usuário registra DG por animal (prenha / não-prenha / duvidosa + data + observação); registros são editáveis até encerramento manual do lote
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
+
 **Plans:** TBD
 **UI hint:** yes
 
 ### Phase 6: Sanitary Module (Snapshot)
+
 **Goal:** Usuário cadastra doses, registra aplicações sanitárias em lotes com snapshot imutável da composição, e consulta histórico por lote e por animal.
 **Depends on:** Phase 3 (animais existem) — paralelizável com Phase 5
 **Requirements:** SANI-01, SANI-02, SANI-03, SANI-04, SANI-05
 **Success Criteria** (what must be TRUE):
+
   1. Usuário cadastra dose com nome e valor por kg; sistema calcula e exibe `valor_por_ua = valor_por_kg × 400` (campo não editável)
   2. Ao registrar aplicação em um lote, sistema mostra todos animais ativos do lote pré-selecionados; usuário pode desmarcar individuais antes de confirmar
   3. Após confirmação, snapshot da composição (animais aplicados + categorias + UA + dose) é gravado e nunca mais muda — tentativa de UPDATE/DELETE é bloqueada pelo banco
   4. Usuário visualiza histórico sanitário do lote ordenado por data com lista de aplicações
   5. Usuário visualiza histórico sanitário de um animal específico via lookup nos snapshots, mesmo que o animal já tenha sido movido para outro lote
+
 **Plans:** TBD
 **UI hint:** yes
 
 ### Phase 7: Expenses by Paddock
+
 **Goal:** Usuário lança gastos vinculados a piquetes e consulta totais por período.
 **Depends on:** Phase 2 (piquetes existem) — paralelizável com Phases 3–6
 **Requirements:** GAST-01, GAST-02
 **Success Criteria** (what must be TRUE):
+
   1. Usuário pode lançar gasto vinculado a um piquete com categoria, valor, data e descrição
   2. Usuário pode visualizar lista de gastos de um piquete filtrada por intervalo de datas
   3. Total agregado do período é exibido no topo da lista e atualiza ao mudar o filtro
   4. Gastos respeitam isolamento multi-tenant via RLS (mesmo padrão das outras tabelas)
+
 **Plans:** TBD
 **UI hint:** yes
 
 ### Phase 8: Animal Dossier Consolidation
+
 **Goal:** Veterinário em campo abre a ficha do animal e vê em uma única tela todos os dados, lote atual, histórico reprodutivo completo e histórico sanitário completo — entregando o core value do produto.
 **Depends on:** Phases 5 and 6
 **Requirements:** ANIM-03
 **Success Criteria** (what must be TRUE):
+
   1. Ficha do animal abre via busca por número (ANIM-05) ou clique na lista, em <1s sob conexão 4G
   2. Ficha exibe: dados do animal, lote operacional atual, piquete atual, todos LoteATFs (com DGs), todas aplicações sanitárias (via snapshot lookup)
   3. Histórico reprodutivo e sanitário são ordenados por data decrescente
   4. Animal com baixa registrada mostra status, motivo e data de baixa de forma proeminente
   5. Layout funciona em mobile web (largura mínima 360px) — veterinário consulta em campo pelo celular
+
 **Plans:** TBD
 **UI hint:** yes
 
@@ -166,7 +199,7 @@ Plans:
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
-| 4. Movements | 0/3 | Not started | - |
+| 4. Movements | 1/3 | In Progress|  |
 | 5. Reproductive Module | 0/0 | Not started | - |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |

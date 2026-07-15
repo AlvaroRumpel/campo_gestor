@@ -34,8 +34,8 @@
 
 ### Movimentação (MOV)
 
-- [ ] **MOV-01**: Usuário pode mover animal individual para outro lote da mesma propriedade
-- [ ] **MOV-02**: Usuário pode mover lote inteiro para outro piquete; todos os animais movem atomicamente via RPC
+- [x] **MOV-01**: Usuário pode mover animal individual para outro lote da mesma propriedade
+- [x] **MOV-02**: Usuário pode mover lote inteiro para outro piquete; todos os animais movem atomicamente via RPC
 
 ### Reprodutivo — LoteATF (REPR)
 
@@ -125,8 +125,8 @@
 | ANIM-04 | Phase 3 — Lots & Animals | Pending |
 | ANIM-05 | Phase 3 — Lots & Animals | Pending |
 | ANIM-06 | Phase 3 — Lots & Animals | Pending |
-| MOV-01 | Phase 4 — Movements | Pending |
-| MOV-02 | Phase 4 — Movements | Pending |
+| MOV-01 | Phase 4 — Movements | Complete |
+| MOV-02 | Phase 4 — Movements | Complete |
 | REPR-01 | Phase 5 — Reproductive Module | Pending |
 | REPR-02 | Phase 5 — Reproductive Module | Pending |
 | REPR-03 | Phase 5 — Reproductive Module | Pending |
