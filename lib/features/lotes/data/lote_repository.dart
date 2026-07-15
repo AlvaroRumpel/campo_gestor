@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/current_property_provider.dart';
 import '../../../core/providers/supabase_providers.dart';
 import '../../../core/services/supabase_service.dart';
 import 'lote_model.dart';
@@ -159,17 +160,21 @@ final loteByIdProvider =
   return repo.fetchLot(id);
 });
 
-/// Active lots in the given property, joined with paddock name + active animal count.
+/// Active lots in the active property (MOV-01, D-02).
 ///
-/// Family by `propertyId` — re-fetches when property changes. Used by
-/// [MoverAnimalDialog] picker (MOV-01, D-02, D-03).
-final loteListByPropertyProvider =
-    FutureProvider.family<List<LotWithPaddockCount>, String>(
-  (ref, propertyId) async {
-    final repo = ref.watch(loteRepositoryProvider);
-    return repo.fetchLotsWithCountByProperty(propertyId);
-  },
-);
+/// Re-fetches when the active property changes (mirrors
+/// [animalListByPropertyProvider]'s pattern of watching
+/// `currentPropertyProvider` internally rather than taking a family arg).
+/// Used by [MoverAnimalDialog] picker; paddock name + active animal count
+/// per item are resolved separately via [paddockByIdProvider] and
+/// [animalListByLotProvider] (D-03).
+final loteListByPropertyProvider = FutureProvider<List<Lot>>((ref) async {
+  final property = await ref.watch(currentPropertyProvider.future);
+  if (property == null) return const [];
+  final repo = ref.watch(loteRepositoryProvider);
+  final enriched = await repo.fetchLotsWithCountByProperty(property.id);
+  return enriched.map((e) => e.lot).toList();
+});
 
 /// Lot joined with its paddock name and active animal count for picker display (D-03, MOV-01).
 ///
