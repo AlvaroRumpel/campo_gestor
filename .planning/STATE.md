@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 04
-current_plan: 2
+current_plan: 3
 status: in-progress
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-07-15T22:02:54.125Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-07-15T22:20:44.262Z"
 last_activity: 2026-07-15
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 04
-**Current plan:** 2
-**Progress:** [█████████░] 89%
+**Current plan:** 3
+**Progress:** [██████████] 95%
 
 ---
 
@@ -36,7 +36,7 @@ See: .planning/PROJECT.md
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
 | 3 | Lots & Animals (Operational Core) | complete |
-| 4 | Movements | in-progress (1/3 plans) |
+| 4 | Movements | in-progress (2/3 plans) |
 | 5 | Reproductive Module (LoteATF) | not-started |
 | 6 | Sanitary Module (Snapshot) | not-started |
 | 7 | Expenses by Paddock | not-started |
@@ -62,6 +62,7 @@ See: .planning/PROJECT.md
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 04 P01 | 25min | 6 tasks | 6 files |
+| Phase 04 P02 | 21min | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -104,11 +105,11 @@ None.
 
 ## Session Continuity
 
-**Stopped at:** Completed 04-01-PLAN.md
+**Stopped at:** Completed 04-02-PLAN.md
 **Resume file:** None
 
-**Last session:** 2026-07-15T22:02:46.032Z
-**Next action:** Execute Plan 04-02 (Movements — MoverAnimalDialog + AnimalRepository.moveAnimal)
+**Last session:** 2026-07-15T22:20:44.195Z
+**Next action:** Execute Plan 04-03 (Movements — MoverLoteDialog + LoteRepository.moveLot)
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
@@ -128,3 +129,4 @@ None.
 ## Decisions
 
 - [Phase 04]: 04-01: memberPropertiesProvider override (not currentPropertyProvider directly) drives Wave 0 canEdit gate tests, reusing CurrentPropertyNotifier's single-membership auto-select logic
+- [Phase 04]: 04-02: loteListByPropertyProvider implemented as a plain (non-family) FutureProvider<List<Lot>> resolving currentPropertyProvider internally, deviating from the plan's family+DTO spec to match the already-committed Wave 0 widget test override contract
