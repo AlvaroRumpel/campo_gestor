@@ -13,6 +13,7 @@ import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
 import 'animal_edit_dialog.dart';
 import 'baixa_dialog.dart';
+import 'mover_animal_dialog.dart';
 
 /// Full animal record screen (Plan 06). Replaces the Plan 04 stub.
 ///
@@ -82,6 +83,19 @@ class AnimalDetailScreen extends ConsumerWidget {
                     ref.invalidate(animalByIdProvider(animalId));
                   }
                 },
+                onMover: () async {
+                  final result = await showDialog<Map<String, String>>(
+                    context: context,
+                    builder: (_) => MoverAnimalDialog(animal: animal),
+                  );
+                  if (result != null && context.mounted) {
+                    final lotName = result['lotName'] ?? '';
+                    ref.invalidate(animalByIdProvider(animalId));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Animal movido para $lotName')),
+                    );
+                  }
+                },
               ),
               const SizedBox(height: 16),
               const _PlaceholderSection(
@@ -121,12 +135,14 @@ class AnimalInfoCard extends ConsumerWidget {
     required this.canEdit,
     required this.onEdit,
     required this.onBaixa,
+    required this.onMover,
   });
 
   final Animal animal;
   final bool canEdit;
   final VoidCallback onEdit;
   final VoidCallback onBaixa;
+  final VoidCallback onMover;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -297,6 +313,12 @@ class AnimalInfoCard extends ConsumerWidget {
                       ),
                       onPressed: onBaixa,
                       child: const Text('Dar baixa'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: onMover,
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('Mover animal'),
                     ),
                   ],
                 ],
