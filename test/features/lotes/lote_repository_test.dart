@@ -5,6 +5,7 @@
 // in a future plan. Mocking the full Supabase query-builder chain is brittle;
 // contract tests verify method existence and Lot model correctness, which is
 // sufficient for Wave 1 data-layer isolation. See Plan 03-03 task 2 notes.
+// MOV-02 contract added 2026-05-19 — moveLot lands in Plan 04-03.
 import 'package:campo_gestor/core/services/supabase_service.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
@@ -44,6 +45,12 @@ void main() {
     test('softDeleteLot sets deleted_at = now()', () {
       // Contract: softDeleteLot method exists.
       expect(repo.softDeleteLot, isA<Function>());
+    });
+
+    test('moveLot exists and is callable (MOV-02 contract)', () {
+      // Contract: moveLot method exists.
+      // Method body lands in Plan 04-03 along with the move_lot_to_paddock RPC.
+      expect(repo.moveLot, isA<Function>());
     });
   });
 
