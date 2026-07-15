@@ -145,7 +145,8 @@ class AnimalRepository {
   /// Update editable animal fields: breed, body_condition, observation (ANIM-02).
   ///
   /// Only sends provided non-null fields — never touches category, number,
-  /// property_id, or lot_id (T-3-12 mass-assignment mitigation).
+  /// property_id, or lot_id (T-3-12 mass-assignment mitigation). Use
+  /// [moveAnimal] to change `lot_id` — it intentionally bypasses this guard.
   Future<Animal> updateAnimal({
     required String id,
     String? breed,
@@ -160,6 +161,31 @@ class AnimalRepository {
     final row = await _service.client
         .from('animals')
         .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+    return Animal.fromJson(row);
+  }
+
+  /// Move an animal to a different lot in the same property (MOV-01, D-04).
+  ///
+  /// Only updates `lot_id` — never touches category, number, property_id, or
+  /// any editable field. RLS [veterinarian_can_update_active_animal] gates
+  /// this UPDATE: blocked for non-veterinarians and archived animals.
+  ///
+  /// Cross-property safety (T-4-01): RLS validates the source animal's
+  /// property membership but does NOT enforce that [newLotId] belongs to the
+  /// same property. The UI layer enforces this by scoping the picker via
+  /// [loteListByPropertyProvider] to the active property. A malicious direct
+  /// API call could still set lot_id to a foreign-property lot — this is an
+  /// accepted MVP gap (documented in 04-RESEARCH.md Pitfall / Open Question 1).
+  Future<Animal> moveAnimal({
+    required String id,
+    required String newLotId,
+  }) async {
+    final row = await _service.client
+        .from('animals')
+        .update({'lot_id': newLotId})
         .eq('id', id)
         .select()
         .single();
