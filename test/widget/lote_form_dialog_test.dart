@@ -50,6 +50,18 @@ class _FakeLoteRepository implements LoteRepository {
 
   @override
   Future<void> softDeleteLot(String id) async {}
+
+  @override
+  Future<List<LotWithPaddockCount>> fetchLotsWithCountByProperty(
+    String propertyId,
+  ) async =>
+      [];
+
+  @override
+  Future<void> moveLot({
+    required String lotId,
+    required String newPaddockId,
+  }) async {}
 }
 
 // ---------------------------------------------------------------------------
