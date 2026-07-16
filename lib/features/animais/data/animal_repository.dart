@@ -167,27 +167,26 @@ class AnimalRepository {
     return Animal.fromJson(row);
   }
 
-  /// Move an animal to a different lot in the same property (MOV-01, D-04).
+  /// Move an animal to a different lot in the same property (MOV-01).
   ///
-  /// Only updates `lot_id` — never touches category, number, property_id, or
-  /// any editable field. RLS [veterinarian_can_update_active_animal] gates
-  /// this UPDATE: blocked for non-veterinarians and archived animals.
-  ///
-  /// Cross-property safety (T-4-01): RLS validates the source animal's
-  /// property membership but does NOT enforce that [newLotId] belongs to the
-  /// same property. The UI layer enforces this by scoping the picker via
-  /// [loteListByPropertyProvider] to the active property. A malicious direct
-  /// API call could still set lot_id to a foreign-property lot — this is an
-  /// accepted MVP gap (documented in 04-RESEARCH.md Pitfall / Open Question 1).
+  /// Routes through the `move_animal_to_lot` SECURITY DEFINER RPC, which
+  /// enforces server-side: source animal active + membership + veterinarian
+  /// role + destination lot same-property & active + source != destination
+  /// (MOV-01, ROADMAP SC-4, T-4-01). Supersedes the earlier D-04 direct-UPDATE
+  /// approach, which only validated the animal's own property via RLS and
+  /// never checked the destination lot's property — see 04-04-PLAN.md.
   Future<Animal> moveAnimal({
     required String id,
     required String newLotId,
   }) async {
+    await _service.client.rpc(
+      'move_animal_to_lot',
+      params: {'p_animal_id': id, 'p_lot_id': newLotId},
+    );
     final row = await _service.client
         .from('animals')
-        .update({'lot_id': newLotId})
-        .eq('id', id)
         .select()
+        .eq('id', id)
         .single();
     return Animal.fromJson(row);
   }
