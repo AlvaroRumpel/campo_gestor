@@ -117,7 +117,7 @@ Plans:
   3. Movimentações são bloqueadas para usuários com perfil "leitor"
   4. Tentativa de mover animal para lote de propriedade diferente é rejeitada pelo RLS/RPC com erro claro
 
-**Plans:** 5/5 plans executed
+**Plans:** 6 plans (5 executed, 1 gap-closure planned)
 Plans:
 **Wave 1**
 
@@ -125,6 +125,7 @@ Plans:
 - [x] 04-02-PLAN.md — MOV-01: AnimalRepository.moveAnimal + loteListByPropertyProvider + MoverAnimalDialog + AnimalDetailScreen button wiring
 - [x] 04-04-PLAN.md — [gap] SC-4: move_animal_to_lot SECURITY DEFINER RPC (cross-property rejection) + moveAnimal rewire + push both Phase-4 migrations
 - [x] 04-05-PLAN.md — [gap] WR-01..04 dialog fixes (invalidations, mounted guard, pt-BR plural) + submit-flow behavior tests for both dialogs
+- [ ] 04-06-PLAN.md — [gap] SC-4 (reopened): BEFORE INSERT/UPDATE trigger enforcing animals.lot_id ∈ property_id (access-path-independent) + WR-01 deleted_at re-check + pgTAP; lots.paddock_id bypass documented-deferred
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
