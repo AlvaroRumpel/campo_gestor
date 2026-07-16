@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 04
-current_plan: 6 of 6 (all plans code-complete, incl. 04-06 SC-4 trigger gap closure; DB push for all three Phase-4 migrations BLOCKED pending manual credentials)
+current_plan: 7 of 7 (all plans code-complete, incl. 04-07 MOV-02 lots trigger gap closure; DB push for all four Phase-4 migrations BLOCKED pending manual credentials)
 status: in-progress
-stopped_at: "Completed 04-06-PLAN.md (SC-4 trigger gap closure: trg_animals_lot_same_property + WR-01 TOCTOU + pgTAP)"
-last_updated: "2026-07-16T12:49:29.397Z"
+stopped_at: "Completed 04-07-PLAN.md (MOV-02 lots trigger gap closure: trg_lots_paddock_same_property + pgTAP + CONTEXT closure)"
+last_updated: "2026-07-16T13:44:17.115Z"
 last_activity: 2026-07-16
 progress:
   total_phases: 5
   completed_phases: 5
-  total_plans: 22
-  completed_plans: 22
+  total_plans: 23
+  completed_plans: 23
 ---
 
 # Project State
@@ -23,7 +23,7 @@ See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 04
-**Current plan:** 6 of 6 (all plans code-complete, incl. 04-06 SC-4 trigger gap closure; DB push for all three Phase-4 migrations BLOCKED pending manual credentials)
+**Current plan:** 7 of 7 (all plans code-complete, incl. 04-07 MOV-02 lots trigger gap closure; DB push for all four Phase-4 migrations BLOCKED pending manual credentials)
 **Progress:** [██████████] 100%
 
 ---
@@ -36,7 +36,7 @@ See: .planning/PROJECT.md
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
 | 3 | Lots & Animals (Operational Core) | complete |
-| 4 | Movements | plans complete (6/6, incl. SC-4 trigger + WR-01 TOCTOU gap closure) — verification pending (DB push for all 3 migrations BLOCKED) |
+| 4 | Movements | plans complete (7/7, incl. SC-4 + MOV-02 trigger gap closures + WR-01 TOCTOU) — verification pending (DB push for all 4 migrations BLOCKED) |
 | 5 | Reproductive Module (LoteATF) | not-started |
 | 6 | Sanitary Module (Snapshot) | not-started |
 | 7 | Expenses by Paddock | not-started |
@@ -67,6 +67,7 @@ See: .planning/PROJECT.md
 | Phase 04 P04 | 25min | 3 tasks | 2 files |
 | Phase 04-movements P05 | 25min | 3 tasks | 4 files |
 | Phase 04 P06 | 5min | 3 tasks | 4 files |
+| Phase 04 P07 | 8min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -103,17 +104,17 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ### Blockers
 
-- **Phase 4 UAT blocked on manual Supabase schema push (now covers THREE migrations).** `supabase/migrations/20260519_04_movements.sql` (move_lot_to_paddock RPC, MOV-02), `supabase/migrations/20260715_04_gap_move_animal_to_lot.sql` (move_animal_to_lot RPC + WR-01 deleted_at re-check, MOV-01/ROADMAP SC-4), and `supabase/migrations/20260716_04_animal_lot_property_trigger.sql` (trg_animals_lot_same_property — access-path-independent SC-4 enforcement, new in 04-06) are all authored and verified on disk but NOT applied to the dev Supabase project — this execution session's Supabase CLI is unlinked/unauthenticated (`supabase db push --dry-run` → "Cannot find project ref. Have you run supabase link?"), reconfirmed in 04-06. A human must run `supabase link --project-ref <dev-project-ref>` (if needed), then `supabase db push` from a machine with dev credentials — applying all three migrations together — then `supabase test db` (executes `supabase/tests/04_movements_test.sql`, the SC-4 proof) before `/gsd-verify-work` can exercise the live trigger/RPC paths for MOV-01 or MOV-02.
+- **Phase 4 UAT blocked on manual Supabase schema push (now covers FOUR migrations).** `supabase/migrations/20260519_04_movements.sql` (move_lot_to_paddock RPC, MOV-02), `supabase/migrations/20260715_04_gap_move_animal_to_lot.sql` (move_animal_to_lot RPC + WR-01 deleted_at re-check, MOV-01/ROADMAP SC-4), `supabase/migrations/20260716_04_animal_lot_property_trigger.sql` (trg_animals_lot_same_property — access-path-independent SC-4 enforcement, 04-06), and `supabase/migrations/20260717_04_lot_paddock_property_trigger.sql` (trg_lots_paddock_same_property — access-path-independent MOV-02 enforcement, new in 04-07) are all authored and verified on disk but NOT applied to the dev Supabase project — this execution session's Supabase CLI is unlinked/unauthenticated (`supabase db push --dry-run` → "Cannot find project ref. Have you run supabase link?"), reconfirmed in 04-07. A human must run `supabase link --project-ref <dev-project-ref>` (if needed), then `supabase db push` from a machine with dev credentials — applying all four migrations together — then `supabase test db` (executes `supabase/tests/04_movements_test.sql`, the SC-4 + MOV-02 proof, plan(5)) before `/gsd-verify-work` can exercise the live trigger/RPC paths for MOV-01 or MOV-02.
 
 ---
 
 ## Session Continuity
 
-**Stopped at:** Completed 04-06-PLAN.md (SC-4 trigger gap closure: trg_animals_lot_same_property + WR-01 TOCTOU + pgTAP)
+**Stopped at:** Completed 04-07-PLAN.md (MOV-02 lots trigger gap closure: trg_lots_paddock_same_property + pgTAP + CONTEXT closure)
 **Resume file:** None
 
-**Last session:** 2026-07-16T12:47:05Z
-**Next action:** Manual: run `supabase link` (if needed) + `supabase db push` from a machine with dev Supabase credentials (applies `20260519_04_movements.sql`, `20260715_04_gap_move_animal_to_lot.sql`, and `20260716_04_animal_lot_property_trigger.sql`), then `supabase test db` (runs `04_movements_test.sql`, the SC-4 proof), then run `/gsd-verify-work` for Phase 4 (Movements) — all 6 plans (04-01 through 04-06) are code-complete.
+**Last session:** 2026-07-16T13:44:17.079Z
+**Next action:** Manual: run `supabase link` (if needed) + `supabase db push` from a machine with dev Supabase credentials (applies `20260519_04_movements.sql`, `20260715_04_gap_move_animal_to_lot.sql`, `20260716_04_animal_lot_property_trigger.sql`, and `20260717_04_lot_paddock_property_trigger.sql`), then `supabase test db` (runs `04_movements_test.sql`, the SC-4 + MOV-02 proof, plan(5)), then run `/gsd-verify-work` for Phase 4 (Movements) — all 7 plans (04-01 through 04-07) are code-complete.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
@@ -139,3 +140,4 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 04]: 04-04: move_animal_to_lot RPC closes SC-4 gap (cross-property destination check); moveAnimal rewired with signature preserved; Task 3 DB push BLOCKED (unlinked CLI), mirrors 04-03
 - [Phase 04]: 04-05: Closed WR-01..04 + IN-01 gap-closure findings from 04-REVIEW.md (invalidations, mounted guard, pt-BR plural, submit-flow tests) — CR-01 and RPC-live UAT remain owned by 04-04
 - [Phase 04]: 04-06: Closed reopened CR-01 (04-REVIEW.md) with a trigger, not an RLS WITH CHECK tightening — access-path-independent, protects INSERT too, matches existing snapshot-immutability idiom; also closed WR-01 TOCTOU; MOV-02's identical lots.paddock_id bypass explicitly deferred (plan-locked scope: animals only); Task 3 DB push BLOCKED (unlinked CLI), now covers 3 migrations
+- [Phase 04]: 04-07: Closed WR-02/CR-01-parallel (04-REVIEW.md) with trg_lots_paddock_same_property, mirroring the 04-06 animals trigger onto lots.paddock_id (MOV-02); scope reversal (accept->mitigate, T-4-08) per explicit user decision 2026-07-16; Task 3 DB push BLOCKED (unlinked CLI), now covers 4 migrations
