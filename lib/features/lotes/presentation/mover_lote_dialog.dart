@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../animais/data/animal_repository.dart';
 import '../../piquetes/data/piquete_repository.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
@@ -50,13 +51,15 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
             lotId: widget.lot.id,
             newPaddockId: paddockId,
           );
+      if (!mounted) return; // WR-03: check before touching ref
       // D-12: invalidate old + new paddock-scoped lot lists and the lot itself
       ref.invalidate(loteByIdProvider(widget.lot.id));
       ref.invalidate(loteListByPaddockProvider(oldPaddockId));
       ref.invalidate(loteListByPaddockProvider(paddockId));
-      if (mounted) {
-        Navigator.pop(context, {'paddockName': selectedName});
-      }
+      // WR-01/WR-02: a lot's paddock change affects both cross-feature lists
+      ref.invalidate(animalListByPropertyProvider);
+      ref.invalidate(loteListByPropertyProvider);
+      Navigator.pop(context, {'paddockName': selectedName});
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +86,9 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                '${widget.activeAnimalCount} animais serão transferidos para o novo piquete. A operação é atômica — ou todos movem ou nenhum.',
+                widget.activeAnimalCount == 1
+                    ? '1 animal será transferido para o novo piquete. A operação é atômica — ou todos movem ou nenhum.'
+                    : '${widget.activeAnimalCount} animais serão transferidos para o novo piquete. A operação é atômica — ou todos movem ou nenhum.',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
