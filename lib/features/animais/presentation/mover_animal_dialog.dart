@@ -48,12 +48,13 @@ class _MoverAnimalDialogState extends ConsumerState<MoverAnimalDialog> {
             id: widget.animal.id,
             newLotId: lotId,
           );
+      if (!mounted) return; // WR-03: check before touching ref
       // D-11: invalidate old + new lots, the animal itself, and the property list
       ref.invalidate(animalByIdProvider(widget.animal.id));
       ref.invalidate(animalListByLotProvider(oldLotId));
       ref.invalidate(animalListByLotProvider(lotId));
       ref.invalidate(animalListByPropertyProvider);
-      if (mounted) Navigator.pop(context, {'lotName': selectedName});
+      Navigator.pop(context, {'lotName': selectedName});
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
