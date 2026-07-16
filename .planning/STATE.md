@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 04
-current_plan: 3
+current_plan: 4 of 4 (all plans code-complete; DB push for both Phase-4 migrations BLOCKED pending manual credentials)
 status: in-progress
-stopped_at: Completed 04-03-PLAN.md (Task 5 BLOCKED — manual DB push pending)
-last_updated: "2026-07-15T22:45:00.000Z"
+stopped_at: Completed 04-04-PLAN.md (Task 3 BLOCKED — manual DB push pending, both Phase-4 migrations)
+last_updated: "2026-07-16T04:21:06.016Z"
 last_activity: 2026-07-15
 progress:
   total_phases: 5
-  completed_phases: 5
-  total_plans: 19
-  completed_plans: 19
+  completed_phases: 4
+  total_plans: 21
+  completed_plans: 20
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 04
-**Current plan:** 3 of 3 (all plans code-complete; Task 5 DB push BLOCKED pending manual credentials)
-**Progress:** [██████████] 100%
+**Current plan:** 4 of 4 (all plans code-complete; DB push for both Phase-4 migrations BLOCKED pending manual credentials)
+**Progress:** [██████████] 95%
 
 ---
 
@@ -36,7 +36,7 @@ See: .planning/PROJECT.md
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
 | 3 | Lots & Animals (Operational Core) | complete |
-| 4 | Movements | plans complete (3/3) — verification pending (Task 5 DB push BLOCKED) |
+| 4 | Movements | plans complete (4/4, incl. SC-4 gap closure) — verification pending (DB push for both migrations BLOCKED) |
 | 5 | Reproductive Module (LoteATF) | not-started |
 | 6 | Sanitary Module (Snapshot) | not-started |
 | 7 | Expenses by Paddock | not-started |
@@ -64,6 +64,7 @@ See: .planning/PROJECT.md
 | Phase 04 P01 | 25min | 6 tasks | 6 files |
 | Phase 04 P02 | 21min | 4 tasks | 4 files |
 | Phase 04 P03 | 20min | 5 tasks | 5 files |
+| Phase 04 P04 | 25min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -100,17 +101,17 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ### Blockers
 
-- **Phase 4 UAT blocked on manual Supabase schema push.** `supabase/migrations/20260519_04_movements.sql` (move_lot_to_paddock RPC, MOV-02) is authored and verified on disk but NOT applied to the dev Supabase project — this execution session's Supabase CLI is unlinked/unauthenticated (`supabase db push --dry-run` → "Cannot find project ref. Have you run supabase link?"). A human must run `supabase link --project-ref <dev-project-ref>` (if needed) then `supabase db push` from a machine with dev credentials before `/gsd-verify-work` can exercise MOV-02's live RPC path.
+- **Phase 4 UAT blocked on manual Supabase schema push (now covers TWO migrations).** `supabase/migrations/20260519_04_movements.sql` (move_lot_to_paddock RPC, MOV-02) and `supabase/migrations/20260715_04_gap_move_animal_to_lot.sql` (move_animal_to_lot RPC, MOV-01/ROADMAP SC-4) are both authored and verified on disk but NOT applied to the dev Supabase project — this execution session's Supabase CLI is unlinked/unauthenticated (`supabase db push --dry-run` → "Cannot find project ref. Have you run supabase link?"), reconfirmed in 04-04. A human must run `supabase link --project-ref <dev-project-ref>` (if needed) then `supabase db push` from a machine with dev credentials — applying both migrations together — before `/gsd-verify-work` can exercise the live RPC paths for MOV-01 or MOV-02.
 
 ---
 
 ## Session Continuity
 
-**Stopped at:** Completed 04-03-PLAN.md (Task 5 BLOCKED — manual DB push pending)
+**Stopped at:** Completed 04-04-PLAN.md (Task 3 BLOCKED — manual DB push pending, both Phase-4 migrations)
 **Resume file:** None
 
-**Last session:** 2026-07-15T22:45:00.000Z
-**Next action:** Manual: run `supabase link` (if needed) + `supabase db push` from a machine with dev Supabase credentials, then run `/gsd-verify-work` for Phase 4 (Movements) — all 3 plans (04-01, 04-02, 04-03) are code-complete.
+**Last session:** 2026-07-16T04:21:05.977Z
+**Next action:** Manual: run `supabase link` (if needed) + `supabase db push` from a machine with dev Supabase credentials (applies both `20260519_04_movements.sql` and `20260715_04_gap_move_animal_to_lot.sql`), then run `/gsd-verify-work` for Phase 4 (Movements) — all 4 plans (04-01, 04-02, 04-03, 04-04) are code-complete.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
@@ -133,3 +134,4 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 04]: 04-02: loteListByPropertyProvider implemented as a plain (non-family) FutureProvider<List<Lot>> resolving currentPropertyProvider internally, deviating from the plan's family+DTO spec to match the already-committed Wave 0 widget test override contract
 - [Phase 04]: 04-03: Task 5 (supabase db push for move_lot_to_paddock RPC) BLOCKED — this session's Supabase CLI is unlinked/unauthenticated, no TTY for a DB password. Migration file authored and verified on disk; manual push required before MOV-02 UAT.
 - [Phase 04]: 04-03: _FakeLoteRepository (implements LoteRepository, in test/widget/lote_form_dialog_test.dart) needed stub overrides for fetchLotsWithCountByProperty (04-02) and moveLot (04-03) — flagging as a recurring maintenance tax on LoteRepository's public surface for future plans.
+- [Phase 04]: 04-04: move_animal_to_lot RPC closes SC-4 gap (cross-property destination check); moveAnimal rewired with signature preserved; Task 3 DB push BLOCKED (unlinked CLI), mirrors 04-03

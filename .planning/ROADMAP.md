@@ -117,13 +117,13 @@ Plans:
   3. Movimentações são bloqueadas para usuários com perfil "leitor"
   4. Tentativa de mover animal para lote de propriedade diferente é rejeitada pelo RLS/RPC com erro claro
 
-**Plans:** 5 plans (3 executed + 2 gap-closure)
+**Plans:** 4/5 plans executed
 Plans:
 **Wave 1**
 
 - [x] 04-01-PLAN.md — Wave 0 Nyquist test scaffolds (5 new + 1 extended test file)
 - [x] 04-02-PLAN.md — MOV-01: AnimalRepository.moveAnimal + loteListByPropertyProvider + MoverAnimalDialog + AnimalDetailScreen button wiring
-- [ ] 04-04-PLAN.md — [gap] SC-4: move_animal_to_lot SECURITY DEFINER RPC (cross-property rejection) + moveAnimal rewire + push both Phase-4 migrations
+- [x] 04-04-PLAN.md — [gap] SC-4: move_animal_to_lot SECURITY DEFINER RPC (cross-property rejection) + moveAnimal rewire + push both Phase-4 migrations
 - [ ] 04-05-PLAN.md — [gap] WR-01..04 dialog fixes (invalidations, mounted guard, pt-BR plural) + submit-flow behavior tests for both dialogs
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -205,7 +205,7 @@ Plans:
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
-| 4. Movements | 3/3 | In Progress|  |
+| 4. Movements | 4/5 | In Progress|  |
 | 5. Reproductive Module | 0/0 | Not started | - |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
