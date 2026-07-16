@@ -69,10 +69,18 @@ BEGIN
       p_lot_id USING ERRCODE = '23503';
   END IF;
 
-  -- 6. Atomic single-row UPDATE
+  -- 6. Atomic single-row UPDATE (WR-01: re-check deleted_at to close the
+  --    TOCTOU where a concurrent registerBaixa archives the animal between
+  --    the step-1 validation SELECT and this UPDATE)
   UPDATE animals
      SET lot_id = p_lot_id
-   WHERE id = p_animal_id;
+   WHERE id = p_animal_id
+     AND deleted_at IS NULL;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'animal % was archived during the move', p_animal_id
+      USING ERRCODE = '23503';
+  END IF;
 END;
 $$;
 
