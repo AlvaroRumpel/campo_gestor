@@ -138,3 +138,7 @@ Task 3 (schema push) could not complete in this session — see "Task 3 Status" 
 ---
 *Phase: 04-movements*
 *Completed: 2026-07-16*
+
+## Self-Check: PASSED
+
+All 3 files (migration, animal_repository.dart, SUMMARY.md) verified present on disk. All 3 commit hashes (aca8b2a, cf5a4dc, a7bcbf6) verified present in git log.
