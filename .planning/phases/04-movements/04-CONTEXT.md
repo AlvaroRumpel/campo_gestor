@@ -107,6 +107,7 @@ Phase 3 entregou `animals.lot_id` e `lots.paddock_id` imutáveis durante criaç�
 - Histórico de movimentações (auditoria de quem moveu o quê quando) — pós-MVP, requer tabela de eventos.
 - Mover múltiplos animais selecionados de uma vez — lote-level move (MOV-02) já cobre o caso bulk; seleção individual múltipla seria nova feature.
 - Mover animal para lote de outra propriedade — explicitamente fora do escopo (business rule: mesma propriedade).
+- **Bypass paralelo em `lots.paddock_id` (MOV-02) — aceito como risco MVP nesta fase (escopo travado: apenas animais).** A policy `veterinarian_can_update_active_lot` (`20260514_03_lots_animals.sql:40-50`) nunca inspeciona `paddock_id` no `WITH CHECK`, então um veterinário membro de duas propriedades pode contornar `move_lot_to_paddock` com um `PATCH /lots {paddock_id: <piquete de outra propriedade>}` bruto, movendo um lote inteiro entre propriedades sem passar pela RPC. Mesma classe de falha que o SC-4 (animais) fechou nesta plan — corrigível depois com o mesmo padrão: trigger `BEFORE UPDATE` em `lots` validando `paddock_id ∈ property_id`. Ver 04-REVIEW.md WR-02 / CR-01-parallel.
 
 </deferred>
 
