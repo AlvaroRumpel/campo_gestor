@@ -119,12 +119,16 @@ Plans:
 
 **Plans:** 5 plans (3 executed + 2 gap-closure)
 Plans:
+**Wave 1**
 
 - [x] 04-01-PLAN.md — Wave 0 Nyquist test scaffolds (5 new + 1 extended test file)
 - [x] 04-02-PLAN.md — MOV-01: AnimalRepository.moveAnimal + loteListByPropertyProvider + MoverAnimalDialog + AnimalDetailScreen button wiring
-- [x] 04-03-PLAN.md — MOV-02: move_lot_to_paddock RPC migration + LoteRepository.moveLot + MoverLoteDialog + LoteDetailScreen button wiring + supabase db push
 - [ ] 04-04-PLAN.md — [gap] SC-4: move_animal_to_lot SECURITY DEFINER RPC (cross-property rejection) + moveAnimal rewire + push both Phase-4 migrations
 - [ ] 04-05-PLAN.md — [gap] WR-01..04 dialog fixes (invalidations, mounted guard, pt-BR plural) + submit-flow behavior tests for both dialogs
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [x] 04-03-PLAN.md — MOV-02: move_lot_to_paddock RPC migration + LoteRepository.moveLot + MoverLoteDialog + LoteDetailScreen button wiring + supabase db push
 
 **UI hint:** yes
 
