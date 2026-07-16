@@ -18,11 +18,18 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakeAnimalRepo extends AnimalRepository {
   _FakeAnimalRepo() : super(SupabaseService());
 
+  String? capturedId;
+  String? capturedNewLotId;
+
   @override
   Future<Animal> moveAnimal({
     required String id,
     required String newLotId,
-  }) async => _sampleAnimal.copyWith(lotId: newLotId);
+  }) async {
+    capturedId = id;
+    capturedNewLotId = newLotId;
+    return _sampleAnimal.copyWith(lotId: newLotId);
+  }
 }
 
 class _FakeLoteRepo extends LoteRepository {
@@ -88,6 +95,53 @@ Widget _buildDialog({Animal? animal}) {
   );
 }
 
+/// Host that mirrors AnimalDetailScreen's onMover: opens the dialog via
+/// showDialog, and on a non-null pop result shows the parent's SnackBar
+/// copy — so submit-flow tests can assert the whole tap -> confirm ->
+/// SnackBar path rather than the dialog in isolation (IN-01).
+Widget _buildHost(_FakeAnimalRepo repo, {Animal? animal}) {
+  return ProviderScope(
+    overrides: [
+      animalRepositoryProvider.overrideWithValue(repo),
+      loteRepositoryProvider.overrideWithValue(_FakeLoteRepo()),
+      animalByIdProvider.overrideWith((ref, id) async => animal ?? _sampleAnimal),
+      animalListByLotProvider.overrideWith((ref, lotId) async => []),
+      animalListByPropertyProvider.overrideWith((ref) async => []),
+      loteListByPropertyProvider.overrideWith(
+        (ref) async => [_sampleLotCurrent, _sampleLotTarget],
+      ),
+    ],
+    child: MaterialApp(
+      localizationsDelegates: const [
+        DefaultMaterialLocalizations.delegate,
+        DefaultWidgetsLocalizations.delegate,
+      ],
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => Center(
+            child: ElevatedButton(
+              onPressed: () async {
+                final result = await showDialog<Map<String, String>>(
+                  context: context,
+                  builder: (_) =>
+                      MoverAnimalDialog(animal: animal ?? _sampleAnimal),
+                );
+                if (result != null && context.mounted) {
+                  final lotName = result['lotName'] ?? '';
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Animal movido para $lotName')),
+                  );
+                }
+              },
+              child: const Text('Abrir'),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -130,6 +184,29 @@ void main() {
 
       expect(find.text('Lote Atual'), findsNothing);
       expect(find.text('Lote Destino'), findsOneWidget);
+    });
+
+    testWidgets(
+        'tapping Confirmar movimentação submits the move and shows the '
+        'success SnackBar (IN-01)', (tester) async {
+      final repo = _FakeAnimalRepo();
+      await tester.pumpWidget(_buildHost(repo));
+
+      await tester.tap(find.text('Abrir'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Lote Destino'));
+      await tester.pump();
+
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Confirmar movimentação'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedId, 'animal-7');
+      expect(repo.capturedNewLotId, 'lot-target');
+      expect(find.byType(MoverAnimalDialog), findsNothing);
+      expect(find.text('Animal movido para Lote Destino'), findsOneWidget);
     });
   });
 }
