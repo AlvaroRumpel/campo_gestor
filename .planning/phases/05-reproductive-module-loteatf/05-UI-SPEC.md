@@ -35,8 +35,14 @@ created: 2026-08-04
 
 ## Spacing Scale
 
-Same 8-point scale established in Phases 3–4. Verified against `lote_form_dialog.dart`,
-`animal_detail_screen.dart`, `mover_animal_dialog.dart`.
+Phase 3 baseline scale, verified against `lote_form_dialog.dart`, `animal_detail_screen.dart`,
+`mover_animal_dialog.dart`.
+
+**Divergence from Phase 4 (deliberate):** 04-UI-SPEC declared `md: 12px` / `lg: 16px`, a one-off
+shift introduced for the single `SizedBox(height: 12)` before the composition chips in
+`_LoteHeaderCard`. Phase 5 returns to the Phase 3 token names (`md: 16px`, `lg: 24px`) — the
+majority convention across the codebase. **12px is not part of this phase's scale**; the existing
+Phase 4 usage stays where it is (no refactor in scope), but no new 12px gap is introduced here.
 
 | Token | Value | Usage |
 |-------|-------|-------|
@@ -59,12 +65,16 @@ Exceptions (mobile-specific — this phase's DG screen is used one-handed in a c
 
 Material 3 `TextTheme` roles only — never hard-code font sizes. Matches Phase 3/4 contract exactly (no new roles introduced).
 
-| Role | Flutter TextTheme | Size | Weight | Usage in Phase 5 |
-|------|-------------------|------|--------|-------------------|
-| Body | `bodyMedium` | 14sp | 400 | Secondary lines (subtitle text, muted labels), explanation text in dialogs |
-| Label | `bodyLarge` | 16sp | 400 (600 for numeric emphasis) | List item primary text, animal number `#N` (w600), DG chip labels |
-| Heading | `titleMedium` | 16sp | 500/600 | Section labels ("Composição", "Registrar DG"), card titles, dialog titles |
-| Display | `headlineSmall` | 24sp | 400 | Not used — no full-page display headers introduced this phase |
+| Role | Flutter TextTheme | Size | Line Height | Weight | Usage in Phase 5 |
+|------|-------------------|------|-------------|--------|-------------------|
+| Body | `bodyMedium` | 14sp | 1.43 (M3 default) | 400 | Secondary lines (subtitle text, muted labels), explanation text in dialogs |
+| Label | `bodyLarge` | 16sp | 1.50 (M3 default) | 400 (600 for numeric emphasis) | List item primary text, animal number `#N` (w600), DG chip labels |
+| Heading | `titleMedium` | 16sp | 1.50 (M3 default) | 500/600 | Section labels ("Composição", "Registrar DG"), card titles, dialog titles |
+| Display | `headlineSmall` | 24sp | 1.33 (M3 default) | 400 | Not used — no full-page display headers introduced this phase |
+
+Line heights are the Material 3 `TextTheme` defaults — do not override `height:` on any of these
+roles. Listed explicitly here so the DG row's fixed 48px min-height is verifiable against the
+rendered line box (`bodyLarge` at 16sp × 1.5 = 24px, leaving 12px vertical padding per chip).
 
 **DG chip label exception:** chip text uses `bodyLarge` at `FontWeight.w600` (not the default 400) — sunlight-legibility requirement for the mobile mass-entry screen. This is the one place this phase deviates from default chip typography (Phase 3's EC chips use unstyled `ChoiceChip` default text).
 
@@ -194,11 +204,11 @@ Body (ListView, padding: EdgeInsets.all(16)):
 - `MaterialBanner` or `Container` styled as a banner: `colorScheme.tertiaryContainer` background, padding 16, rounded corners 12
 - Text: `"Todos os animais têm DG registrado."` (`bodyMedium`, `onTertiaryContainer`)
 - Action: `TextButton` "Encerrar ATF" → opens `EncerrarAtfDialog`
-- Dismissible with an `IconButton(Icons.close)` — dismissal is session-local (does not persist; banner reappears on next visit while the condition holds). This is the discretionary "mecânica exata do alerta" resolved as: persistent banner, not a one-shot SnackBar, because the vet may leave the corral mid-session and return later.
+- Dismissible with an `IconButton(Icons.close, tooltip: 'Dispensar aviso')` — dismissal is session-local (does not persist; banner reappears on next visit while the condition holds). This is the discretionary "mecânica exata do alerta" resolved as: persistent banner, not a one-shot SnackBar, because the vet may leave the corral mid-session and return later.
 
 **_CompositionSection:**
 - Header row: `"Composição"` (`titleMedium`) + `"(N animais)"` muted + `Spacer` + `OutlinedButton.icon(Icons.add, "Animais")` — only when `atf.active`, opens `AtfAnimalSelectionScreen`
-- List: one row per active membership — `#42 · Vaca` (`bodyLarge`, number w600) + trailing `IconButton(Icons.close)` to remove, only rendered when `atf.active && !hasDgForThisAnimal` (D-08). When a membership cannot be removed (has DG), no icon is shown (absence, not disabled — matches the established role-gate convention of not showing disabled affordances).
+- List: one row per active membership — `#42 · Vaca` (`bodyLarge`, number w600) + trailing `IconButton(Icons.close, tooltip: 'Remover do ATF')` to remove, only rendered when `atf.active && !hasDgForThisAnimal` (D-08). When a membership cannot be removed (has DG), no icon is shown (absence, not disabled — matches the established role-gate convention of not showing disabled affordances).
 - Tapping a row navigates to `/animais/:id` (consistent with every other animal-list-tile pattern in the app).
 
 **Remove-animal confirm dialog** (small, reused pattern):
@@ -212,9 +222,13 @@ Body (ListView, padding: EdgeInsets.all(16)):
   Row:
     [#42 · Vaca]  (fixed-width ~90px, bodyLarge w600 for number)
     [3 chips: Prenha | Não-prenha | Duvidosa]  (Expanded, spaceBetween, min 48px height each)
-    [IconButton Icons.event — override this row's date]  (opens date picker for THIS animal only)
-    [IconButton Icons.notes — optional per-row observação]  (expands a TextFormField below the row)
+    [IconButton Icons.event, tooltip: 'Alterar data deste animal']  (opens date picker for THIS animal only)
+    [IconButton Icons.notes, tooltip: 'Adicionar observação']  (expands a TextFormField below the row)
   ```
+
+**Icon-only rule (all screens in this phase):** every `IconButton` declared above MUST carry a
+`tooltip:` in pt-BR. The tooltip is the accessible label on Flutter web (it feeds the semantics
+tree) and the hover affordance on desktop. No icon-only action ships without one.
 - Rows for animals that already have a most-recent DG show that chip pre-selected (using the semantic colors above). Tapping a different chip does not overwrite history — it stages a NEW DG record for that animal (D-12: multiple DGs per animal per ATF are additive, most-recent wins for display/%).
 - Only rows whose chip selection changed relative to the currently-displayed value (or newly set from blank) are included in the batch save payload — unchanged rows are skipped, avoiding redundant DG rows on re-save.
 - Footer: `FilledButton` "Salvar DGs" — full width, disabled when zero rows changed. Shows `LinearProgressIndicator` pattern during the RPC call (button becomes disabled + inline spinner, matching `LoteFormDialog`'s batch-save treatment, not the dialog-title-replacement pattern since this is not a dialog).
@@ -345,6 +359,10 @@ All copy in pt-BR. No emojis. Tone matches Phases 1–4: direct, imperative verb
 | Empty state body — all encerrados, toggle off | "Ative 'Mostrar encerrados' para ver o histórico." |
 | Empty state — lot has no eligible animals | "Nenhuma vaca ou novilha neste lote." |
 | Empty state — animal has no reproductive history | "Nenhum ATF registrado para este animal." |
+| Empty state — ATF with zero animals (probe) | "Nenhum animal neste ATF." + botão "Adicionar animais" |
+| % prenhez, zero DGs registered (probe) | "— · aguardando DG" (never "0%") |
+| ATF card summary, zero DGs (probe) | "impl. [DD/MM] · insem. [DD/MM] · [N] animais · aguardando DG" |
+| Error state — encerramento failure (probe) | "Não foi possível encerrar o ATF. Tente novamente." |
 | Disabled row reason (D-07) | "já em ATF [nome]" |
 | Encerramento banner text (D-15) | "Todos os animais têm DG registrado." |
 | Encerramento banner action | "Encerrar ATF" |
@@ -376,24 +394,132 @@ All copy in pt-BR. No emojis. Tone matches Phases 1–4: direct, imperative verb
 
 ## UI Considerations
 
-Applicable state considerations resolved: 13 covered, 0 backstop, 1 unresolved.
+Generated by `ui-consideration-probe.cjs` over the 10 surfaces described in this spec.
+**66 applicable considerations: 63 covered, 2 backstop, 1 unresolved.**
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | ATF list (list-collection) | ✅ covered | Empty state "Nenhum ATF cadastrado" (no ATFs at all) vs "Nenhum ATF ativo" (toggle hides all remaining) — see Copywriting Contract |
-| loading | ATF list (list-collection) | ✅ covered | `CircularProgressIndicator` while `atfListByPropertyProvider` loads — established `AsyncValue.when` pattern |
-| error | ATF list (list-collection) | ✅ covered | Generic load-failure copy, same string reused from Phase 3/4 |
-| populated | ATF list (list-collection) | ✅ covered | `AtfCard` format per D-04, verified against exact example string in CONTEXT.md |
-| zero-one-many | ATF list (list-collection) | ✅ covered | Counts are numeric ("48 animais", "31/50 DG") — no singular/plural noun variance needed in pt-BR for this phrasing |
-| empty | Animal selection checklist (list-collection) | ✅ covered | "Nenhuma vaca ou novilha neste lote." inline message when chosen lot has zero eligible animals; avulsos section remains usable |
-| partial | Animal selection checklist (list-collection) | ✅ covered | Disabled-with-reason rows for animals already in an active ATF (D-07) |
-| overflow | DG mass-entry list (list-collection) | ⚠ unresolved | Pagination/virtualization strategy for large ATFs is explicit Claude's Discretion in 05-CONTEXT.md — plan-phase must select an approach (minimum: `ListView.builder` lazy rendering); no truncation of the underlying list is specified here |
-| populated | DG mass-entry list (list-collection) | ✅ covered | One row per active-in-ATF animal, 3 toggle chips, single session date at top (D-10, D-11) |
-| long-text | DG mass-entry list (form-like list-collection) | ✅ covered | Per-animal observação is optional and collapsed behind an icon toggle to protect row scan density; expanded `TextFormField` wraps normally |
-| empty | Reproductive History section (list-collection, AnimalDetailScreen) | ✅ covered | "Nenhum ATF registrado para este animal." replaces the Fase 5 placeholder |
-| loading/error | Reproductive History section (list-collection) | ✅ covered | Same `AsyncValue` spinner/error treatment as `AnimalInfoCard`'s lot/paddock lookups |
-| error | AtfFormDialog (form) | ✅ covered | Field-level `Form.validate()` errors, matching `LoteFormDialog`'s validator pattern |
-| long-text | Touro external name / Observação fields (form) | ✅ covered | Standard `TextFormField` wrapping, no character limit — matches existing Observação field precedent (`maxLines: 3`) |
+Kind-confirmation (propose-then-confirm): the classifier tagged `EncerrarAtfDialog` as text-only and
+missed that it fires an RPC. Confirmed with the user and re-raised with `loading` + `error` — see E7.
+
+Empty- and error-state COPY lives in `## Copywriting Contract`; rows below reference it rather than
+restating it.
+
+### E1 — ReproducaoScreen (ATF list)
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | Two distinct empties: "Nenhum ATF cadastrado" (zero ATFs) vs "Nenhum ATF ativo" (toggle off, only encerrados exist) |
+| loading | ✅ covered | `AsyncValue.when` → centered `CircularProgressIndicator`; established Phase 3/4 pattern |
+| error | ✅ covered | Generic load-failure copy, same string as Phase 3/4 |
+| populated | ✅ covered | `AtfCard` list, format locked by D-04 |
+| partial | ✅ covered | ATF without `observação` or with external-semen bull renders those rows omitted, never as blank labels — same `KvRow` conditional as `AnimalInfoCard` |
+| overflow | ✅ covered | `ListView.builder` lazy rendering; no pagination, no truncation (user decision, this probe) |
+| zero-one-many | ✅ covered | All counts numeric ("48 animais", "1 animais" is avoided by the "[N] animais" format only ever following a number ≥ 1; zero-animal ATFs use the dedicated empty copy) |
+| long-text | ✅ covered | ATF name is single-line `TextOverflow.ellipsis` in the card title; full name visible on the detail screen |
+
+### E2 — AtfFormDialog (create/edit form)
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | Fresh dialog = all fields blank, submit enabled but `Form.validate()` blocks with per-field messages |
+| loading | ✅ covered | Confirm button disabled + inline spinner during insert; `LoteFormDialog` treatment |
+| error | ✅ covered | "Não foi possível criar o ATF…" below the actions; dialog stays open with input preserved |
+| partial | ✅ covered | Per-field validation copy for name, date order, and bull (see Copywriting Contract) |
+| overflow | ✅ covered | Dialog content wrapped in `SingleChildScrollView` — at 360px with the keyboard open the form must scroll, never clip |
+| long-text | ✅ covered | `observação` is `maxLines: 3` and wraps; external bull name wraps normally, no character cap |
+
+### E3 — AtfAnimalSelectionScreen (checklist)
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | "Nenhuma vaca ou novilha neste lote." inline when the chosen lote has zero eligible animals; the avulsos search stays usable |
+| loading | ✅ covered | Spinner in the list area while the lot's animals load; the lote picker stays interactive |
+| error | ✅ covered | Generic load-failure copy in the list area, lote picker unaffected |
+| populated | ✅ covered | Eligible animals of the chosen lote pre-checked; avulsos appended below (D-06) |
+| partial | ✅ covered | Animals already in another active ATF render disabled with "já em ATF [nome]" (D-07) — present but unselectable, never hidden |
+| overflow | ✅ covered | `ListView.builder` + the existing search/filter as the practical narrowing tool (user decision, this probe) |
+| zero-one-many | ✅ covered | Confirm button carries the live count: "Adicionar animais" with "[N] selecionados" beneath; disabled at zero with the "Selecione ao menos 1 animal" validation |
+
+### E4 — AtfDetailScreen
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | ATF with zero active animals is a legitimate transient state (user decision, this probe): composition shows "Nenhum animal neste ATF." + "Adicionar animais"; the DG section is hidden entirely; "Encerrar" stays available |
+| loading | ✅ covered | Header skeleton via `AsyncValue.when` spinner; sections render after the ATF resolves |
+| error | ✅ covered | Generic load-failure copy replacing the body; header not rendered against partial data |
+| populated | ✅ covered | Header card → optional encerramento banner → composition → DG section, in that order |
+| partial | ✅ covered | Encerrado ATF hides every write affordance (add, remove, encerrar) — absence, not disabled, per the role-gate convention. DG chips stay editable (D-16: correction remains possible after closure) |
+| overflow | ✅ covered | Whole screen is one scroll view; the DG list does not nest its own scroll (avoids the mobile nested-scroll trap) |
+| zero-one-many | ✅ covered | "Ainda há [N] animal(is) sem DG registrado." uses the explicit `animal(is)` form already established in Phase 4's pt-BR plural fix |
+
+### E5 — _CompositionSection
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | Same zero-animal empty state as E4 |
+| loading | ✅ covered | Inherits the parent screen's load — no independent spinner |
+| error | ✅ covered | Inherits the parent screen's error |
+| populated | ✅ covered | One row per active membership: `#42 · Vaca` + remove icon when removable |
+| partial | ✅ covered | A membership with a DG shows no remove icon at all (absence, not disabled) — D-08 |
+| overflow | ✅ covered | `ListView.builder` with `shrinkWrap` inside the page scroll |
+| zero-one-many | ✅ covered | Header shows "(N animais)"; the zero case is the empty state instead |
+| long-text | ✅ covered | Rows are number + category only — no free text can overflow |
+
+### E6 — _DgSection (mobile-critical mass entry)
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | Section hidden when the ATF has no active animals (E4) |
+| loading | ✅ covered | "Salvar DGs" disabled + inline spinner during the batch RPC; rows stay visible and read-only |
+| error | ✅ covered | "Erro ao salvar DGs. Tente novamente." — **staged selections are NOT cleared** on failure, so a retry does not re-walk the herd |
+| populated | ✅ covered | One row per active animal; existing most-recent DG pre-selected; a new tap stages an additive record (D-12) |
+| partial | ✅ covered | Mixed state (some rows marked, some blank) is normal — the save button counts only changed rows and is disabled at zero |
+| overflow | 🧪 backstop | `ListView.builder` lazy rendering is the locked minimum (user decision, this probe). **Backstop:** a widget test rendering a 200-animal ATF asserting the DG list builds and the save payload carries only changed rows. No pagination, no truncation |
+| zero-one-many | ✅ covered | Save confirmation "DGs registrados." is count-free, sidestepping pt-BR plural entirely |
+| long-text | ✅ covered | Per-row `observação` is collapsed behind an icon toggle; expanded field wraps and pushes the row down rather than growing the row height in place |
+
+### E7 — EncerrarAtfDialog *(kinds corrected — loading/error added by user confirmation)*
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| loading | ✅ covered | "Encerrar" disabled + inline spinner while the closure RPC runs (it deactivates N memberships); dialog does not dismiss optimistically |
+| error | ✅ covered | "Não foi possível encerrar o ATF. Tente novamente." shown inside the dialog; dialog stays open, ATF state untouched |
+| long-text | ✅ covered | Body copy is fixed prose; the ATF name in the title is `TextOverflow.ellipsis` on one line |
+
+### E8 — Histórico Reprodutivo (read-only, AnimalDetailScreen)
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | "Nenhum ATF registrado para este animal." replaces the Phase 3 placeholder |
+| loading | ✅ covered | Section-local spinner, same treatment as `AnimalInfoCard`'s lot/paddock lookups |
+| error | ✅ covered | "Erro ao carregar histórico reprodutivo." — section-local, never blanks the whole ficha |
+| populated | ✅ covered | Row format locked by D-14, ordered by insemination date descending |
+| partial | ✅ covered | An ATF the animal is in with no DG yet shows "aguardando DG" in the result slot instead of an empty badge |
+| overflow | ✅ covered | Full list, no cap — an animal accumulates roughly one ATF per year, so truncation would be premature |
+| zero-one-many | ✅ covered | No count label on this section — the rows are the count |
+
+### E9 — AtfCard
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | Zero-animal ATF card shows "0 animais" with the "aguardando DG" tail (no % block) |
+| loading | ✅ covered | Cards render only after the list resolves — no per-card skeleton |
+| error | ✅ covered | Inherits the list-level error |
+| populated | ✅ covered | D-04 format, verified against the CONTEXT.md example string |
+| partial | ✅ covered | Missing optional fields collapse; the card never renders a dangling separator |
+| overflow | ✅ covered | Fixed two-line card: title line ellipsis, summary line ellipsis |
+| zero-one-many | ✅ covered | Numeric counts only |
+
+### E10 — Indicador de % prenhez
+
+| Category | Status | Resolution |
+|----------|--------|------------|
+| empty | ✅ covered | **Zero DGs → "— · aguardando DG", never "0%"** (user decision, this probe). Guards the division by zero and avoids reading a not-yet-started cycle as a failed one. Progress bar renders at 0 |
+| loading | ✅ covered | Rendered from already-loaded ATF data — no independent load |
+| error | ✅ covered | Inherits the parent surface's error |
+| populated | ✅ covered | "[X]% prenhez ([Y]/[Z] DG · [W] pendentes)" while pending; drops the pendentes clause at 100% (D-18) |
+| partial | 🧪 backstop | The whole point of this indicator is the partial state. **Backstop:** a unit test over the percentage function asserting zero-DG → null/"—", duvidosa in the denominator but not the numerator (D-17), most-recent-DG-per-animal wins (D-12), and a baixa'd animal with a DG still counted (D-20) |
+| overflow | ✅ covered | Single line, fixed format; the string cannot grow unbounded |
+| zero-one-many | ⚠ unresolved | "1 pendentes" is grammatically wrong in pt-BR. Planner must pick the form — `pendente`/`pendentes` conditional, or the `pendente(s)` shorthand used elsewhere in the app. Flagged as an assumption, not silently dropped |
 
 <!-- Status vocabulary (locked by probe-core projectTruths):
      ✅ covered   → a plain truth string lifted into must_haves.truths
