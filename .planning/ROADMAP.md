@@ -147,7 +147,7 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 7/10 plans executed
+**Plans:** 8/10 plans executed
 
 Plans:
 **Wave 1**
@@ -168,7 +168,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 05-08-PLAN.md — DG mass-entry section with session date and chip rows (REPR-03/REPR-04)
+- [x] 05-08-PLAN.md — DG mass-entry section with session date and chip rows (REPR-03/REPR-04)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -238,7 +238,7 @@ Plans:
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
-| 5. Reproductive Module | 7/10 | In Progress|  |
+| 5. Reproductive Module | 8/10 | In Progress|  |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
