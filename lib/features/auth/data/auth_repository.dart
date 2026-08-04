@@ -24,11 +24,17 @@ class AuthRepository {
   static String get resetRedirect =>
       '${AppConfig.appOrigin}/reset-password';
 
+  /// Signup confirmation email links back to the bare [AppConfig.appOrigin]
+  /// (unlike [resetRedirect], no extra path segment is appended).
   Future<AuthResponse> signUp({
     required String email,
     required String password,
   }) =>
-      _service.auth.signUp(email: email, password: password);
+      _service.auth.signUp(
+        email: email,
+        password: password,
+        emailRedirectTo: AppConfig.appOrigin,
+      );
 
   Future<AuthResponse> signIn({
     required String email,

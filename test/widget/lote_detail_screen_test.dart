@@ -13,6 +13,7 @@ import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -85,6 +86,45 @@ Widget _buildScreen({
 }
 
 // ---------------------------------------------------------------------------
+// Router harness (F-04-04) — back button needs a real GoRouter in the tree.
+// ---------------------------------------------------------------------------
+
+Widget _buildRoutedScreen({
+  required Lot? lot,
+  required List<Animal> animals,
+}) {
+  final router = GoRouter(
+    initialLocation: '/lotes/${lot?.id ?? 'lot-1'}',
+    routes: [
+      GoRoute(
+        path: '/lotes/:loteId',
+        builder: (context, state) =>
+            LoteDetailScreen(loteId: state.pathParameters['loteId']!),
+      ),
+      GoRoute(
+        path: '/piquetes/:id',
+        builder: (context, state) => Scaffold(
+          body: Text('paddock-detail-${state.pathParameters['id']}'),
+        ),
+      ),
+      GoRoute(
+        path: '/piquetes',
+        builder: (context, state) => const Scaffold(body: Text('paddock-list')),
+      ),
+    ],
+  );
+  return ProviderScope(
+    overrides: [
+      loteByIdProvider.overrideWith((ref, id) async => lot),
+      animalListByLotProvider.overrideWith((ref, lotId) async => animals),
+      paddockByIdProvider.overrideWith((ref, id) async => _pad),
+      memberPropertiesProvider.overrideWith((ref) async => [_vet]),
+    ],
+    child: MaterialApp.router(routerConfig: router),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -149,6 +189,36 @@ void main() {
         find.widgetWithText(OutlinedButton, 'Mover para piquete'),
         findsNothing,
       );
+    });
+  });
+
+  group('LoteDetailScreen — Back button (F-04-04)', () {
+    testWidgets(
+        'tapping back with no navigation history routes to the paddock detail path',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildRoutedScreen(lot: _lot, animals: [_activeAnimal]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('paddock-detail-${_lot.paddockId}'), findsOneWidget);
+    });
+
+    testWidgets(
+        'tapping back before the lot resolves (null lot) routes to the paddock list',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildRoutedScreen(lot: null, animals: const []),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('paddock-list'), findsOneWidget);
     });
   });
 }

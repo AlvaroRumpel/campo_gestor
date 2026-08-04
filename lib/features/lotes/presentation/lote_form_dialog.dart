@@ -224,8 +224,8 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
 
 /// One row in the batch composition grid.
 ///
-/// Layout: [CategoryLabel] [Decrement] [QtyDisplay] [Increment] [BreedDropdown]
-class _CategoryCompositionRow extends StatelessWidget {
+/// Layout: [CategoryLabel] [Decrement] [QtyField] [Increment] [BreedDropdown]
+class _CategoryCompositionRow extends StatefulWidget {
   const _CategoryCompositionRow({
     required this.category,
     required this.qty,
@@ -241,6 +241,42 @@ class _CategoryCompositionRow extends StatelessWidget {
   final ValueChanged<String?> onBreedChanged;
 
   @override
+  State<_CategoryCompositionRow> createState() =>
+      _CategoryCompositionRowState();
+}
+
+class _CategoryCompositionRowState extends State<_CategoryCompositionRow> {
+  late final TextEditingController _qtyCtrl =
+      TextEditingController(text: '${widget.qty}');
+
+  @override
+  void dispose() {
+    _qtyCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CategoryCompositionRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final displayed = int.tryParse(_qtyCtrl.text) ?? 0;
+    if (displayed != widget.qty) {
+      final text = '${widget.qty}';
+      _qtyCtrl.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+  }
+
+  void _onTextChanged(String text) {
+    if (text.isEmpty) {
+      widget.onQtyChanged(0);
+      return;
+    }
+    widget.onQtyChanged(int.parse(text));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -248,29 +284,46 @@ class _CategoryCompositionRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 90,
-            child: Text(kCategoryLabelsPlural[category]!),
+            child: Text(kCategoryLabelsPlural[widget.category]!),
           ),
           IconButton(
+            key: ValueKey('qty_dec_${widget.category}'),
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            onPressed: qty > 0 ? () => onQtyChanged(qty - 1) : null,
+            onPressed:
+                widget.qty > 0 ? () => widget.onQtyChanged(widget.qty - 1) : null,
             icon: const Icon(Icons.remove),
           ),
           SizedBox(
-            width: 32,
-            child: Text(
-              '$qty',
+            width: 56,
+            child: TextField(
+              key: ValueKey('qty_field_${widget.category}'),
+              controller: _qtyCtrl,
               textAlign: TextAlign.center,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(3),
+              ],
+              decoration: const InputDecoration(
+                isDense: true,
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
+              ),
+              onChanged: _onTextChanged,
             ),
           ),
           IconButton(
+            key: ValueKey('qty_inc_${widget.category}'),
             constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            onPressed: qty < 999 ? () => onQtyChanged(qty + 1) : null,
+            onPressed: widget.qty < 999
+                ? () => widget.onQtyChanged(widget.qty + 1)
+                : null,
             icon: const Icon(Icons.add),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: DropdownButtonFormField<String?>(
-              initialValue: breed,
+              initialValue: widget.breed,
               isExpanded: true,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
@@ -293,7 +346,7 @@ class _CategoryCompositionRow extends StatelessWidget {
                   ),
                 ),
               ],
-              onChanged: onBreedChanged,
+              onChanged: widget.onBreedChanged,
             ),
           ),
         ],
