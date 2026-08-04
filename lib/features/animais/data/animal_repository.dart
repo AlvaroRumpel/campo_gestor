@@ -3,6 +3,7 @@
 // compiler errors in Dart 3.11 (the feature was proposed but not finalized as
 // map-literal syntax). The `if (x != null) 'key': x` pattern is the correct idiom.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import '../../../core/providers/current_property_provider.dart';
@@ -10,6 +11,11 @@ import '../../../core/providers/supabase_providers.dart';
 import '../../../core/services/supabase_service.dart';
 import 'animal_constants.dart';
 import 'animal_model.dart';
+
+/// `yyyy-MM-dd`, no timezone conversion — for date-only fields (WR-03,
+/// 05-REVIEW.md). `.toUtc()` before truncation shifts a local-midnight
+/// `DateTime` across the calendar day boundary for any UTC-ahead offset.
+final _dateOnlyFmt = DateFormat('yyyy-MM-dd');
 
 /// Thrown when a manual animal number conflicts with an existing active animal.
 ///
@@ -211,7 +217,7 @@ class AnimalRepository {
     await _service.client.rpc('register_baixa', params: {
       'p_animal_id': id,
       'p_reason': reason.dbValue,
-      'p_date': date.toUtc().toIso8601String().substring(0, 10),
+      'p_date': _dateOnlyFmt.format(date),
       if (observation != null) 'p_observation': observation,
     });
   }

@@ -4,6 +4,7 @@
 // map-literal syntax). The `if (x != null) 'key': x` pattern is the correct idiom.
 // Mirrors animal_repository.dart's identical suppression.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/providers/supabase_providers.dart';
@@ -12,6 +13,11 @@ import '../../animais/data/animal_model.dart';
 import 'atf_model.dart';
 import 'dg_record_model.dart';
 import 'dg_summary.dart';
+
+/// `yyyy-MM-dd`, no timezone conversion — for date-only fields (WR-03).
+/// `.toUtc()` before truncation shifts a local-midnight `DateTime` across
+/// the calendar day boundary for any UTC-ahead offset.
+final _dateOnlyFmt = DateFormat('yyyy-MM-dd');
 
 /// Repository for the reproductive module: ATF batches, memberships, and DG
 /// records (REPR-01..05).
@@ -280,10 +286,8 @@ class AtfRepository {
     final row = await _service.client.from('atf_batches').insert({
       'property_id': propertyId,
       'name': name,
-      'implantation_date':
-          implantationDate.toUtc().toIso8601String().substring(0, 10),
-      'insemination_date':
-          inseminationDate.toUtc().toIso8601String().substring(0, 10),
+      'implantation_date': _dateOnlyFmt.format(implantationDate),
+      'insemination_date': _dateOnlyFmt.format(inseminationDate),
       if (bullAnimalId != null) 'bull_animal_id': bullAnimalId,
       if (bullName != null) 'bull_name': bullName,
       if (observation != null) 'observation': observation,
