@@ -13,6 +13,8 @@ import 'package:flutter_test/flutter_test.dart';
 // Fake in-memory LoteRepository — no mocktail chain needed.
 // ---------------------------------------------------------------------------
 class _FakeLoteRepository implements LoteRepository {
+  Map<String, int>? lastCategoryQuantities;
+
   @override
   Future<List<Lot>> fetchLotsByPaddock(String paddockId) async => [];
 
@@ -28,6 +30,7 @@ class _FakeLoteRepository implements LoteRepository {
     required Map<String, String?> categoryBreeds,
     int? startNumber,
   }) async {
+    lastCategoryQuantities = categoryQuantities;
     return Lot(
       id: 'fake-lot-id',
       propertyId: propertyId,
@@ -67,10 +70,10 @@ class _FakeLoteRepository implements LoteRepository {
 // ---------------------------------------------------------------------------
 // Helper: mount LoteFormDialog via a button that opens it via showDialog
 // ---------------------------------------------------------------------------
-Widget _buildApp({Lot? existing}) {
+Widget _buildApp({Lot? existing, required _FakeLoteRepository repo}) {
   return ProviderScope(
     overrides: [
-      loteRepositoryProvider.overrideWithValue(_FakeLoteRepository()),
+      loteRepositoryProvider.overrideWithValue(repo),
     ],
     child: MaterialApp(
       home: Scaffold(
@@ -97,7 +100,7 @@ void main() {
     testWidgets(
         'renders 7 category counter rows: Vacas, Novilhas, Terneiros, Terneiras, Touros, Bois, Novilhos',
         (tester) async {
-      await tester.pumpWidget(_buildApp());
+      await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -113,7 +116,7 @@ void main() {
     testWidgets(
         'rejects submit when name is empty (shows "Nome do lote é obrigatório")',
         (tester) async {
-      await tester.pumpWidget(_buildApp());
+      await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -126,7 +129,7 @@ void main() {
     testWidgets(
         'rejects submit when sum of all category quantities == 0 (shows "Informe ao menos 1 animal para criar o lote")',
         (tester) async {
-      await tester.pumpWidget(_buildApp());
+      await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -146,7 +149,7 @@ void main() {
     testWidgets(
         'shows optional "Iniciar do número" field with hint "Ex: 101 (deixe vazio para auto)"',
         (tester) async {
-      await tester.pumpWidget(_buildApp());
+      await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -158,7 +161,7 @@ void main() {
 
     testWidgets('shows raça dropdown per category row (search-select, optional)',
         (tester) async {
-      await tester.pumpWidget(_buildApp());
+      await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -166,6 +169,66 @@ void main() {
       expect(
         find.byType(DropdownButtonFormField<String?>),
         findsAtLeastNWidgets(7),
+      );
+    });
+
+    testWidgets(
+        'typing a two-digit quantity into a category field passes that exact count to createLotWithAnimals (F-04-03)',
+        (tester) async {
+      final repo = _FakeLoteRepository();
+      await tester.pumpWidget(_buildApp(repo: repo));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nome do lote *'),
+        'Lote A',
+      );
+      await tester.enterText(find.byKey(const ValueKey('qty_field_vaca')), '20');
+      await tester.tap(find.text('Criar lote'));
+      await tester.pumpAndSettle();
+
+      expect(repo.lastCategoryQuantities?['vaca'], 20);
+    });
+
+    testWidgets(
+        'after typing a quantity, tapping increment shows the value plus one (F-04-03)',
+        (tester) async {
+      await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byKey(const ValueKey('qty_field_vaca')), '20');
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('qty_inc_vaca')));
+      await tester.pump();
+
+      final field =
+          tester.widget<TextField>(find.byKey(const ValueKey('qty_field_vaca')));
+      expect(field.controller!.text, '21');
+    });
+
+    testWidgets(
+        'clearing the quantity field leaves the count at zero and shows the "at least 1 animal" SnackBar on submit (F-04-03)',
+        (tester) async {
+      await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nome do lote *'),
+        'Lote A',
+      );
+      await tester.enterText(find.byKey(const ValueKey('qty_field_vaca')), '5');
+      await tester.pump();
+      await tester.enterText(find.byKey(const ValueKey('qty_field_vaca')), '');
+      await tester.pump();
+      await tester.tap(find.text('Criar lote'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Informe ao menos 1 animal para criar o lote'),
+        findsOneWidget,
       );
     });
   });

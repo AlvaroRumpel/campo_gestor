@@ -31,6 +31,20 @@ class LoteDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            final paddockId = lotAsync.asData?.value?.paddockId;
+            if (paddockId != null) {
+              context.go('/piquetes/$paddockId');
+            } else {
+              context.go(AppRoutes.piquetes);
+            }
+          },
+        ),
         title: lotAsync.when(
           data: (l) => Text(l?.name ?? 'Lote'),
           loading: () => const Text('Lote'),
