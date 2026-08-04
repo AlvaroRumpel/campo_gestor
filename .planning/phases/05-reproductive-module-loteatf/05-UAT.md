@@ -1,9 +1,9 @@
 ---
-status: partial
+status: diagnosed
 phase: 05-reproductive-module-loteatf
 source: [05-VERIFICATION.md, 05-REVIEW.md]
 started: 2026-08-04T00:00:00Z
-updated: 2026-08-04T00:10:00Z
+updated: 2026-08-04T00:20:00Z
 ---
 
 ## Current Test
@@ -89,8 +89,26 @@ blocked: 2
   reason: "User reported: Dei baixa na Vaca #2 enquanto ela estava em um ATF, ela continuou no ATF ativo, mas não aparece mais nos animais, nem nos lotes."
   severity: blocker
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: |
+    NOT a database defect. The register_baixa -> trg_animals_baixa_deactivates_atf AFTER trigger ->
+    animal_atf_memberships.active=false chain is sound after the CR-01 trigger-scope fix (the
+    rescoped BEFORE trigger only re-fires on UPDATE OF animal_id/atf_batch_id/property_id, not on a
+    pure `active` flip). The actual gap is a stale Riverpod cache: BaixaDialog._submit() invalidates
+    animalByIdProvider, animalListByPropertyProvider, reproductiveHistoryByAnimalProvider — but never
+    the reproducao feature's atfActiveMembershipsProvider / atfMembershipsProvider /
+    atfListByPropertyProvider. Those are plain (non-autoDispose) FutureProviders that cache
+    indefinitely, so the ATF detail screen keeps showing the pre-baixa composition until app restart.
+    Every other ATF-composition-changing flow (remove_animal_from_atf, encerrar, add_animals_to_atf)
+    already invalidates all three; baixa is the only mutation path missing it (triggered from a
+    different feature module with no reference to atfBatchId).
+  artifacts:
+    - path: "lib/features/animais/presentation/baixa_dialog.dart"
+      issue: "_submit() doesn't invalidate atfActiveMembershipsProvider / atfMembershipsProvider / atfListByPropertyProvider after a successful baixa"
+    - path: "lib/features/reproducao/data/atf_repository.dart"
+      issue: "defines the three non-autoDispose ATF-composition providers that go stale"
+  missing:
+    - "Invalidate atfActiveMembershipsProvider, atfMembershipsProvider, and atfListByPropertyProvider (whole-family, since BaixaDialog doesn't know the animal's atfBatchId) in BaixaDialog._submit() on success"
+  debug_session: ".planning/debug/atf-membership-not-deactivated-on-baixa.md"
 
 - gap_id: G-05-1-nav
   truth: "ATF detail screen has a way back to the previous screen."
@@ -98,8 +116,20 @@ blocked: 2
   reason: "User reported: não tem botão de voltar."
   severity: minor
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: |
+    /atf/:atfId is a root-level GoRoute (router.dart:141-149), a sibling of the StatefulShellRoute,
+    not nested inside it. All call sites navigate via context.go(...), which replaces the whole nav
+    stack, so Navigator.canPop() is false on arrival and Flutter's default AppBar shows no back
+    arrow. atf_detail_screen.dart never sets an explicit `leading` widget to compensate — unlike the
+    identical /lotes/:loteId routing pattern, where lote_detail_screen.dart already has a working
+    BackButton(onPressed: canPop() ? pop() : go(parent)) fallback that atf_detail_screen.dart's own
+    header comment claims to mirror but never actually copied.
+  artifacts:
+    - path: "lib/features/reproducao/presentation/atf_detail_screen.dart"
+      issue: "all 4 AppBar instances (loading/error/null-data/data states, lines 41-93) missing a leading BackButton"
+  missing:
+    - "Add leading: BackButton(onPressed: () { if (context.canPop()) context.pop(); else context.go(AppRoutes.reproducao); }) to all 4 AppBar instances, mirroring lote_detail_screen.dart:32-53"
+  debug_session: ".planning/debug/atf-detail-missing-back-button.md"
 
 ### CR-01 — baixa aborts for animals in an active ATF
 status: reopened (regression 2026-08-04, see G-05-1)
