@@ -147,7 +147,20 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** TBD
+**Plans:** 10 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — DB schema: atf_batches, dg_records, animal_atf_memberships activation, RLS, isolation/category/baixa triggers
+- [ ] 05-02-PLAN.md — Dart data layer: freezed models, summarizeDg (% prenhez), AtfRepository + providers
+- [ ] 05-03-PLAN.md — SECURITY DEFINER write surface: add/remove animals, save DGs, close ATF, register_baixa
+- [ ] 05-04-PLAN.md — Root-level /atf/:atfId route + AtfDetailScreen shell and header card
+- [ ] 05-05-PLAN.md — ReproducaoScreen ATF list + AtfFormDialog creation form (REPR-01)
+- [ ] 05-06-PLAN.md — AtfAnimalSelectionScreen + composition management (REPR-02)
+- [ ] 05-07-PLAN.md — Reproductive history on the animal ficha (REPR-05) + registerBaixa RPC rewire
+- [ ] 05-08-PLAN.md — DG mass-entry section with session date and chip rows (REPR-03/REPR-04)
+- [ ] 05-09-PLAN.md — Manual encerramento: banner, AppBar action, EncerrarAtfDialog
+- [ ] 05-10-PLAN.md — [BLOCKING] supabase db push + pgTAP run + human UAT checkpoint
+
 **UI hint:** yes
 
 ### Phase 6: Sanitary Module (Snapshot)
