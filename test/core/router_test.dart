@@ -13,6 +13,13 @@ void main() {
     expect(AppRoutes.all, contains('/sanitario'));
   });
 
+  test('AppRoutes.atfById / atfDetail (Phase 5, D-02 root-level route)', () {
+    expect(AppRoutes.atfById, '/atf/:atfId');
+    expect(AppRoutes.atfDetail('abc'), '/atf/abc');
+    // The new detail route must NOT leak into the shell-branch-only list.
+    expect(AppRoutes.all.length, 5);
+  });
+
   // Note: full router instantiation requires a live Supabase.instance, which
   // requires Supabase.initialize(). That is exercised in the integration smoke
   // test where main() runs end-to-end. _RouterRefreshNotifier is private and
