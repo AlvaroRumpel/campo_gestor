@@ -150,15 +150,32 @@ Plans:
 **Plans:** 10 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 05-01-PLAN.md — DB schema: atf_batches, dg_records, animal_atf_memberships activation, RLS, isolation/category/baixa triggers
 - [ ] 05-02-PLAN.md — Dart data layer: freezed models, summarizeDg (% prenhez), AtfRepository + providers
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 05-03-PLAN.md — SECURITY DEFINER write surface: add/remove animals, save DGs, close ATF, register_baixa
 - [ ] 05-04-PLAN.md — Root-level /atf/:atfId route + AtfDetailScreen shell and header card
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 05-05-PLAN.md — ReproducaoScreen ATF list + AtfFormDialog creation form (REPR-01)
 - [ ] 05-06-PLAN.md — AtfAnimalSelectionScreen + composition management (REPR-02)
 - [ ] 05-07-PLAN.md — Reproductive history on the animal ficha (REPR-05) + registerBaixa RPC rewire
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 05-08-PLAN.md — DG mass-entry section with session date and chip rows (REPR-03/REPR-04)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 05-09-PLAN.md — Manual encerramento: banner, AppBar action, EncerrarAtfDialog
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 05-10-PLAN.md — [BLOCKING] supabase db push + pgTAP run + human UAT checkpoint
 
 **UI hint:** yes
