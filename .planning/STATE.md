@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 5 — Reproductive Module (LoteATF)
-current_plan: Not started
+current_phase: 05
+current_plan: 1
 status: in-progress
 stopped_at: Phase 5 planned — 10 plans, ready to execute
-last_updated: "2026-08-04T17:40:00.000Z"
+last_updated: "2026-08-04T17:47:58.404Z"
 last_activity: 2026-08-04
 progress:
   total_phases: 6
@@ -22,8 +22,8 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 5 — Reproductive Module (LoteATF)
-**Current plan:** Not started
+**Current phase:** 05
+**Current plan:** 1
 **Progress:** [██████████] 100%
 
 ---

@@ -147,13 +147,13 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 10 plans
+**Plans:** 2/10 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — DB schema: atf_batches, dg_records, animal_atf_memberships activation, RLS, isolation/category/baixa triggers
-- [ ] 05-02-PLAN.md — Dart data layer: freezed models, summarizeDg (% prenhez), AtfRepository + providers
+- [x] 05-01-PLAN.md — DB schema: atf_batches, dg_records, animal_atf_memberships activation, RLS, isolation/category/baixa triggers
+- [x] 05-02-PLAN.md — Dart data layer: freezed models, summarizeDg (% prenhez), AtfRepository + providers
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -238,7 +238,7 @@ Plans:
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
-| 5. Reproductive Module | 0/0 | Not started | - |
+| 5. Reproductive Module | 2/10 | In Progress|  |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
