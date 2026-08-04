@@ -42,6 +42,19 @@ void main() {
     });
   });
 
+  group('AnimalRepository.registerBaixa (Phase 5, plan 05-07)', () {
+    // Backing implementation moved from a direct `.from('animals').update()`
+    // to the `register_baixa` RPC in Phase 5 (05-07) — the public signature
+    // is unchanged so BaixaDialog and every fake repository in the test
+    // suite keep compiling. See 05-03-PLAN.md for the RPC's server-side
+    // role guard, concurrency re-check, and D-19 ATF-membership side effect.
+    test(
+        'registerBaixa still exists with required id, reason, date and optional observation',
+        () {
+      expect(repo.registerBaixa, isA<Function>());
+    });
+  });
+
   group('Animal model (MOV-01 — model side regression)', () {
     test('Animal.fromJson parses lot_id correctly', () {
       final json = <String, dynamic>{

@@ -193,20 +193,27 @@ class AnimalRepository {
 
   /// Register baixa (soft delete with reason and date) for an animal (ANIM-04).
   ///
-  /// Sets baixa_reason, baixa_date, and deleted_at in a single UPDATE.
+  /// Routes through the `register_baixa` SECURITY DEFINER RPC (05-03), which
+  /// re-checks the veterinarian role server side, guards against a
+  /// concurrent baixa with a `deleted_at IS NULL` predicate plus a `FOUND`
+  /// re-check (the same WR-01 pattern `moveAnimal` reuses from
+  /// `move_animal_to_lot`), and — through `trg_animals_baixa_deactivates_atf`
+  /// (05-01) — deactivates any active ATF membership in the same transaction
+  /// per D-19. Supersedes the earlier direct-UPDATE approach, which only
+  /// validated the animal's own property via RLS and had no membership side
+  /// effect — see 05-07-PLAN.md.
   Future<void> registerBaixa({
     required String id,
     required BaixaReason reason,
     required DateTime date,
     String? observation,
   }) async {
-    final payload = <String, dynamic>{
-      'baixa_reason': reason.dbValue,
-      'baixa_date': date.toUtc().toIso8601String().substring(0, 10),
-      'deleted_at': DateTime.now().toUtc().toIso8601String(),
-      if (observation != null) 'observation': observation,
-    };
-    await _service.client.from('animals').update(payload).eq('id', id);
+    await _service.client.rpc('register_baixa', params: {
+      'p_animal_id': id,
+      'p_reason': reason.dbValue,
+      'p_date': date.toUtc().toIso8601String().substring(0, 10),
+      if (observation != null) 'p_observation': observation,
+    });
   }
 }
 
