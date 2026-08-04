@@ -29,6 +29,11 @@ abstract final class AppRoutes {
   static String loteDetail(String id) => '/lotes/$id';
   static String animalDetail(String id) => '/animais/$id';
 
+  // Phase 5 detail route — root-level (outside shell, D-02): reproductive-
+  // history rows on the animal ficha (D-14) link straight to an ATF.
+  static const atfById = '/atf/:atfId'; // template — used by GoRoute path
+  static String atfDetail(String id) => '/atf/$id';
+
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';
   static const piquetes = '/piquetes';

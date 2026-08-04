@@ -18,6 +18,7 @@ import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/piquetes/presentation/paddock_detail_screen.dart';
 import '../../features/lotes/presentation/lote_detail_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
+import '../../features/reproducao/presentation/atf_detail_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/sanitario_screen.dart';
 import '../providers/current_property_provider.dart';
@@ -135,6 +136,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.loteById,
         builder: (ctx, state) => LoteDetailScreen(
           loteId: state.pathParameters['loteId']!,
+        ),
+      ),
+      // Phase 5 detail route — root-level, outside any shell branch (D-02):
+      // reproductive-history rows on the animal ficha (D-14) link directly
+      // to an ATF, mirroring loteById above.
+      GoRoute(
+        path: AppRoutes.atfById,
+        builder: (ctx, state) => AtfDetailScreen(
+          atfId: state.pathParameters['atfId']!,
         ),
       ),
       // Shell routes (Phase 0)
