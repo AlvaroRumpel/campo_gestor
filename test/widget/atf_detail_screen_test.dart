@@ -500,7 +500,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Não-prenha').first);
+      // 05-09: this scenario (composition fully DG'd) now also renders the
+      // encerramento banner above the DG section, pushing the chip below
+      // the fixed test viewport — same off-screen-tap brittleness the
+      // 05-08 summary already documented for sibling-widget growth.
+      final chipFinder = find.widgetWithText(ChoiceChip, 'Não-prenha').first;
+      await tester.ensureVisible(chipFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(chipFinder);
       await tester.pumpAndSettle();
       final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
       await tester.ensureVisible(saveButtonFinder);
@@ -722,6 +729,132 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.capturedDgRecords, hasLength(3));
+    });
+  });
+
+  group('encerramento (REPR-03, REPR-04, 05-UI-SPEC E4/section 3, D-15, D-16)', () {
+    testWidgets(
+        'the banner renders when the composition is non-empty and every animal has a DG',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [_dg('a1', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Todos os animais têm DG registrado.'), findsOneWidget);
+    });
+
+    testWidgets('the banner does not render when even one animal is pending',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
+          dgRecords: [_dg('a1', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
+    });
+
+    testWidgets(
+        'the banner does not render for a non-veterinarian override, nor for a closed ATF',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [_dg('a1', 'pregnant')],
+          membership: _reader,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
+
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf(active: false)),
+          activeMemberships: [_membership('a1')],
+          allMemberships: [_membership('a1', active: false)],
+          dgRecords: [_dg('a1', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
+    });
+
+    testWidgets("tapping the banner's dismiss icon hides it for the session",
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [_dg('a1', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Todos os animais têm DG registrado.'), findsOneWidget);
+      await tester.tap(find.byTooltip('Dispensar aviso'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
+    });
+
+    testWidgets(
+        'the AppBar encerrar action is absent for a closed ATF and for a non-veterinarian override',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf(active: false)),
+          allMemberships: [_membership('a1', active: false)],
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Encerrar ATF'), findsNothing);
+
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          membership: _reader,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Encerrar ATF'), findsNothing);
+    });
+
+    testWidgets(
+        'for a closed ATF: "+ Animais", the remove icons, the banner, and the '
+        'AppBar encerrar action are all absent, while the DG chips stay '
+        'present and interactive (D-16)', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf(active: false)),
+          activeMemberships: [_membership('a1')],
+          allMemberships: [_membership('a1', active: false)],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Animais'), findsNothing);
+      expect(find.byTooltip('Remover do ATF'), findsNothing);
+      expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
+      expect(find.byTooltip('Encerrar ATF'), findsNothing);
+
+      expect(find.text('Registrar DG'), findsOneWidget);
+      final chip = find.widgetWithText(ChoiceChip, 'Prenha').first;
+      await tester.ensureVisible(chip);
+      await tester.pumpAndSettle();
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
     });
   });
 }
