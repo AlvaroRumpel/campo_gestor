@@ -147,7 +147,7 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 2/10 plans executed
+**Plans:** 4/10 plans executed
 
 Plans:
 **Wave 1**
@@ -157,8 +157,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 05-03-PLAN.md — SECURITY DEFINER write surface: add/remove animals, save DGs, close ATF, register_baixa
-- [ ] 05-04-PLAN.md — Root-level /atf/:atfId route + AtfDetailScreen shell and header card
+- [x] 05-03-PLAN.md — SECURITY DEFINER write surface: add/remove animals, save DGs, close ATF, register_baixa
+- [x] 05-04-PLAN.md — Root-level /atf/:atfId route + AtfDetailScreen shell and header card
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -238,7 +238,7 @@ Plans:
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
-| 5. Reproductive Module | 2/10 | In Progress|  |
+| 5. Reproductive Module | 4/10 | In Progress|  |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
