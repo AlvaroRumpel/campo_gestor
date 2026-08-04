@@ -176,9 +176,17 @@ class _AtfAnimalSelectionScreenState
     List<EligibleAnimal> eligible,
     AsyncValue<List<Lot>> lotsAsync,
   ) {
-    final lotAnimals =
-        eligible.where((e) => e.animal.lotId == _selectedLotId).toList();
+    // D-09 defense-in-depth: the repository already restricts eligible
+    // animals to vaca/novilha, but both picker sections re-check the
+    // category here so a touro or terneiro is never listed regardless of
+    // what the data source returns.
+    final lotAnimals = eligible
+        .where((e) =>
+            e.animal.lotId == _selectedLotId &&
+            _eligibleCategories.contains(e.animal.category))
+        .toList();
     final avulsos = eligible.where((e) {
+      if (!_eligibleCategories.contains(e.animal.category)) return false;
       if (_selectedLotId != null && e.animal.lotId == _selectedLotId) {
         return false;
       }
@@ -278,7 +286,7 @@ class _AtfAnimalSelectionScreenState
   Widget _buildRow(ThemeData theme, EligibleAnimal e) {
     final catLabel = kCategoryLabels[e.animal.category] ?? e.animal.category;
     final title = e.blockedByAtfName != null
-        ? '#${e.animal.number} · $catLabel — já em ATF ${e.blockedByAtfName}'
+        ? '#${e.animal.number} · $catLabel — já em ${e.blockedByAtfName}'
         : '#${e.animal.number} · $catLabel';
     return CheckboxListTile(
       value: _selectedIds.contains(e.animal.id),

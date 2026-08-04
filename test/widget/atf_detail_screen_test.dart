@@ -4,6 +4,9 @@
 // and the neutral Ativo/Encerrado status badge (D-03).
 import 'dart:async';
 
+import 'package:campo_gestor/core/providers/current_property_provider.dart';
+import 'package:campo_gestor/core/services/supabase_service.dart';
+import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
@@ -11,6 +14,32 @@ import 'package:campo_gestor/features/reproducao/presentation/atf_detail_screen.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+// ---------------------------------------------------------------------------
+// Fake repository (05-06 — composition remove flow)
+// ---------------------------------------------------------------------------
+
+class _FakeAtfRepo extends AtfRepository {
+  _FakeAtfRepo({this.shouldThrow = false}) : super(SupabaseService());
+
+  final bool shouldThrow;
+  int removeCallCount = 0;
+  String? capturedAnimalId;
+
+  @override
+  Future<void> removeAnimalFromAtf({
+    required String atfBatchId,
+    required String animalId,
+  }) async {
+    removeCallCount++;
+    if (shouldThrow) throw Exception('boom');
+    capturedAnimalId = animalId;
+  }
+}
+
+const _prop = SelectedProperty(id: 'prop-1', name: 'Fazenda Alpha');
+const _vet = PropertyMembership(property: _prop, role: 'veterinarian');
+const _reader = PropertyMembership(property: _prop, role: 'reader');
 
 // ---------------------------------------------------------------------------
 // Sample data
@@ -65,6 +94,8 @@ Widget _buildScreen({
   required AsyncValue<AtfBatch?> atf,
   List<AtfMembershipView> activeMemberships = const [],
   List<DgRecord> dgRecords = const [],
+  PropertyMembership membership = _vet,
+  AtfRepository? repo,
 }) {
   return ProviderScope(
     overrides: [
@@ -77,7 +108,11 @@ Widget _buildScreen({
       }),
       atfActiveMembershipsProvider
           .overrideWith((ref, id) async => activeMemberships),
+      atfMembershipsProvider.overrideWith((ref, id) async => activeMemberships),
       dgRecordsByAtfProvider.overrideWith((ref, id) async => dgRecords),
+      atfListByPropertyProvider.overrideWith((ref) async => const []),
+      memberPropertiesProvider.overrideWith((ref) async => [membership]),
+      atfRepositoryProvider.overrideWithValue(repo ?? _FakeAtfRepo()),
     ],
     child: const MaterialApp(
       localizationsDelegates: [
@@ -163,7 +198,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(InkWell), findsOneWidget);
+      // Scoped to AtfHeaderCard (05-06): _CompositionSection's own buttons
+      // (OutlinedButton) also use InkWell internally, so an unscoped search
+      // would collide with sibling widgets unrelated to the bull row.
+      expect(
+        find.descendant(
+          of: find.byType(AtfHeaderCard),
+          matching: find.byType(InkWell),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -175,7 +219,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Sêmen externo X'), findsOneWidget);
-      expect(find.byType(InkWell), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(AtfHeaderCard),
+          matching: find.byType(InkWell),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets(
@@ -236,6 +286,102 @@ void main() {
 
       expect(find.text('Ativo'), findsOneWidget);
       expect(find.text('Encerrado'), findsNothing);
+    });
+  });
+
+  group('_CompositionSection (REPR-02, 05-UI-SPEC E5, D-08)', () {
+    testWidgets('three active memberships render three rows and a header count of three',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [
+            _membership('a1'),
+            _membership('a2', number: 2),
+            _membership('a3', number: 3),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('(3 animais)'), findsOneWidget);
+      expect(find.byType(ListTile), findsNWidgets(3));
+    });
+
+    testWidgets(
+        'an animal with no DG renders a remove IconButton; one with a DG renders none',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
+          dgRecords: [_dg('a1', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Only a2 (no DG) gets a remove affordance — a1 (has a DG) gets none.
+      expect(find.byType(IconButton), findsOneWidget);
+    });
+
+    testWidgets('"+ Animais" is absent for a non-veterinarian override', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          membership: _reader,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Animais'), findsNothing);
+    });
+
+    testWidgets('"+ Animais" is absent for a closed ATF', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf(active: false)),
+          activeMemberships: [_membership('a1')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Animais'), findsNothing);
+    });
+
+    testWidgets('a zero-membership ATF renders "Nenhum animal neste ATF."', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildScreen(atf: AsyncValue.data(_atf())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nenhum animal neste ATF.'), findsOneWidget);
+    });
+
+    testWidgets('confirming the remove dialog calls removeAnimalFromAtf once', (
+      tester,
+    ) async {
+      final repo = _FakeAtfRepo();
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(IconButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
+      await tester.pumpAndSettle();
+
+      expect(repo.removeCallCount, 1);
+      expect(repo.capturedAnimalId, 'a1');
     });
   });
 }
