@@ -147,7 +147,7 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 9/10 plans executed
+**Plans:** 10/11 plans executed
 
 Plans:
 **Wave 1**
@@ -176,7 +176,11 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 05-10-PLAN.md — [BLOCKING] supabase db push + pgTAP run + human UAT checkpoint
+- [x] 05-10-PLAN.md — [BLOCKING] supabase db push + pgTAP run + human UAT checkpoint
+
+**Wave 7** *(gap closure — UAT G-05-1, G-05-1-nav)*
+
+- [ ] 05-11-PLAN.md — Baixa invalidates ATF composition providers (D-19) + AtfDetailScreen back button
 
 **UI hint:** yes
 
