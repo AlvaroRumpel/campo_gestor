@@ -7,7 +7,7 @@ current_plan: 7 of 7 (all plans code-complete, incl. 04-07 MOV-02 lots trigger g
 status: in-progress
 stopped_at: "Completed 04-07-PLAN.md (MOV-02 lots trigger gap closure: trg_lots_paddock_same_property + pgTAP + CONTEXT closure)"
 last_updated: "2026-07-16T13:44:17.115Z"
-last_activity: 2026-07-16
+last_activity: 2026-08-04
 progress:
   total_phases: 5
   completed_phases: 5
@@ -52,7 +52,7 @@ See: .planning/PROJECT.md
 | Phases complete | 0 |
 | Requirements mapped | 26/26 |
 | Plans complete | 6 (00-01 through 00-06) |
-| Last activity | 2026-07-16 |
+| Last activity | 2026-08-04 |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
@@ -104,17 +104,24 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ### Blockers
 
-- **Phase 4 UAT blocked on manual Supabase schema push (now covers FOUR migrations).** `supabase/migrations/20260519_04_movements.sql` (move_lot_to_paddock RPC, MOV-02), `supabase/migrations/20260715_04_gap_move_animal_to_lot.sql` (move_animal_to_lot RPC + WR-01 deleted_at re-check, MOV-01/ROADMAP SC-4), `supabase/migrations/20260716_04_animal_lot_property_trigger.sql` (trg_animals_lot_same_property — access-path-independent SC-4 enforcement, 04-06), and `supabase/migrations/20260717_04_lot_paddock_property_trigger.sql` (trg_lots_paddock_same_property — access-path-independent MOV-02 enforcement, new in 04-07) are all authored and verified on disk but NOT applied to the dev Supabase project — this execution session's Supabase CLI is unlinked/unauthenticated (`supabase db push --dry-run` → "Cannot find project ref. Have you run supabase link?"), reconfirmed in 04-07. A human must run `supabase link --project-ref <dev-project-ref>` (if needed), then `supabase db push` from a machine with dev credentials — applying all four migrations together — then `supabase test db` (executes `supabase/tests/04_movements_test.sql`, the SC-4 + MOV-02 proof, plan(5)) before `/gsd-verify-work` can exercise the live trigger/RPC paths for MOV-01 or MOV-02.
+- ~~Phase 4 UAT blocked on manual Supabase schema push~~ **RESOLVED 2026-08-04.** All 8 migrations (including the four Phase-4 ones) were applied to the cloud project `wrdwzychjhlpwpivfhhq` via MCP `apply_migration`; both movement triggers verified present and enforcing (04-UAT.md tests 1-4). Phase 4 UAT then ran to completion, 8/8 passed.
+- **Supabase Auth URL config not set for the deployed origin.** Project `wrdwzychjhlpwpivfhhq` still has Site URL at `http://localhost:3000`, so signup confirmation emails link to localhost. The `emailRedirectTo` client fix (quick task 260804-fpk, F-04-02) is inert until a human sets Site URL + allowed redirect URLs to `https://campo-gestor.pages.dev` in the dashboard.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260804-fpk | Fix 4 cross-phase UAT findings from Phase 4 session (auth signup + lotes UI) | 2026-08-04 | 97dd9e3 | [260804-fpk-fix-4-cross-phase-uat-findings-from-phas](./quick/260804-fpk-fix-4-cross-phase-uat-findings-from-phas/) |
 
 ---
 
 ## Session Continuity
 
-**Stopped at:** Completed 04-07-PLAN.md (MOV-02 lots trigger gap closure: trg_lots_paddock_same_property + pgTAP + CONTEXT closure)
+**Stopped at:** Phase 4 UAT complete (8/8 passed) + quick task 260804-fpk closing the 4 cross-phase findings it surfaced. Phase 4 NOT yet transitioned to complete — awaiting the user's go-ahead.
 **Resume file:** None
 
-**Last session:** 2026-07-16T13:44:17.079Z
-**Next action:** Manual: run `supabase link` (if needed) + `supabase db push` from a machine with dev Supabase credentials (applies `20260519_04_movements.sql`, `20260715_04_gap_move_animal_to_lot.sql`, `20260716_04_animal_lot_property_trigger.sql`, and `20260717_04_lot_paddock_property_trigger.sql`), then `supabase test db` (runs `04_movements_test.sql`, the SC-4 + MOV-02 proof, plan(5)), then run `/gsd-verify-work` for Phase 4 (Movements) — all 7 plans (04-01 through 04-07) are code-complete.
+**Last session:** 2026-08-04
+**Next action:** Re-test the redeployed build at https://campo-gestor.pages.dev (signup redirect, typeable lot quantity, back button on the lot screen). Then transition Phase 4 → complete and move to Phase 5. BLOCKING for signup: the Supabase dashboard for project `wrdwzychjhlpwpivfhhq` still needs Authentication → URL Configuration → Site URL set to `https://campo-gestor.pages.dev` and that origin added to the allowed redirect URLs — the `emailRedirectTo` code fix cannot take effect without it.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
