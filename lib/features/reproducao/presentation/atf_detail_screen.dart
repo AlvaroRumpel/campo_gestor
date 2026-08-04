@@ -27,6 +27,7 @@ class AtfDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final atfAsync = ref.watch(atfByIdProvider(atfId));
     final membershipsAsync = ref.watch(atfActiveMembershipsProvider(atfId));
+    final allMembershipsAsync = ref.watch(atfMembershipsProvider(atfId));
     final dgRecordsAsync = ref.watch(dgRecordsByAtfProvider(atfId));
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);
@@ -70,6 +71,13 @@ class AtfDetailScreen extends ConsumerWidget {
               _CompositionSection(
                 atf: atf,
                 activeMemberships: membershipsAsync.asData?.value ?? const [],
+                dgRecords: dgRecordsAsync.asData?.value ?? const [],
+                canEdit: canEdit,
+              ),
+              const SizedBox(height: 16),
+              _DgSection(
+                atf: atf,
+                memberships: allMembershipsAsync.asData?.value ?? const [],
                 dgRecords: dgRecordsAsync.asData?.value ?? const [],
                 canEdit: canEdit,
               ),
@@ -412,6 +420,379 @@ class _RemoveAnimalConfirmDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context, true),
           child: const Text('Remover'),
         ),
+      ],
+    );
+  }
+}
+
+/// DG mass-entry section (D-10, D-11, D-12, REPR-03, 05-UI-SPEC E6): the
+/// phone-in-the-corral surface — one session date, one row per animal, three
+/// chips per row, one batch save.
+///
+/// Reads the UNFILTERED [memberships] list (`atfMembershipsProvider`, not the
+/// active-only one) so a closed ATF still shows its full roster for
+/// correction (D-16, RESEARCH Pattern 3). [canEdit] gates on role only, never
+/// on `atf.active` — DG correction stays possible after encerramento.
+class _DgSection extends ConsumerStatefulWidget {
+  const _DgSection({
+    required this.atf,
+    required this.memberships,
+    required this.dgRecords,
+    required this.canEdit,
+  });
+
+  final AtfBatch atf;
+  final List<AtfMembershipView> memberships;
+  final List<DgRecord> dgRecords;
+  final bool canEdit;
+
+  @override
+  ConsumerState<_DgSection> createState() => _DgSectionState();
+}
+
+class _DgSectionState extends ConsumerState<_DgSection> {
+  // dd/MM/yyyy pattern doesn't need locale symbol data — safe to create eagerly.
+  final _dateFmt = DateFormat('dd/MM/yyyy');
+
+  DateTime _sessionDate = DateTime.now();
+  late final TextEditingController _sessionDateCtrl;
+
+  /// Staged (not-yet-saved) selection per animal id — separate from the
+  /// "currently displayed" value so the changed-rows set stays computable
+  /// (D-12: a re-tap stages a NEW record rather than overwriting history).
+  final Map<String, DgResult> _staged = {};
+  final Map<String, DateTime> _dateOverrides = {};
+  final Set<String> _expandedObservation = {};
+  final Map<String, TextEditingController> _obsControllers = {};
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionDateCtrl = TextEditingController(text: _dateFmt.format(_sessionDate));
+  }
+
+  @override
+  void dispose() {
+    _sessionDateCtrl.dispose();
+    for (final c in _obsControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Most-recent DG for [animalId] in this ATF (D-12's tie-breaker:
+  /// `createdAt`, per A-DG-ORDER).
+  DgResult? _mostRecentDg(String animalId) {
+    DgRecord? latest;
+    for (final r in widget.dgRecords) {
+      if (r.animalId != animalId) continue;
+      if (latest == null || r.createdAt.isAfter(latest.createdAt)) {
+        latest = r;
+      }
+    }
+    return latest == null ? null : DgResult.fromDb(latest.result);
+  }
+
+  /// Animal ids whose staged selection differs from the currently-displayed
+  /// (most-recent) DG — the batch-save payload is built from exactly these.
+  Set<String> _changedAnimalIds() {
+    final changed = <String>{};
+    for (final entry in _staged.entries) {
+      if (entry.value != _mostRecentDg(entry.key)) changed.add(entry.key);
+    }
+    return changed;
+  }
+
+  Future<void> _pickSessionDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _sessionDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _sessionDate = picked;
+        _sessionDateCtrl.text = _dateFmt.format(picked);
+      });
+    }
+  }
+
+  Future<void> _pickRowDate(String animalId) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dateOverrides[animalId] ?? _sessionDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      locale: const Locale('pt', 'BR'),
+    );
+    if (picked != null && mounted) {
+      setState(() => _dateOverrides[animalId] = picked);
+    }
+  }
+
+  void _toggleObservation(String animalId) {
+    setState(() {
+      if (_expandedObservation.contains(animalId)) {
+        _expandedObservation.remove(animalId);
+      } else {
+        _expandedObservation.add(animalId);
+        _obsControllers.putIfAbsent(animalId, () => TextEditingController());
+      }
+    });
+  }
+
+  Future<void> _save() async {
+    final changed = _changedAnimalIds();
+    if (changed.isEmpty) return;
+
+    final records = [
+      for (final animalId in changed)
+        {
+          'animal_id': animalId,
+          'result': _staged[animalId]!.dbValue,
+          'exam_date': (_dateOverrides[animalId] ?? _sessionDate)
+              .toUtc()
+              .toIso8601String()
+              .substring(0, 10),
+          if ((_obsControllers[animalId]?.text.trim() ?? '').isNotEmpty)
+            'observation': _obsControllers[animalId]!.text.trim(),
+        },
+    ];
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(atfRepositoryProvider).saveDgRecords(
+            atfBatchId: widget.atf.id,
+            records: records,
+          );
+      if (!mounted) return;
+      ref.invalidate(dgRecordsByAtfProvider(widget.atf.id));
+      ref.invalidate(atfByIdProvider(widget.atf.id));
+      ref.invalidate(atfListByPropertyProvider);
+      for (final animalId in changed) {
+        ref.invalidate(reproductiveHistoryByAnimalProvider(animalId));
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('DGs registrados.')),
+      );
+    } catch (_) {
+      // Staged selections are intentionally NOT cleared here — the vet does
+      // not re-walk the herd because of a bad connection in the field.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao salvar DGs. Tente novamente.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Hidden entirely when the ATF has no memberships at all (05-UI-SPEC E4)
+    // — NOT gated on the `active` flag per row, since a closed ATF's rows
+    // report active:false yet must still render for D-16 correction.
+    if (widget.memberships.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final editable = widget.canEdit && !_saving;
+    final changedCount = _changedAnimalIds().length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Registrar DG', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        TextFormField(
+          readOnly: true,
+          controller: _sessionDateCtrl,
+          decoration: InputDecoration(
+            labelText: 'Data da sessão',
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.calendar_today),
+              tooltip: 'Alterar data da sessão',
+              onPressed: editable ? _pickSessionDate : null,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: widget.memberships.length,
+          itemBuilder: (context, i) {
+            final m = widget.memberships[i];
+            final selected = _staged[m.animalId] ?? _mostRecentDg(m.animalId);
+            final expanded = _expandedObservation.contains(m.animalId);
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: _DgChipRow(
+                membership: m,
+                selected: selected,
+                canEdit: editable,
+                observationExpanded: expanded,
+                observationController: _obsControllers[m.animalId],
+                onSelect: (r) => setState(() => _staged[m.animalId] = r),
+                onPickDate: () => _pickRowDate(m.animalId),
+                onToggleObservation: () => _toggleObservation(m.animalId),
+              ),
+            );
+          },
+        ),
+        if (widget.canEdit) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: (changedCount == 0 || _saving) ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Salvar DGs'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// One DG entry row: animal number/category, three result chips, and the
+/// per-animal date-override / observation icon actions.
+///
+/// Reuses [AnimalEditDialog]'s EC `ChoiceChip` `Wrap` pattern with the
+/// DG-specific semantic color mapping (05-UI-SPEC `## Color`) and the raised
+/// 48px touch target (05-UI-SPEC `## Spacing Scale` mobile exception).
+class _DgChipRow extends StatelessWidget {
+  const _DgChipRow({
+    required this.membership,
+    required this.selected,
+    required this.canEdit,
+    required this.observationExpanded,
+    required this.observationController,
+    required this.onSelect,
+    required this.onPickDate,
+    required this.onToggleObservation,
+  });
+
+  final AtfMembershipView membership;
+  final DgResult? selected;
+  final bool canEdit;
+  final bool observationExpanded;
+  final TextEditingController? observationController;
+  final ValueChanged<DgResult> onSelect;
+  final VoidCallback onPickDate;
+  final VoidCallback onToggleObservation;
+
+  Color _selectedBg(ColorScheme cs, DgResult r) => switch (r) {
+        DgResult.pregnant => cs.primaryContainer,
+        DgResult.notPregnant => cs.errorContainer,
+        DgResult.doubtful => cs.tertiaryContainer,
+      };
+
+  Color _selectedFg(ColorScheme cs, DgResult r) => switch (r) {
+        DgResult.pregnant => cs.onPrimaryContainer,
+        DgResult.notPregnant => cs.onErrorContainer,
+        DgResult.doubtful => cs.onTertiaryContainer,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    Widget buildChip(DgResult r) {
+      final isSelected = selected == r;
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: ChoiceChip(
+          label: Text(
+            r.label,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                  ? _selectedFg(colorScheme, r)
+                  : colorScheme.onSurface,
+            ),
+          ),
+          selected: isSelected,
+          showCheckmark: false,
+          selectedColor: _selectedBg(colorScheme, r),
+          side: isSelected ? null : BorderSide(color: colorScheme.outline),
+          onSelected: canEdit ? (_) => onSelect(r) : null,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 90,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '#${membership.animalNumber}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      TextSpan(
+                        text: ' · ${kCategoryLabels[membership.animalCategory] ?? membership.animalCategory}',
+                      ),
+                    ],
+                  ),
+                  style: theme.textTheme.bodyLarge,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: DgResult.values.map(buildChip).toList(),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.event),
+              tooltip: 'Alterar data deste animal',
+              onPressed: canEdit ? onPickDate : null,
+            ),
+            IconButton(
+              icon: const Icon(Icons.notes),
+              tooltip: 'Adicionar observação',
+              onPressed: canEdit ? onToggleObservation : null,
+            ),
+          ],
+        ),
+        if (observationExpanded && observationController != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: TextFormField(
+              controller: observationController,
+              enabled: canEdit,
+              decoration: const InputDecoration(
+                labelText: 'Observação',
+                border: OutlineInputBorder(),
+              ),
+              minLines: 1,
+              maxLines: null,
+            ),
+          ),
+        const Divider(height: 16),
       ],
     );
   }

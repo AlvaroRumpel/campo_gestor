@@ -12,6 +12,7 @@ import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
 import 'package:campo_gestor/features/reproducao/presentation/atf_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,6 +27,12 @@ class _FakeAtfRepo extends AtfRepository {
   int removeCallCount = 0;
   String? capturedAnimalId;
 
+  // 05-08 — DG batch save capture. AtfRepository has no update/delete method
+  // for dg_records at all (insert-only RPC, 05-01/05-03), so "no update or
+  // delete call" is guaranteed by the API shape, not something this fake
+  // needs to additionally track.
+  List<Map<String, dynamic>>? capturedDgRecords;
+
   @override
   Future<void> removeAnimalFromAtf({
     required String atfBatchId,
@@ -34,6 +41,15 @@ class _FakeAtfRepo extends AtfRepository {
     removeCallCount++;
     if (shouldThrow) throw Exception('boom');
     capturedAnimalId = animalId;
+  }
+
+  @override
+  Future<void> saveDgRecords({
+    required String atfBatchId,
+    required List<Map<String, dynamic>> records,
+  }) async {
+    if (shouldThrow) throw Exception('boom');
+    capturedDgRecords = records;
   }
 }
 
@@ -66,15 +82,38 @@ AtfBatch _atf({
       createdAt: DateTime(2026, 9, 12),
     );
 
-AtfMembershipView _membership(String animalId, {int number = 1}) =>
+AtfMembershipView _membership(
+  String animalId, {
+  int number = 1,
+  bool active = true,
+}) =>
     AtfMembershipView(
       membershipId: 'm-$animalId',
       atfBatchId: 'atf-1',
       animalId: animalId,
-      active: true,
+      active: active,
       animalNumber: number,
       animalCategory: 'vaca',
     );
+
+/// Drives the real `showDatePicker` via its input-mode toggle (Material 3
+/// icon `Icons.edit_outlined`), typing [ddmmyyyy] rather than tapping a
+/// calendar day — avoids depending on "today"'s position in the grid.
+/// Mirrors the identical helper in atf_form_dialog_test.dart.
+Future<void> _setDateViaInput(
+  WidgetTester tester,
+  Finder calendarIcon,
+  String ddmmyyyy,
+) async {
+  await tester.tap(calendarIcon);
+  await tester.pumpAndSettle();
+  await tester.tap(find.byIcon(Icons.edit_outlined));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextFormField).last, ddmmyyyy);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+}
 
 DgRecord _dg(String animalId, String result) => DgRecord(
       id: 'dg-$animalId',
@@ -93,6 +132,11 @@ DgRecord _dg(String animalId, String result) => DgRecord(
 Widget _buildScreen({
   required AsyncValue<AtfBatch?> atf,
   List<AtfMembershipView> activeMemberships = const [],
+  // 05-08 — the DG section reads the UNFILTERED membership list
+  // (atfMembershipsProvider). Defaults to activeMemberships so plan-05-04/06
+  // tests (which only ever set one list) keep behaving identically; DG tests
+  // that need a closed-ATF full roster (D-16) pass this explicitly.
+  List<AtfMembershipView>? allMemberships,
   List<DgRecord> dgRecords = const [],
   PropertyMembership membership = _vet,
   AtfRepository? repo,
@@ -108,17 +152,24 @@ Widget _buildScreen({
       }),
       atfActiveMembershipsProvider
           .overrideWith((ref, id) async => activeMemberships),
-      atfMembershipsProvider.overrideWith((ref, id) async => activeMemberships),
+      atfMembershipsProvider
+          .overrideWith((ref, id) async => allMemberships ?? activeMemberships),
       dgRecordsByAtfProvider.overrideWith((ref, id) async => dgRecords),
       atfListByPropertyProvider.overrideWith((ref) async => const []),
       memberPropertiesProvider.overrideWith((ref) async => [membership]),
       atfRepositoryProvider.overrideWithValue(repo ?? _FakeAtfRepo()),
     ],
     child: const MaterialApp(
+      // 05-08 — full Global* delegates + pt-BR supportedLocales, matching
+      // atf_form_dialog_test.dart's pattern: _DgSection's session-date and
+      // per-row date pickers pass locale: Locale('pt', 'BR') explicitly,
+      // which requires it present in supportedLocales.
       localizationsDelegates: [
-        DefaultMaterialLocalizations.delegate,
-        DefaultWidgetsLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
+      supportedLocales: [Locale('pt', 'BR')],
       home: AtfDetailScreen(atfId: 'atf-1'),
     ),
   );
@@ -321,7 +372,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Only a2 (no DG) gets a remove affordance — a1 (has a DG) gets none.
-      expect(find.byType(IconButton), findsOneWidget);
+      // Scoped by tooltip (05-08): the DG section now also renders
+      // IconButtons (session date, per-row date/observation), so an
+      // unscoped byType(IconButton) search is no longer unambiguous.
+      expect(find.byTooltip('Remover do ATF'), findsOneWidget);
     });
 
     testWidgets('"+ Animais" is absent for a non-veterinarian override', (
@@ -375,13 +429,299 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(IconButton));
+      // Scoped by tooltip (05-08): see note above — no longer the only
+      // IconButton in the tree once the DG section renders alongside it.
+      await tester.tap(find.byTooltip('Remover do ATF'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
       await tester.pumpAndSettle();
 
       expect(repo.removeCallCount, 1);
       expect(repo.capturedAnimalId, 'a1');
+    });
+  });
+
+  group('_DgSection (REPR-03, REPR-04, 05-UI-SPEC E6, D-10..D-16)', () {
+    testWidgets(
+        'one row renders per membership including an inactive one, each with three chips',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          allMemberships: [
+            _membership('a1'),
+            _membership('a2', number: 2, active: false),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChoiceChip), findsNWidgets(6));
+    });
+
+    testWidgets(
+        'the save button is disabled with zero changes and becomes enabled after one chip is tapped',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      expect(
+        tester.widget<FilledButton>(saveButtonFinder).onPressed,
+        isNull,
+      );
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Prenha').first);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<FilledButton>(saveButtonFinder).onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets(
+        'tapping a different chip on an animal with an existing DG stages exactly one changed row',
+        (tester) async {
+      final repo = _FakeAtfRepo();
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [_dg('a1', 'pregnant')],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Não-prenha').first);
+      await tester.pumpAndSettle();
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      await tester.ensureVisible(saveButtonFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(saveButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedDgRecords, hasLength(1));
+      expect(repo.capturedDgRecords!.single['animal_id'], 'a1');
+      expect(repo.capturedDgRecords!.single['result'], 'not_pregnant');
+    });
+
+    testWidgets(
+        'exam_date defaults to the session date, and a per-animal override lands only in that entry',
+        (tester) async {
+      final repo = _FakeAtfRepo();
+      final today = DateTime.now().toUtc().toIso8601String().substring(0, 10);
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [
+            _membership('a1'),
+            _membership('a2', number: 2),
+          ],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final chip0 = find.widgetWithText(ChoiceChip, 'Prenha').at(0);
+      await tester.ensureVisible(chip0);
+      await tester.pumpAndSettle();
+      await tester.tap(chip0);
+      await tester.pumpAndSettle();
+      final chip1 = find.widgetWithText(ChoiceChip, 'Prenha').at(1);
+      await tester.ensureVisible(chip1);
+      await tester.pumpAndSettle();
+      await tester.tap(chip1);
+      await tester.pumpAndSettle();
+
+      final eventIcon = find.byIcon(Icons.event).at(1);
+      await tester.ensureVisible(eventIcon);
+      await tester.pumpAndSettle();
+      await _setDateViaInput(
+        tester,
+        eventIcon,
+        '15/03/2026',
+      );
+
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      await tester.ensureVisible(saveButtonFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(saveButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedDgRecords, hasLength(2));
+      final byAnimal = {
+        for (final r in repo.capturedDgRecords!) r['animal_id'] as String: r,
+      };
+      expect(byAnimal['a1']!['exam_date'], today);
+      expect(byAnimal['a2']!['exam_date'], '2026-03-15');
+    });
+
+    testWidgets('a row with an observation entered carries it in the payload',
+        (tester) async {
+      final repo = _FakeAtfRepo();
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Duvidosa').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Adicionar observação').first);
+      await tester.pumpAndSettle();
+      final obsFieldFinder = find.widgetWithText(TextFormField, 'Observação');
+      await tester.ensureVisible(obsFieldFinder);
+      await tester.pumpAndSettle();
+      await tester.enterText(obsFieldFinder, 'Repetir exame em 30 dias');
+      await tester.pumpAndSettle();
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      await tester.ensureVisible(saveButtonFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(saveButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedDgRecords, hasLength(1));
+      expect(
+        repo.capturedDgRecords!.single['observation'],
+        'Repetir exame em 30 dias',
+      );
+    });
+
+    testWidgets(
+        'a failing saveDgRecords leaves the staged chip selection intact',
+        (tester) async {
+      final repo = _FakeAtfRepo(shouldThrow: true);
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Duvidosa').first);
+      await tester.pumpAndSettle();
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      await tester.ensureVisible(saveButtonFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(saveButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Erro ao salvar DGs. Tente novamente.'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Duvidosa').first)
+            .selected,
+        isTrue,
+      );
+    });
+
+    testWidgets('the section is hidden for an ATF with zero active memberships',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(atf: AsyncValue.data(_atf())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Registrar DG'), findsNothing);
+    });
+
+    testWidgets(
+        'the DG chips are tappable for a CLOSED ATF while "+ Animais" stays absent (D-16)',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf(active: false)),
+          allMemberships: [_membership('a1', active: false)],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Registrar DG'), findsOneWidget);
+      expect(find.text('Animais'), findsNothing);
+
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Prenha').first);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Prenha').first)
+            .selected,
+        isTrue,
+      );
+    });
+
+    testWidgets('"Salvar DGs" is absent for a non-veterinarian override', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          membership: _reader,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Salvar DGs'), findsNothing);
+    });
+
+    testWidgets(
+        'E6 backstop: a 200-animal ATF builds, and the payload carries only the 3 changed rows',
+        (tester) async {
+      final repo = _FakeAtfRepo();
+      final memberships = [
+        for (var i = 0; i < 200; i++) _membership('a$i', number: i + 1),
+      ];
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          // Composition stays small on purpose: it uses its own nested
+          // shrinkWrap ListView (05-06), and a 200-row composition list
+          // ahead of _DgSection in the outer page ListView would push the
+          // DG section past the sliver's default lazy-build cache window in
+          // this fixed-size test viewport (no real scroll occurs under
+          // pumpAndSettle). allMemberships carries the 200 rows that
+          // exercise the E6 DG-list backstop specifically.
+          activeMemberships: memberships.take(3).toList(),
+          allMemberships: memberships,
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChoiceChip), findsNWidgets(600));
+
+      for (var i = 0; i < 3; i++) {
+        final chip = find.widgetWithText(ChoiceChip, 'Prenha').at(i);
+        await tester.ensureVisible(chip);
+        await tester.pumpAndSettle();
+        await tester.tap(chip);
+      }
+      await tester.pumpAndSettle();
+
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      await tester.ensureVisible(saveButtonFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(saveButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedDgRecords, hasLength(3));
     });
   });
 }
