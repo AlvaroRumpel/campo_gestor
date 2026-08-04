@@ -104,3 +104,128 @@ CREATE POLICY "members_can_read_atf_memberships"
 CREATE POLICY "members_can_read_dg_records"
   ON dg_records FOR SELECT TO authenticated
   USING (is_member_of(property_id));
+
+-- ============================================================
+-- 5. Access-path-independent triggers (REPR-02, D-19, D-21 point 2)
+-- ============================================================
+-- Mirrors the project idiom for unconditional invariants: trg_animals_lot_same_property /
+-- trg_lots_paddock_same_property (20260716/20260717_04_*.sql). RLS WITH CHECK only evaluates the
+-- row being written, never a referenced row's property_id — so category eligibility and
+-- cross-property alignment must be enforced here, independent of the write path (RPC vs raw
+-- PostgREST PATCH).
+
+CREATE OR REPLACE FUNCTION enforce_atf_membership_valid()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  v_animal_category    text;
+  v_animal_property_id uuid;
+  v_atf_property_id    uuid;
+BEGIN
+  SELECT category, property_id
+    INTO v_animal_category, v_animal_property_id
+    FROM animals
+   WHERE id = NEW.animal_id
+     AND deleted_at IS NULL;
+
+  IF v_animal_property_id IS NULL THEN
+    RAISE EXCEPTION 'animal % not found or is archived', NEW.animal_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  IF v_animal_property_id <> NEW.property_id THEN
+    RAISE EXCEPTION 'animal % does not belong to property %', NEW.animal_id, NEW.property_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  IF v_animal_category NOT IN ('vaca', 'novilha') THEN
+    RAISE EXCEPTION 'animal category % is not eligible for an ATF (only vaca/novilha)', v_animal_category
+      USING ERRCODE = '23514';
+  END IF;
+
+  SELECT property_id INTO v_atf_property_id
+    FROM atf_batches
+   WHERE id = NEW.atf_batch_id;
+
+  IF v_atf_property_id IS NULL OR v_atf_property_id <> NEW.property_id THEN
+    RAISE EXCEPTION 'atf_batch % does not belong to property %', NEW.atf_batch_id, NEW.property_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- No pg_advisory_xact_lock here — nothing here generates a sequence; the pre-existing partial
+-- unique index animal_atf_memberships_active_idx already handles the one real concurrency hazard
+-- (RESEARCH Pitfall 3).
+CREATE TRIGGER trg_atf_membership_valid
+  BEFORE INSERT OR UPDATE ON animal_atf_memberships
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_atf_membership_valid();
+
+CREATE OR REPLACE FUNCTION enforce_dg_record_same_property()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  v_atf_property_id    uuid;
+  v_animal_property_id uuid;
+BEGIN
+  SELECT property_id INTO v_atf_property_id
+    FROM atf_batches
+   WHERE id = NEW.atf_batch_id;
+
+  IF v_atf_property_id IS NULL OR v_atf_property_id <> NEW.property_id THEN
+    RAISE EXCEPTION 'atf_batch % does not belong to property %', NEW.atf_batch_id, NEW.property_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  SELECT property_id INTO v_animal_property_id
+    FROM animals
+   WHERE id = NEW.animal_id;
+
+  IF v_animal_property_id IS NULL OR v_animal_property_id <> NEW.property_id THEN
+    RAISE EXCEPTION 'animal % does not belong to property %', NEW.animal_id, NEW.property_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_dg_records_same_property
+  BEFORE INSERT OR UPDATE ON dg_records
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_dg_record_same_property();
+
+-- D-19's "na mesma transação" requirement is implemented as an AFTER UPDATE OF deleted_at trigger
+-- on animals rather than as a second UPDATE inside the register_baixa RPC (05-RESEARCH.md's code
+-- sample). Deliberate divergence: the trigger holds on any write path — including a raw PostgREST
+-- PATCH of animals.deleted_at — which an RPC-only implementation would not, and it removes a
+-- statement from the RPC. Per D-16 the membership is soft-deactivated, never deleted, so the
+-- animal's DG history in that ATF stays queryable and correctable (A-BAIXA-01: today baixa is the
+-- only path that sets animals.deleted_at, so no other soft-delete path is affected yet).
+CREATE OR REPLACE FUNCTION deactivate_atf_membership_on_baixa()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE animal_atf_memberships
+     SET active = false
+   WHERE animal_id = NEW.id
+     AND active = true;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_animals_baixa_deactivates_atf
+  AFTER UPDATE OF deleted_at ON animals
+  FOR EACH ROW
+  WHEN (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
+  EXECUTE FUNCTION deactivate_atf_membership_on_baixa();
