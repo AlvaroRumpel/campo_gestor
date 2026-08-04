@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 04
-current_plan: 7 of 7 (all plans code-complete, incl. 04-07 MOV-02 lots trigger gap closure; DB push for all four Phase-4 migrations BLOCKED pending manual credentials)
+current_phase: 5 — Reproductive Module (LoteATF)
+current_plan: Not started
 status: in-progress
-stopped_at: "Completed 04-07-PLAN.md (MOV-02 lots trigger gap closure: trg_lots_paddock_same_property + pgTAP + CONTEXT closure)"
-last_updated: "2026-07-16T13:44:17.115Z"
+stopped_at: "Phase 4 (Movements) complete — UAT 8/8, security threats_open 0, transitioned 2026-08-04. Ready to plan Phase 5."
+last_updated: "2026-08-04T14:51:34.829Z"
 last_activity: 2026-08-04
 progress:
   total_phases: 5
   completed_phases: 5
-  total_plans: 23
-  completed_plans: 23
+  total_plans: 24
+  completed_plans: 24
 ---
 
 # Project State
@@ -22,8 +22,8 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 04
-**Current plan:** 7 of 7 (all plans code-complete, incl. 04-07 MOV-02 lots trigger gap closure; DB push for all four Phase-4 migrations BLOCKED pending manual credentials)
+**Current phase:** 5 — Reproductive Module (LoteATF)
+**Current plan:** Not started
 **Progress:** [██████████] 100%
 
 ---
@@ -36,7 +36,7 @@ See: .planning/PROJECT.md
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
 | 3 | Lots & Animals (Operational Core) | complete |
-| 4 | Movements | plans complete (7/7, incl. SC-4 + MOV-02 trigger gap closures + WR-01 TOCTOU) — verification pending (DB push for all 4 migrations BLOCKED) |
+| 4 | Movements | complete (7/7 plans, UAT 8/8 — 2026-08-04) |
 | 5 | Reproductive Module (LoteATF) | not-started |
 | 6 | Sanitary Module (Snapshot) | not-started |
 | 7 | Expenses by Paddock | not-started |
@@ -49,7 +49,7 @@ See: .planning/PROJECT.md
 | Metric | Value |
 |---|---|
 | Phases planned | 9 |
-| Phases complete | 0 |
+| Phases complete | 5 (0–4) |
 | Requirements mapped | 26/26 |
 | Plans complete | 6 (00-01 through 00-06) |
 | Last activity | 2026-08-04 |
@@ -117,11 +117,11 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 4 UAT complete (8/8 passed) + quick task 260804-fpk closing the 4 cross-phase findings it surfaced. Phase 4 NOT yet transitioned to complete — awaiting the user's go-ahead.
+**Stopped at:** Phase 4 (Movements) complete — UAT 8/8, security threats_open 0, transitioned 2026-08-04. Ready to plan Phase 5 (Reproductive Module / LoteATF).
 **Resume file:** None
 
 **Last session:** 2026-08-04
-**Next action:** Re-test the redeployed build at https://campo-gestor.pages.dev (signup redirect, typeable lot quantity, back button on the lot screen). Then transition Phase 4 → complete and move to Phase 5. BLOCKING for signup: the Supabase dashboard for project `wrdwzychjhlpwpivfhhq` still needs Authentication → URL Configuration → Site URL set to `https://campo-gestor.pages.dev` and that origin added to the allowed redirect URLs — the `emailRedirectTo` code fix cannot take effect without it.
+**Next action:** `/gsd-discuss-phase 5` — Phase 5 (Reproductive Module / LoteATF) has no CONTEXT.md yet. Two items carried over, neither blocking Phase 5: (1) the Supabase dashboard for project `wrdwzychjhlpwpivfhhq` still needs Site URL + allowed redirect URLs set to `https://campo-gestor.pages.dev`, otherwise signup confirmation emails stay on localhost; (2) the 4 fixes from quick task 260804-fpk are green on 103/103 tests but were never confirmed live in the browser.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints

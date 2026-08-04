@@ -13,7 +13,7 @@
 - [ ] **Phase 1: Auth & Multi-tenancy Core** — Login email/senha, perfis, vínculo veterinário↔propriedade, propriedade ativa, RLS completo
 - [ ] **Phase 2: Property & Paddock Structure** — CRUD de propriedade e piquete; protótipos de risco (numeração RPC, snapshot JSONB, ATF partial unique index)
 - [ ] **Phase 3: Lots & Animals (Operational Core)** — Lote operacional CRUD, criação em batch de animais via RPC, edição e ficha do animal, busca/filtro, baixa
-- [ ] **Phase 4: Movements** — Mover animal entre lotes, mover lote inteiro entre piquetes (atômico via RPC)
+- [x] **Phase 4: Movements** — Mover animal entre lotes, mover lote inteiro entre piquetes (atômico via RPC) (completed 2026-08-04)
 - [ ] **Phase 5: Reproductive Module (LoteATF)** — CRUD LoteATF, validação 1 ATF ativo/animal, DG, % prenhez, histórico reprodutivo na ficha
 - [ ] **Phase 6: Sanitary Module (Snapshot)** — Doses, aplicação sanitária com snapshot congelado, desmarcar individuais, histórico por lote e por animal
 - [ ] **Phase 7: Expenses by Paddock** — Lançamento de gasto vinculado a piquete, total por período
@@ -117,7 +117,7 @@ Plans:
   3. Movimentações são bloqueadas para usuários com perfil "leitor"
   4. Tentativa de mover animal para lote de propriedade diferente é rejeitada pelo RLS/RPC com erro claro
 
-**Plans:** 7/7 plans executed
+**Plans:** 7/7 plans complete
 Plans:
 **Wave 1**
 
@@ -207,7 +207,7 @@ Plans:
 | 1. Auth & Multi-tenancy Core | 0/0 | Not started | - |
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
-| 4. Movements | 7/7 | In Progress|  |
+| 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 0/0 | Not started | - |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |

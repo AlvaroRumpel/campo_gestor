@@ -14,11 +14,9 @@ O histórico técnico do animal individual — reprodutivo e sanitário — aces
 
 - [x] Estruturar propriedade com piquetes e lotes (hierarquia Propriedade → Piquete → Lote → Animal) — Validated in Phase 2
 - [x] Gerar e controlar animais individualmente por lote — Validated in Phase 3: lote operacional com composição inicial, numeração única global, edição individual, busca, filtros combinados, baixa com soft-delete
+- [x] Movimentar animais entre lotes e lotes entre piquetes — Validated in Phase 4: MOV-01 (animal → outro lote da mesma propriedade) e MOV-02 (lote inteiro → outro piquete, atomicamente). Ambos via RPC SECURITY DEFINER, com triggers de isolamento multi-tenant que valem em qualquer caminho de escrita (inclusive PATCH cru)
 
 ### Active
-
-- [ ] Estruturar propriedade com piquetes e lotes (hierarquia Propriedade → Piquete → Lote → Animal)
-- [ ] Gerar e controlar animais individualmente por lote
 - [ ] Registrar e consultar histórico reprodutivo (lote ATF, DG, % prenhez)
 - [ ] Registrar e consultar histórico sanitário (aplicações com snapshot congelado)
 - [ ] Controlar gastos por piquete
@@ -73,6 +71,9 @@ LoteATF (lote de inseminação) — entidade reprodutiva independente
 | Categoria resolve sexo | Simplifica model — categoria já carrega o sexo implícito no domínio | — Pending |
 | Numeração única por propriedade | Veterinário precisa referenciar animal pelo número sem ambiguidade entre piquetes | — Pending |
 | Soft delete em todas entidades | Histórico reprodutivo e sanitário precisa de referências históricas intactas | — Pending |
+| Movimentação via RPC SECURITY DEFINER, não UPDATE direto | RLS `WITH CHECK` não inspeciona `lot_id`/`paddock_id`, então um UPDATE direto não consegue validar o destino. O RPC valida origem ativa, associação, papel, no-op e destino na mesma propriedade | Phase 4 — Validated (UAT 8/8) |
+| Trigger de isolamento além do RPC | Um veterinário membro de várias propriedades tem JWT válido para cada uma e pode montar PATCH cru direto no PostgREST, contornando o RPC. `trg_animals_lot_same_property` e `trg_lots_paddock_same_property` são a última linha, independentes do caminho de escrita | Phase 4 — Validated (provado com UPDATE superuser, que ignora RLS e mesmo assim é barrado) |
+| Lotes só acessíveis descendo por piquete (D-03) | Rota `/lotes/:loteId` é root-level e não há lista de lotes; `AppRoutes.lotes` segue constante morta | Phase 4 — Questionado no UAT (F-04-05). Botão voltar resolveu o beco sem saída; a lista própria segue em aberto no roadmap |
 
 ## Evolution
 
@@ -92,4 +93,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-04-24 after initialization*
+*Last updated: 2026-08-04 after Phase 4 (Movements)*
