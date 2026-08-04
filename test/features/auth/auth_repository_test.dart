@@ -26,14 +26,22 @@ void main() {
     repo = AuthRepository(service);
   });
 
-  test('signUp delegates to GoTrueClient.signUp with email and password',
+  test(
+      'signUp delegates to GoTrueClient.signUp with email, password, and emailRedirectTo',
       () async {
-    when(() => auth.signUp(email: any(named: 'email'), password: any(named: 'password')))
-        .thenAnswer((_) async => AuthResponse(session: null, user: null));
+    when(() => auth.signUp(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+          emailRedirectTo: any(named: 'emailRedirectTo'),
+        )).thenAnswer((_) async => AuthResponse(session: null, user: null));
 
     await repo.signUp(email: 'a@b.com', password: 'pass1234');
 
-    verify(() => auth.signUp(email: 'a@b.com', password: 'pass1234')).called(1);
+    verify(() => auth.signUp(
+          email: 'a@b.com',
+          password: 'pass1234',
+          emailRedirectTo: 'http://127.0.0.1:3000',
+        )).called(1);
   });
 
   test('signIn delegates to signInWithPassword', () async {
