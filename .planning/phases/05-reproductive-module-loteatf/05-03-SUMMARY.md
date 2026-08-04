@@ -152,3 +152,13 @@ None - no external service configuration required. The migration and pgTAP addit
 ---
 *Phase: 05-reproductive-module-loteatf*
 *Completed: 2026-08-04*
+
+## Self-Check: PASSED
+
+- FOUND: supabase/migrations/20260805_05_atf_rpcs.sql
+- FOUND: supabase/tests/05_reproductive_test.sql
+- FOUND: .planning/phases/05-reproductive-module-loteatf/05-03-SUMMARY.md
+- FOUND commit: a69dea7 (Task 1)
+- FOUND commit: bcf1462 (Task 2)
+- FOUND commit: b35ad95 (Task 3)
+- FOUND commit: 680d091 (SUMMARY.md)
