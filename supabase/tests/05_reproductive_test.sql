@@ -20,7 +20,7 @@
 
 BEGIN;
 
-SELECT plan(26);
+SELECT plan(27);
 
 -- ---- Fixtures: two properties, one paddock + one lot in each, three animals in property A
 --      (vaca, novilha, touro), one animal in property B (vaca), two atf_batches in property A
@@ -260,6 +260,18 @@ PREPARE readd_removed_animal AS
   );
 SELECT lives_ok('EXECUTE readd_removed_animal',
   'a previously-removed animal can be re-added to a different ATF (its active-membership slot was freed)');
+
+-- ---- WR-02: removing an animal that has no active membership in the ATF (a stale double-submit
+--      or a concurrent removal) now raises 23503 instead of silently no-op'ing. Animal 776 was
+--      added to ATF A2 above but never removed, so removing it from ATF A1 — where it has no
+--      membership at all — exercises the same 0-row-DELETE path.
+PREPARE remove_animal_not_a_member AS
+  SELECT remove_animal_from_atf(
+    'aaaaaaaa-9999-9999-9999-999999999991'::uuid,
+    'aaaaaaaa-7777-7777-7777-777777777776'::uuid
+  );
+SELECT throws_ok('EXECUTE remove_animal_not_a_member', '23503', NULL,
+  'remove_animal_from_atf raises when the animal has no active membership in the ATF (WR-02)');
 
 SELECT * FROM finish();
 ROLLBACK;
