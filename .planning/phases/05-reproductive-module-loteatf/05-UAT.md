@@ -17,9 +17,15 @@ awaiting: user response
 
 ## Tests
 
-### 1. [BLOCKER — fix first] CR-01: baixa fails for any animal in an active ATF
+### 1. [RESOLVED 2026-08-04] CR-01: baixa fails for any animal in an active ATF
 expected: Registering a baixa on an animal with an active ATF membership succeeds and deactivates that membership.
-actual: Fails with SQLSTATE 23503 "animal ... not found or is archived"; the whole transaction aborts.
+actual (before fix): Failed with SQLSTATE 23503 "animal ... not found or is archived"; the whole transaction aborted.
+resolution: |
+  Corrective migration `20260806_05_fix_atf_membership_trigger_scope.sql` (commit ef89470) rescopes
+  the trigger to `BEFORE INSERT OR UPDATE OF animal_id, atf_batch_id, property_id`, so a pure
+  `active` flip no longer re-validates the archived animal. Applied to the live project and
+  verified via pg_get_triggerdef + pg_trigger.tgattr. D-08 hard-DELETE semantics and the baixa
+  trigger both confirmed intact. Still needs live confirmation in UAT step 9.
 cause: |
   `trg_atf_membership_valid` is `BEFORE INSERT OR UPDATE` on `animal_atf_memberships`, and
   `enforce_atf_membership_valid()` re-checks `animals.deleted_at IS NULL`. The D-19 chain is:
@@ -49,7 +55,7 @@ steps: |
   6.  Mark DG chips for two animals, set session date, "Salvar DGs" — header % updates immediately (SC-4)
   7.  Re-mark a chip on an animal that already has a DG — % reflects the new result, earlier record still exists
   8.  Open that animal's ficha — Histórico Reprodutivo lists the ATF with its last DG; tapping navigates to /atf/:atfId
-  9.  Register a baixa on an animal in an active ATF — must succeed, animal drops out of composition  [BLOCKED BY TEST 1]
+  9.  Register a baixa on an animal in an active ATF — must succeed, animal drops out of composition  [was blocked by CR-01; fix applied, needs live confirmation]
   10. Sign in as non-veterinarian — FAB, "+ Animais", remove icons, "Salvar DGs", encerrar are ABSENT (not greyed)
   11. As veterinarian, once every animal has a DG the banner appears; use it to encerrar. Composition/encerrar controls vanish, DG chips stay interactive (D-16)
   12. Add a released animal to a NEW ATF — now selectable
@@ -64,17 +70,30 @@ result: [pending]
 ## Summary
 
 total: 4
-passed: 0
-issues: 1
-pending: 4
+passed: 1
+issues: 0
+pending: 3
 skipped: 0
 blocked: 0
 
 ## Gaps
 
 ### CR-01 — baixa aborts for animals in an active ATF
-status: failed
+status: resolved
 severity: critical
 source: 05-REVIEW.md
-confirmed: live database trigger definitions
-detail: See test 1 above. Blocks D-19 and UAT step 9.
+confirmed: live database trigger definitions (before and after)
+resolved_by: 20260806_05_fix_atf_membership_trigger_scope.sql (ef89470), applied to live 2026-08-04
+detail: |
+  Root cause was trigger scope, not the baixa logic. See test 1. Fixed and verified at the schema
+  level; UAT step 9 still confirms it end-to-end through the app.
+
+### WR-02 — remove_animal_from_atf silent no-op
+status: resolved
+severity: warning
+resolved_by: 20260807_05_fix_remove_animal_from_atf_notfound.sql (e90026e), applied to live 2026-08-04
+
+### WR-01 / WR-03 — stale providers, UTC date shift
+status: resolved
+severity: warning
+resolved_by: ed2219c, 784c9b1 (Dart only, no migration needed)
