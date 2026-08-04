@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../reproducao/data/atf_repository.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
@@ -83,6 +84,10 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
           );
       ref.invalidate(animalByIdProvider(widget.animal.id));
       ref.invalidate(animalListByPropertyProvider);
+      // D-19: baixa may have deactivated an active ATF membership server side
+      // (trg_animals_baixa_deactivates_atf). The reproductive history section
+      // on this same screen reads this provider (WR-01).
+      ref.invalidate(reproductiveHistoryByAnimalProvider(widget.animal.id));
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;

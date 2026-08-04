@@ -38,6 +38,16 @@ class _EncerrarAtfDialogState extends ConsumerState<EncerrarAtfDialog> {
       _saving = true;
       _failed = false;
     });
+    // Snapshot the active members before closing — close_atf deactivates
+    // every one of them, and each member's ficha status badge
+    // (Ativo -> Encerrado) needs to refresh (WR-01).
+    final memberIds = ref
+            .read(atfActiveMembershipsProvider(widget.atfId))
+            .asData
+            ?.value
+            .map((m) => m.animalId)
+            .toList() ??
+        const <String>[];
     try {
       await ref.read(atfRepositoryProvider).closeAtf(widget.atfId);
       if (!mounted) return;
@@ -45,6 +55,9 @@ class _EncerrarAtfDialogState extends ConsumerState<EncerrarAtfDialog> {
       ref.invalidate(atfActiveMembershipsProvider(widget.atfId));
       ref.invalidate(atfMembershipsProvider(widget.atfId));
       ref.invalidate(atfListByPropertyProvider);
+      for (final animalId in memberIds) {
+        ref.invalidate(reproductiveHistoryByAnimalProvider(animalId));
+      }
       Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;

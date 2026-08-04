@@ -119,6 +119,10 @@ class _AtfAnimalSelectionScreenState
       ref.invalidate(atfActiveMembershipsProvider(widget.atfId));
       ref.invalidate(atfMembershipsProvider(widget.atfId));
       ref.invalidate(atfListByPropertyProvider);
+      // The newly-added animals' fichas should now show this ATF (WR-01).
+      for (final animalId in _selectedIds) {
+        ref.invalidate(reproductiveHistoryByAnimalProvider(animalId));
+      }
       final count = _selectedIds.length;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);

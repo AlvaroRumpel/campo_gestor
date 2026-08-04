@@ -361,6 +361,7 @@ class _CompositionSection extends ConsumerWidget {
       ref.invalidate(atfActiveMembershipsProvider(atf.id));
       ref.invalidate(atfMembershipsProvider(atf.id));
       ref.invalidate(atfListByPropertyProvider);
+      ref.invalidate(reproductiveHistoryByAnimalProvider(membership.animalId));
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -581,6 +582,9 @@ class _DgSection extends ConsumerStatefulWidget {
 class _DgSectionState extends ConsumerState<_DgSection> {
   // dd/MM/yyyy pattern doesn't need locale symbol data — safe to create eagerly.
   final _dateFmt = DateFormat('dd/MM/yyyy');
+  // yyyy-MM-dd, no timezone conversion — for the date-only exam_date field
+  // sent to save_dg_records (WR-03).
+  final _dateOnlyFmt = DateFormat('yyyy-MM-dd');
 
   DateTime _sessionDate = DateTime.now();
   late final TextEditingController _sessionDateCtrl;
@@ -681,10 +685,8 @@ class _DgSectionState extends ConsumerState<_DgSection> {
         {
           'animal_id': animalId,
           'result': _staged[animalId]!.dbValue,
-          'exam_date': (_dateOverrides[animalId] ?? _sessionDate)
-              .toUtc()
-              .toIso8601String()
-              .substring(0, 10),
+          'exam_date': _dateOnlyFmt
+              .format(_dateOverrides[animalId] ?? _sessionDate),
           if ((_obsControllers[animalId]?.text.trim() ?? '').isNotEmpty)
             'observation': _obsControllers[animalId]!.text.trim(),
         },
