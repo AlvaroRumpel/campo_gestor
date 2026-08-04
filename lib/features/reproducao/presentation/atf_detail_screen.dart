@@ -12,13 +12,14 @@ import '../data/atf_repository.dart';
 import '../data/dg_record_model.dart';
 import '../data/dg_summary.dart';
 import 'atf_animal_selection_screen.dart';
+import 'encerrar_atf_dialog.dart';
 
 /// ATF detail screen (`/atf/:atfId`, root-level per D-02).
 ///
-/// This plan (05-04) built the shell + [AtfHeaderCard]. Plan 05-06 adds
-/// [_CompositionSection] and the remove-animal flow. DG entry and the
-/// encerramento banner/action are added in later waves (05-08, 05-09) that
-/// edit this same file.
+/// This plan (05-04) built the shell + [AtfHeaderCard]. Plan 05-06 added
+/// [_CompositionSection] and the remove-animal flow. Plan 05-08 added the DG
+/// mass-entry section. This plan (05-09) adds the encerramento banner and
+/// the AppBar "Encerrar ATF" action.
 class AtfDetailScreen extends ConsumerWidget {
   const AtfDetailScreen({super.key, required this.atfId});
   final String atfId;
@@ -57,28 +58,63 @@ class AtfDetailScreen extends ConsumerWidget {
           );
         }
 
+        final activeMemberships = membershipsAsync.asData?.value ?? const [];
+        final dgRecords = dgRecordsAsync.asData?.value ?? const [];
+        final dgSummary = summarizeDg(
+          dgRecords,
+          compositionCount: activeMemberships.length,
+        );
+        // Encerramento affordances (AppBar action + banner) are gated on
+        // atf.active AND the veterinarian role — never on the banner's own
+        // condition, since the AppBar action must stay reachable even when
+        // DGs are pending (T-05-49, T-05-53).
+        final showEncerrarAction = atf.active && canEdit;
+        final showBanner = atf.active &&
+            canEdit &&
+            activeMemberships.isNotEmpty &&
+            dgSummary.pending == 0;
+
         return Scaffold(
-          appBar: AppBar(title: Text(atf.name)),
+          appBar: AppBar(
+            title: Text(atf.name),
+            actions: [
+              if (showEncerrarAction)
+                IconButton(
+                  icon: const Icon(Icons.event_busy),
+                  tooltip: 'Encerrar ATF',
+                  onPressed: () => _showEncerrarDialog(
+                    context,
+                    atfId: atf.id,
+                    atfName: atf.name,
+                    pendingCount: dgSummary.pending,
+                  ),
+                ),
+            ],
+          ),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               AtfHeaderCard(
                 atf: atf,
-                activeMemberships: membershipsAsync.asData?.value ?? const [],
-                dgRecords: dgRecordsAsync.asData?.value ?? const [],
+                activeMemberships: activeMemberships,
+                dgRecords: dgRecords,
               ),
+              if (showBanner) ...[
+                const SizedBox(height: 16),
+                _EncerrarBanner(atfId: atf.id, atfName: atf.name),
+              ],
               const SizedBox(height: 16),
               _CompositionSection(
                 atf: atf,
-                activeMemberships: membershipsAsync.asData?.value ?? const [],
-                dgRecords: dgRecordsAsync.asData?.value ?? const [],
+                activeMemberships: activeMemberships,
+                dgRecords: dgRecords,
                 canEdit: canEdit,
               ),
               const SizedBox(height: 16),
               _DgSection(
                 atf: atf,
                 memberships: allMembershipsAsync.asData?.value ?? const [],
-                dgRecords: dgRecordsAsync.asData?.value ?? const [],
+                dgRecords: dgRecords,
                 canEdit: canEdit,
               ),
             ],
@@ -98,6 +134,31 @@ class AtfDetailScreen extends ConsumerWidget {
         .map((m) => m.role)
         .firstOrNull;
     return role == 'veterinarian';
+  }
+}
+
+/// Opens [EncerrarAtfDialog] and shows the success confirmation
+/// (05-UI-SPEC section 5: "On success ... SnackBar: 'ATF encerrado.'").
+/// Provider invalidation happens inside the dialog itself (Task 1) — this
+/// helper only surfaces the confirmation once the dialog pops `true`.
+Future<void> _showEncerrarDialog(
+  BuildContext context, {
+  required String atfId,
+  required String atfName,
+  required int pendingCount,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => EncerrarAtfDialog(
+      atfId: atfId,
+      atfName: atfName,
+      pendingCount: pendingCount,
+    ),
+  );
+  if (confirmed == true && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ATF encerrado.')),
+    );
   }
 }
 
@@ -421,6 +482,73 @@ class _RemoveAnimalConfirmDialog extends StatelessWidget {
           child: const Text('Remover'),
         ),
       ],
+    );
+  }
+}
+
+/// Encerramento suggestion banner (D-15, 05-UI-SPEC section 3): a suggestion,
+/// never an action taken on the vet's behalf. Rendered by the parent only
+/// when the ATF is active, the viewer is a veterinarian, the composition is
+/// non-empty, and every animal has a DG ([DgSummary.pending] is zero) — the
+/// caller computes and gates on that condition; this widget only owns its
+/// own session-local dismissal state.
+///
+/// Dismissal does not persist: it is lost on any rebuild that recreates this
+/// widget (e.g. navigating away and back), by design (D-15's "reappears on
+/// the next visit" while the underlying condition still holds — A-BANNER-PERSIST).
+class _EncerrarBanner extends StatefulWidget {
+  const _EncerrarBanner({required this.atfId, required this.atfName});
+
+  final String atfId;
+  final String atfName;
+
+  @override
+  State<_EncerrarBanner> createState() => _EncerrarBannerState();
+}
+
+class _EncerrarBannerState extends State<_EncerrarBanner> {
+  bool _dismissed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_dismissed) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Todos os animais têm DG registrado.',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: colorScheme.onTertiaryContainer),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _showEncerrarDialog(
+              context,
+              atfId: widget.atfId,
+              atfName: widget.atfName,
+              // The banner only renders when pending is already zero — no
+              // warning line will show in the dialog either way.
+              pendingCount: 0,
+            ),
+            child: const Text('Encerrar ATF'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            tooltip: 'Dispensar aviso',
+            onPressed: () => setState(() => _dismissed = true),
+          ),
+        ],
+      ),
     );
   }
 }
