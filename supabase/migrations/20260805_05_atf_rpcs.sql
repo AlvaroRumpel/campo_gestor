@@ -181,3 +181,151 @@ $$;
 
 REVOKE ALL ON FUNCTION close_atf(uuid) FROM public;
 GRANT EXECUTE ON FUNCTION close_atf(uuid) TO authenticated;
+
+-- ============================================================
+-- 4. save_dg_records — additive batch INSERT into dg_records (REPR-03, D-10..D-12, D-16)
+-- ============================================================
+CREATE OR REPLACE FUNCTION save_dg_records(
+  p_atf_batch_id uuid,
+  p_records      jsonb
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_property_id uuid;
+  v_record      jsonb;
+  v_animal_id   uuid;
+  v_result      text;
+  v_exam_date   date;
+  v_observation text;
+BEGIN
+  -- Deliberately NO `active = true` filter here, unlike add_animals_to_atf/remove_animal_from_atf/
+  -- close_atf above — D-16 requires DG correction to stay possible after encerramento closes the
+  -- batch, so an already-closed atf_batches row must still resolve here.
+  SELECT property_id
+    INTO v_property_id
+    FROM atf_batches
+   WHERE id = p_atf_batch_id;
+
+  IF v_property_id IS NULL THEN
+    RAISE EXCEPTION 'atf_batch % not found', p_atf_batch_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  IF NOT is_member_of(v_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', v_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF get_role(v_property_id) <> 'veterinarian'::role_enum THEN
+    RAISE EXCEPTION 'forbidden: only veterinarians can save DG records'
+      USING ERRCODE = '42501';
+  END IF;
+
+  FOR v_record IN SELECT * FROM jsonb_array_elements(p_records) LOOP
+    v_animal_id   := (v_record ->> 'animal_id')::uuid;
+    v_result      := v_record ->> 'result';
+    v_exam_date   := (v_record ->> 'exam_date')::date;
+    v_observation := v_record ->> 'observation';
+
+    IF v_result NOT IN ('pregnant', 'not_pregnant', 'doubtful') THEN
+      RAISE EXCEPTION 'invalid DG result % for animal %', v_result, v_animal_id
+        USING ERRCODE = '22023';
+    END IF;
+
+    -- Existence guard: check only that a membership row exists for this (atf_batch, animal) pair —
+    -- deliberately NOT filtering on `active`. This single condition is what makes all three
+    -- deactivation paths behave correctly: a D-08 removal hard-deleted the row so a DG is refused
+    -- (23503 below), while a D-16 closure or D-19 baixa left the row present (inactive) so a
+    -- correction is accepted.
+    IF NOT EXISTS (
+      SELECT 1 FROM animal_atf_memberships
+       WHERE atf_batch_id = p_atf_batch_id
+         AND animal_id = v_animal_id
+    ) THEN
+      RAISE EXCEPTION 'animal % is not a member of ATF %', v_animal_id, p_atf_batch_id
+        USING ERRCODE = '23503';
+    END IF;
+
+    -- Only INSERT — never UPDATE or DELETE an existing dg_records row. D-12 makes the DG history
+    -- additive; the most recent record wins at read time. The whole function body is one
+    -- transaction, so a bad record anywhere in the batch rolls the entire batch back (the
+    -- atomicity 05-UI-SPEC's DG Batch Save contract requires).
+    INSERT INTO dg_records (property_id, atf_batch_id, animal_id, result, exam_date, observation)
+    VALUES (v_property_id, p_atf_batch_id, v_animal_id, v_result, v_exam_date, v_observation);
+  END LOOP;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION save_dg_records(uuid, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION save_dg_records(uuid, jsonb) TO authenticated;
+
+-- ============================================================
+-- 5. register_baixa — replaces the direct UPDATE on animals (ANIM-04, D-19)
+-- ============================================================
+CREATE OR REPLACE FUNCTION register_baixa(
+  p_animal_id   uuid,
+  p_reason      text,
+  p_date        date,
+  p_observation text DEFAULT NULL
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_property_id uuid;
+BEGIN
+  SELECT property_id
+    INTO v_property_id
+    FROM animals
+   WHERE id = p_animal_id
+     AND deleted_at IS NULL;
+
+  IF v_property_id IS NULL THEN
+    RAISE EXCEPTION 'animal % not found or already archived', p_animal_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  IF NOT is_member_of(v_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', v_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF get_role(v_property_id) <> 'veterinarian'::role_enum THEN
+    RAISE EXCEPTION 'forbidden: only veterinarians can register a baixa'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF p_reason NOT IN ('sale', 'death', 'discard') THEN
+    RAISE EXCEPTION 'invalid baixa reason %', p_reason
+      USING ERRCODE = '22023';
+  END IF;
+
+  -- Guarded by deleted_at IS NULL, followed by the IF NOT FOUND re-check below — the WR-01 fix
+  -- from move_animal_to_lot (20260715_04_gap_move_animal_to_lot.sql) reused here so two concurrent
+  -- baixas on the same animal cannot both report success.
+  UPDATE animals
+     SET baixa_reason = p_reason,
+         baixa_date   = p_date,
+         deleted_at   = now(),
+         observation  = COALESCE(p_observation, observation)
+   WHERE id = p_animal_id
+     AND deleted_at IS NULL;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'animal % was archived concurrently', p_animal_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  -- Deliberately NO second UPDATE against animal_atf_memberships here — plan 05-01's
+  -- trg_animals_baixa_deactivates_atf trigger (AFTER UPDATE OF deleted_at ON animals) fires on the
+  -- UPDATE above and performs the D-19 deactivation on every access path, including a raw
+  -- PostgREST PATCH that never reaches this function. This omission is deliberate, not a gap.
+END;
+$$;
+
+REVOKE ALL ON FUNCTION register_baixa(uuid, text, date, text) FROM public;
+GRANT EXECUTE ON FUNCTION register_baixa(uuid, text, date, text) TO authenticated;
