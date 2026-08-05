@@ -147,7 +147,7 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 11/11 plans executed
+**Plans:** 13 plans (11 executed, 2 pending gap closure)
 
 Plans:
 **Wave 1**
@@ -181,6 +181,11 @@ Plans:
 **Wave 7** *(gap closure — UAT G-05-1, G-05-1-nav)*
 
 - [x] 05-11-PLAN.md — Baixa invalidates ATF composition providers (D-19) + AtfDetailScreen back button
+
+**Wave 8** *(gap closure — verification CR-01, review WR-01/WR-02; 05-12 and 05-13 are independent, no file overlap)*
+
+- [ ] 05-12-PLAN.md — [BLOCKING] Corrective migration: register_baixa appends the baixa observation instead of overwriting it (CR-01) + add_animals_to_atf payload dedup (WR-02) + pgTAP
+- [ ] 05-13-PLAN.md — ATF header shows a readable bull label instead of a raw animal UUID (WR-01)
 
 **UI hint:** yes
 
