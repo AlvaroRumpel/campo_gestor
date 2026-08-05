@@ -1,41 +1,21 @@
 ---
 phase: 05-reproductive-module-loteatf
-reviewed: 2026-08-05T00:00:00Z
+reviewed: 2026-08-05T02:00:00Z
 depth: standard
-files_reviewed: 26
+files_reviewed: 8
 files_reviewed_list:
-  - lib/core/router/router.dart
-  - lib/core/router/routes.dart
-  - lib/features/animais/data/animal_repository.dart
-  - lib/features/animais/presentation/animal_detail_screen.dart
-  - lib/features/animais/presentation/baixa_dialog.dart
-  - lib/features/reproducao/data/atf_model.dart
-  - lib/features/reproducao/data/atf_repository.dart
-  - lib/features/reproducao/data/dg_record_model.dart
-  - lib/features/reproducao/data/dg_summary.dart
-  - lib/features/reproducao/presentation/atf_animal_selection_screen.dart
-  - lib/features/reproducao/presentation/atf_detail_screen.dart
-  - lib/features/reproducao/presentation/atf_form_dialog.dart
-  - lib/features/reproducao/presentation/encerrar_atf_dialog.dart
-  - lib/features/reproducao/presentation/reproducao_screen.dart
-  - supabase/migrations/20260804_05_reproductive_module.sql
-  - supabase/migrations/20260805_05_atf_rpcs.sql
+  - supabase/migrations/20260808_05_fix_baixa_observation_and_atf_dedup.sql
   - supabase/tests/05_reproductive_test.sql
-  - test/core/router_test.dart
-  - test/features/animais/animal_repository_test.dart
-  - test/features/reproducao/atf_model_test.dart
-  - test/features/reproducao/atf_repository_test.dart
-  - test/features/reproducao/dg_summary_test.dart
-  - test/widget/animal_detail_screen_test.dart
-  - test/widget/atf_animal_selection_screen_test.dart
-  - test/widget/atf_detail_screen_test.dart
+  - lib/features/reproducao/presentation/atf_form_dialog.dart
+  - lib/features/reproducao/presentation/atf_detail_screen.dart
   - test/widget/atf_form_dialog_test.dart
-  - test/widget/baixa_dialog_test.dart
-  - test/widget/reproducao_screen_test.dart
+  - test/widget/atf_detail_screen_test.dart
+  - lib/features/animais/presentation/animal_detail_screen.dart
+  - test/widget/animal_detail_screen_test.dart
 findings:
   critical: 1
-  warning: 2
-  info: 1
+  warning: 1
+  info: 2
   total: 4
 status: issues_found
 ---
@@ -44,187 +24,209 @@ status: issues_found
 
 **Reviewed:** 2026-08-05
 **Depth:** standard
-**Files Reviewed:** 26 (files listed above; two widget test files supplied in the file list —
-`test/widget/atf_animal_selection_screen_test.dart` and `test/widget/atf_form_dialog_test.dart` —
-were spot-checked for reliability only, per scope rules)
+**Files Reviewed:** 8
 **Status:** issues_found
 
 ## Summary
 
-This is a re-review of the Phase 5 (LoteATF) source set. A prior pass (`05-REVIEW.md`, now
-superseded by this file, plus `05-REVIEW-FIX.md`) found CR-01 (baixa-in-active-ATF transaction
-abort), WR-01 (stale Riverpod providers after ATF mutations), WR-02 (`remove_animal_from_atf`
-silent no-op), and WR-03 (`.toUtc()` date-shift risk). All four are verified fixed in the current
-code: `20260806_05_fix_atf_membership_trigger_scope.sql` and
-`20260807_05_fix_remove_animal_from_atf_notfound.sql` (both present in the repo, though outside
-this review's file list) correct the SQL-side issues; `baixa_dialog.dart`,
-`atf_detail_screen.dart`, `atf_animal_selection_screen.dart`, and `encerrar_atf_dialog.dart` now
-all invalidate `reproductiveHistoryByAnimalProvider` (and, in `baixa_dialog.dart`'s case, the
-whole `atfActiveMembershipsProvider`/`atfMembershipsProvider`/`atfListByPropertyProvider` family)
-after their respective mutations, confirmed against `test/widget/baixa_dialog_test.dart`'s
-`G-05-1` regression harness. A subsequent live-UAT regression (G-05-1: stale ATF providers after
-baixa; G-05-1-nav: missing back button on `/atf/:atfId`) is also fixed — `_backButton()` is wired
-into all four `AtfDetailScreen` `AppBar` states, and `BaixaDialog._submit` invalidates the ATF
-provider family.
+This is a targeted re-review of the corrective work closing the previous `05-REVIEW.md`'s CR-01
+(baixa observation data loss) and WR-02 (`add_animals_to_atf` payload duplication), plus the WR-01
+bull-label fix and the quick-task 260805-3mr observation-display gap.
 
-This pass found one new data-integrity defect (baixa's optional observation silently overwrites,
-rather than appends to, the animal's general notes field) and one new UI defect (an ATF created
-with a real touro selected from the dropdown displays the touro's raw UUID instead of a readable
-label, because `bullName` is never populated for that path). Both are new findings not present in
-the prior review.
+The corrective SQL migration (`20260808_...sql`) correctly fixes both defects it targets:
+`register_baixa`'s `CASE` expression genuinely appends rather than replaces (verified against the
+new pgTAP assertions, which are logically sound and match `plan(33)`'s count), and
+`add_animals_to_atf`'s `SELECT DISTINCT` correctly collapses an in-payload duplicate while leaving
+the cross-ATF unique-constraint guarantee (REPR-02) intact. The WR-01 bull-label fix
+(`_bullLabel`, `_buildBullValue`'s `'Ver touro'` fallback) and the animal-ficha observation display
+are both correctly implemented and covered by tests that would fail if reverted.
+
+While verifying this corrective work, this pass found one new defect in `_DgSection` (unrelated to
+the three items this patch targets, but present in a file fully in scope): a batch DG save can
+silently discard a vet's typed observation for any animal whose chip selection did not change,
+even though the "DGs registrados." success confirmation gives no indication anything was
+dropped. It also found a missing NULL-guard in `register_baixa`'s reason validation that predates
+this migration but is carried forward unchanged into the full function body this migration
+redeclares.
 
 ## Critical Issues
 
-### CR-01: `register_baixa` silently overwrites the animal's general `observation` field instead of appending to it — data loss
+### CR-01: `_DgSection` batch save silently drops a typed observation for any row whose DG result did not change
 
-**File:** `supabase/migrations/20260805_05_atf_rpcs.sql:310-314` (the `UPDATE animals` statement
-inside `register_baixa`)
-**Also affects:** `lib/features/animais/presentation/baixa_dialog.dart:170-179` (the "Observação"
-field, hint text `'Observações adicionais (opcional)'`)
+**File:** `lib/features/reproducao/presentation/atf_detail_screen.dart:659-665, 707-721`
 
 **Issue:**
 
-`animals.observation` is a single shared free-text column — the same field `AnimalEditDialog`
-(ANIM-02) lets a vet fill in as a general note about the animal, and the same field the DG
-observation UI is unrelated to. `register_baixa`'s final `UPDATE` is:
+`_save()` builds its RPC payload only from `_changedAnimalIds()`:
 
-```sql
-UPDATE animals
-   SET baixa_reason = p_reason,
-       baixa_date   = p_date,
-       deleted_at   = now(),
-       observation  = COALESCE(p_observation, observation)
- WHERE id = p_animal_id
-   AND deleted_at IS NULL;
+```dart
+Set<String> _changedAnimalIds() {
+  final changed = <String>{};
+  for (final entry in _staged.entries) {
+    if (entry.value != _mostRecentDg(entry.key)) changed.add(entry.key);
+  }
+  return changed;
+}
 ```
 
-`COALESCE(p_observation, observation)` means: if the vet types anything at all into
-`BaixaDialog`'s "Observação" field, the animal's *entire* prior `observation` value is replaced by
-whatever was typed at baixa time — not appended to it. `BaixaDialog`'s field is labeled generically
-"Observação" with hint text `"Observações adicionais (opcional)"` ("*additional* observations,
-optional"), which explicitly signals to the user that this text supplements existing notes. It does
-not. A vet who baixas an animal and adds a one-line note ("vendido para fazenda X") silently
-destroys any prior general observation recorded on that animal (health notes, body-condition
-remarks, etc.) with no confirmation, no merge, and no way to recover the prior text (the row is
-about to become read-only/archived, so this is effectively permanent).
+An animal id only enters `changed` when its **staged chip selection differs from the
+already-persisted DG result**. The observation field, however, is attached per-row inside the same
+loop that iterates `changed`:
 
-**Fix:** Either (a) give baixa its own column (e.g. `baixa_observation text`) so it never collides
-with the general notes field, or (b) append rather than replace:
-
-```sql
-observation = CASE
-  WHEN p_observation IS NULL THEN observation
-  WHEN observation IS NULL OR observation = '' THEN p_observation
-  ELSE observation || E'\n' || p_observation
-END
+```dart
+final records = [
+  for (final animalId in changed)
+    {
+      'animal_id': animalId,
+      'result': _staged[animalId]!.dbValue,
+      'exam_date': ...,
+      if ((_obsControllers[animalId]?.text.trim() ?? '').isNotEmpty)
+        'observation': _obsControllers[animalId]!.text.trim(),
+    },
+];
 ```
 
-Option (a) is preferable — it also lets a future "Motivo da baixa" detail view show the baixa note
-distinctly from the animal's general history, and avoids a second special-case string-concatenation
-migration touching a column that other RPCs (`updateAnimal`'s direct `.update()`) also write.
+If a vet opens the "Adicionar observação" field for an animal whose chip selection they never
+change (e.g. re-confirming an already-correct "Prenha" with a note, or typing a note on one animal
+while only actually changing a *different* animal's result in the same session), that animal's id
+is never in `changed`, so its record — observation included — is never built, never sent to
+`saveDgRecords`, and never persisted.
+
+This is reachable without any error surfacing: as long as **at least one other animal** in the same
+batch has a genuine chip change, `changedCount > 0`, the "Salvar DGs" button is enabled, the save
+succeeds, and the UI shows `SnackBar(content: Text('DGs registrados.'))` — a success confirmation
+that gives the vet no indication the observation they typed for the unchanged-result animal was
+silently discarded. Re-tapping the *same* already-selected chip does not rescue this either:
+`ChoiceChip`'s `onSelected: canEdit ? (_) => onSelect(r) : null` ignores the toggle boolean and
+always restages the same value `r`, so `_staged[animalId] == _mostRecentDg(animalId)` remains true
+and the row still never enters `changed`.
+
+No test in `atf_detail_screen_test.dart` exercises "type an observation on a row whose chip is
+never touched, save, then reload" — the existing observation test
+(`'a row with an observation entered carries it in the payload'`) always taps a chip first,
+which is exactly the condition that hides this gap.
+
+**Fix:** Include any animal with non-empty staged observation text in `changed`, and stop
+force-unwrapping `_staged[animalId]` when building the result (an obs-only row has no staged
+entry):
+
+```dart
+Set<String> _changedAnimalIds() {
+  final changed = <String>{};
+  for (final entry in _staged.entries) {
+    if (entry.value != _mostRecentDg(entry.key)) changed.add(entry.key);
+  }
+  for (final entry in _obsControllers.entries) {
+    if (entry.value.text.trim().isNotEmpty) changed.add(entry.key);
+  }
+  return changed;
+}
+```
+
+```dart
+for (final animalId in changed)
+  {
+    'animal_id': animalId,
+    'result': (_staged[animalId] ?? _mostRecentDg(animalId))!.dbValue,
+    'exam_date': ...,
+    if ((_obsControllers[animalId]?.text.trim() ?? '').isNotEmpty)
+      'observation': _obsControllers[animalId]!.text.trim(),
+  },
+```
 
 ## Warnings
 
-### WR-01: ATF header shows the bull's raw animal UUID instead of a readable label when an existing touro (not "Outro / sêmen externo") is selected
+### WR-01: `register_baixa` accepts `p_reason IS NULL` because `NULL NOT IN (...)` is `NULL`, not `TRUE`
 
-**File:** `lib/features/reproducao/presentation/atf_form_dialog.dart:115-119` (`_submit`, the
-`createAtf` call), `lib/features/reproducao/presentation/atf_detail_screen.dart:286-300`
-(`AtfHeaderCard._buildBullValue`)
-
-**Issue:** `AtfFormDialog._submit` sends `bullAnimalId`/`bullName` as mutually exclusive fields:
-
-```dart
-bullAnimalId: _selectedBull != null && _selectedBull != kOtherBull
-    ? _selectedBull
-    : null,
-bullName:
-    _selectedBull == kOtherBull ? _bullNameCtrl.text.trim() : null,
-```
-
-When the vet picks a real touro from the dropdown (the common path — the dropdown is populated
-from the property's own touro animals, showing `#<number> — <breed>`), `bullAnimalId` is set and
-`bullName` stays `null` forever (no write path in this module ever backfills it — `AtfRepository`
-never joins `atf_batches.bull_animal_id` against `animals` on read either). But
-`AtfHeaderCard._buildBullValue` renders:
-
-```dart
-Text(
-  atf.bullName ?? atf.bullAnimalId!,
-  ...
-)
-```
-
-Since `bullName` is always null for this path, the header permanently displays the raw animal UUID
-(e.g. `a1b2c3d4-5678-...`) instead of the `#<number>` the vet selected — a regression from the
-readable label shown in the dropdown itself moments earlier. `test/widget/atf_detail_screen_test.dart:292-312`
-("bull link: bullAnimalId set renders a tappable InkWell") never catches this because its fixture
-sets **both** `bullAnimalId: 'animal-9'` and `bullName: 'Trovão'` simultaneously — a combination the
-production `createAtf` call never actually produces, so the test only exercises the (never-hit)
-happy path and leaves the real defect uncovered.
-
-**Fix:** Either resolve the bull's display label at read time (join `animals(number, breed)` on
-`bull_animal_id` in `fetchAtf`/`fetchAtfBatchesByProperty` and build the label the same way the
-dropdown does), or populate `bullName` at create time from the selected touro's number/breed so it
-round-trips without a join. Add a test fixture that mirrors the actual `createAtf` call shape
-(`bullAnimalId` set, `bullName` null) to close the coverage gap.
-
-### WR-02: `add_animals_to_atf` does not deduplicate `p_animal_ids`, turning a client-side duplicate into an opaque unique-violation for the whole batch
-
-**File:** `supabase/migrations/20260805_05_atf_rpcs.sql:62-64`
+**File:** `supabase/migrations/20260808_05_fix_baixa_observation_and_atf_dedup.sql:132-135`
 
 **Issue:**
 
 ```sql
-INSERT INTO animal_atf_memberships (animal_id, atf_batch_id, active, property_id)
-SELECT (elem)::uuid, p_atf_batch_id, true, v_property_id
-  FROM jsonb_array_elements_text(p_animal_ids) AS elem;
+IF p_reason NOT IN ('sale', 'death', 'discard') THEN
+  RAISE EXCEPTION 'invalid baixa reason %', p_reason
+    USING ERRCODE = '22023';
+END IF;
 ```
 
-If `p_animal_ids` contains the same UUID twice (e.g. a client-side double-tap race in
-`AtfAnimalSelectionScreen._toggle`/`_selectedIds` that slips a duplicate into the `Set` — unlikely
-given `Set` semantics client-side, but nothing server-side defends against a malformed or replayed
-request), the single `INSERT ... SELECT` attempts two active-membership rows for the same animal in
-one statement and trips `animal_atf_memberships_active_idx`'s partial unique constraint,
-failing the entire batch (including every other, valid animal in the same call) with a raw
-`23505` the Dart layer surfaces only as the generic "Erro ao adicionar animais" — no
-distinguishing message pointing at which animal or why. This is a minor robustness gap, not a
-security issue (the RPC's authorization and cross-property checks are unaffected), but is
-inconsistent with the module's general pattern of validating inputs defensively before hitting a
-constraint (`save_dg_records` validates `result` explicitly rather than relying solely on the
-`CHECK` constraint, for example).
+In SQL (and plpgsql), `NULL NOT IN (...)` evaluates to `NULL`, and `IF NULL THEN ... END IF` takes
+the false branch. If an authenticated veterinarian calls this `SECURITY DEFINER` RPC directly
+(via `supabase-js`/PostgREST, not necessarily through `BaixaDialog`) with `p_reason => NULL`, the
+validation is silently skipped and the subsequent `UPDATE` archives the animal with
+`baixa_reason = NULL` — bypassing the very check this `IF` exists to enforce. `p_date` has the same
+gap (no NULL guard), letting a baixa be recorded with `baixa_date = NULL`. This function is a trust
+boundary (`SECURITY DEFINER`, directly callable by any `authenticated` user who is a member+vet of
+the property) and reused unchanged by this migration's `CREATE OR REPLACE`, so it is being carried
+forward rather than newly introduced — but it is present, unguarded, in the exact function body
+this migration re-declares in full.
 
-**Fix:** De-duplicate defensively, e.g. `SELECT DISTINCT (elem)::uuid FROM
-jsonb_array_elements_text(p_animal_ids) AS elem`, or leave as-is if a duplicate in this request
-shape is considered client-code-only and therefore acceptable to fail loudly — worth an explicit
-comment either way, matching this file's convention of documenting every other deliberate
-non-obvious choice.
+**Fix:**
+
+```sql
+IF p_reason IS NULL OR p_reason NOT IN ('sale', 'death', 'discard') THEN
+  RAISE EXCEPTION 'invalid baixa reason %', p_reason
+    USING ERRCODE = '22023';
+END IF;
+
+IF p_date IS NULL THEN
+  RAISE EXCEPTION 'baixa date is required'
+    USING ERRCODE = '22023';
+END IF;
+```
 
 ## Info
 
-### IN-01: `AnimalRepository`/`AtfRepository` contract tests assert only `isA<Function>()`, not behavior
+### IN-01: Two unrelated fixes are both labeled "WR-02" in committed comments, making the id ambiguous for future traceability
 
-**File:** `test/features/animais/animal_repository_test.dart:24-55`,
-`test/features/reproducao/atf_repository_test.dart:26-78`
+**File:** `supabase/migrations/20260808_05_fix_baixa_observation_and_atf_dedup.sql:22-28`,
+`supabase/tests/05_reproductive_test.sql:271-281`
 
-**Issue:** Every test in both files reduces to `expect(repo.someMethod, isA<Function>())`, which
-is true for any method regardless of its parameter types, return type, or behavior — these tests
-cannot fail for any change short of deleting the method entirely (e.g. they would not catch a
-regression that dropped a required parameter, changed a return type, or introduced a logic bug in
-`AtfRepository.fetchAtfSummaries`'s grouping). This mirrors a pre-existing project-wide convention
-(explicitly called out in both files' header comments as intentional, given how brittle mocking
-the full Supabase query-builder chain is), so it is not a regression introduced by this phase, but
-the density of these tautological assertions (12 across the two files) inflates the visible test
-count without adding regression coverage. `dg_summary_test.dart` in the same phase demonstrates the
-alternative already available for pure-logic code (`summarizeDg`/`formatPrenhez` get real
-value-based assertions) — the repository methods that aren't pure Supabase passthroughs (e.g.
-`fetchReproductiveHistory`'s per-ATF most-recent-DG reduction, `fetchEligibleAnimalsForAtf`'s
-blocking-map construction) would benefit from being factored out and tested the same way
-`dg_summary.dart` is, rather than only exercised indirectly through the RPC/query layer.
+**Issue:** This migration's header labels the `add_animals_to_atf` dedup fix "WR-02" (matching the
+superseded `05-REVIEW.md`'s WR-02). But `05_reproductive_test.sql:271-281` already uses the same
+"WR-02" label for an unrelated, earlier fix — `remove_animal_from_atf` raising on a 0-row delete
+instead of silently no-op'ing. Both are legitimately fixed, but grepping this codebase for "WR-02"
+now returns two unrelated defects from two different review passes, which will confuse whoever
+next greps for it to understand what a comment is referring to.
 
-**Fix:** No action required for this phase; flagged for awareness. If `AtfRepository` grows more
-non-trivial in-memory logic (as `fetchEligibleAnimalsForAtf` and `fetchReproductiveHistory` already
-have), factor that logic into standalone functions and give them `dg_summary_test.dart`-style
-value assertions.
+**Fix:** No code change needed. When referencing finding ids from a prior review pass in new
+comments/migrations, qualify with the source document (e.g. "05-REVIEW.md#WR-02" is already done
+in the migration header — the test file's older "WR-02" reference should similarly be qualified,
+e.g. "WR-02 (05-REVIEW-FIX.md)", to disambiguate).
+
+### IN-02: `AtfFormDialog._submit` can still write `bullAnimalId` with a null `bullName` if `animalListByPropertyProvider`'s data changes between dropdown selection and submit
+
+**File:** `lib/features/reproducao/presentation/atf_form_dialog.dart:118-132`
+
+**Issue:** `_submit()` re-resolves the selected touro from a freshly-read provider value rather than
+reusing the list the dropdown was built from:
+
+```dart
+final animals = ref.read(animalListByPropertyProvider).asData?.value ??
+    const <AnimalWithContext>[];
+final selectedBull =
+    animals.where((aw) => aw.animal.id == _selectedBull).firstOrNull;
+...
+bullAnimalId: _selectedBull != null && _selectedBull != kOtherBull
+    ? _selectedBull
+    : null,
+bullName: _selectedBull == kOtherBull
+    ? _bullNameCtrl.text.trim()
+    : (selectedBull != null ? _bullLabel(selectedBull) : null),
+```
+
+If the provider's cached list changes between the user's dropdown pick and the tap on "Criar ATF"
+(e.g. `ref.invalidate(animalListByPropertyProvider)` fires from elsewhere while this dialog is
+open), `selectedBull` can resolve to `null` while `_selectedBull` (the id) is still non-null and
+not `kOtherBull` — writing `bullAnimalId` set with `bullName` null, the exact row shape WR-01 was
+written to prevent. In practice this is mitigated by `AtfHeaderCard._buildBullValue`'s `'Ver
+touro'` fallback (no raw UUID ever renders), so this is not a WR-01 regression, just a narrower
+edge case that loses the specific bull's label. Low likelihood given no realtime/background
+refresh exists in this MVP, but worth a defensive comment or an assertion given how deliberately
+`_bullLabel`'s single-source-of-truth docstring frames this exact risk.
+
+**Fix:** Capture the matching `AnimalWithContext` at selection time (`onChanged`) instead of
+re-resolving it from a possibly-stale list at submit time, e.g. store `AnimalWithContext?
+_selectedBullAnimal` alongside `_selectedBull` in `setState`.
 
 ---
 
