@@ -20,7 +20,7 @@
 
 BEGIN;
 
-SELECT plan(27);
+SELECT plan(33);
 
 -- ---- Fixtures: two properties, one paddock + one lot in each, three animals in property A
 --      (vaca, novilha, touro), one animal in property B (vaca), two atf_batches in property A
@@ -151,6 +151,13 @@ INSERT INTO animals (id, property_id, lot_id, category, number) VALUES
   ('aaaaaaaa-7777-7777-7777-777777777776', 'aaaaaaaa-1111-1111-1111-111111111111', 'aaaaaaaa-5555-5555-5555-555555555555', 'vaca', 9007),
   ('aaaaaaaa-7777-7777-7777-777777777777', 'aaaaaaaa-1111-1111-1111-111111111111', 'aaaaaaaa-5555-5555-5555-555555555555', 'vaca', 9008);
 
+-- ---- Plan 05-12 fixtures: three more animals in property A, with observation seeded where needed,
+--      for the CR-01 append/no-op and WR-02 payload-dedup assertions below (28-33).
+INSERT INTO animals (id, property_id, lot_id, category, number, observation) VALUES
+  ('aaaaaaaa-7777-7777-7777-777777777778', 'aaaaaaaa-1111-1111-1111-111111111111', 'aaaaaaaa-5555-5555-5555-555555555555', 'vaca', 9009, 'ECC 3.5 em 12/01'),
+  ('aaaaaaaa-7777-7777-7777-777777777779', 'aaaaaaaa-1111-1111-1111-111111111111', 'aaaaaaaa-5555-5555-5555-555555555555', 'vaca', 9010, 'mancando pata traseira esquerda'),
+  ('aaaaaaaa-7777-7777-7777-777777777780', 'aaaaaaaa-1111-1111-1111-111111111111', 'aaaaaaaa-5555-5555-5555-555555555555', 'vaca', 9011, NULL);
+
 -- ---- The five RPCs exist.
 SELECT has_function('add_animals_to_atf', 'add_animals_to_atf RPC exists');
 SELECT has_function('remove_animal_from_atf', 'remove_animal_from_atf RPC exists');
@@ -272,6 +279,63 @@ PREPARE remove_animal_not_a_member AS
   );
 SELECT throws_ok('EXECUTE remove_animal_not_a_member', '23503', NULL,
   'remove_animal_from_atf raises when the animal has no active membership in the ATF (WR-02)');
+
+-- ============================================================
+-- Plan 05-12 additions: CR-01 (baixa observation append, not replace) and WR-02
+-- (add_animals_to_atf payload de-duplication) — closing 05-VERIFICATION.md's CR-01 gap and
+-- 05-REVIEW.md's WR-02 finding.
+-- ============================================================
+
+-- ---- Assertions 28-29 (CR-01, the load-bearing pair): a baixa observation is APPENDED to the
+--      animal's existing general observation, not substituted for it. This is the assertion the
+--      whole plan exists for — reverting the corrective migration's CASE expression back to a
+--      COALESCE-style replace must turn this RED.
+PREPARE baixa_with_prior_obs AS
+  SELECT register_baixa(
+    'aaaaaaaa-7777-7777-7777-777777777778'::uuid, 'sale', '2026-03-01'::date, 'vendido para fazenda X'
+  );
+SELECT lives_ok('EXECUTE baixa_with_prior_obs',
+  'register_baixa succeeds for an animal with a prior general observation (CR-01)');
+
+SELECT is(
+  (SELECT observation FROM animals WHERE id = 'aaaaaaaa-7777-7777-7777-777777777778'),
+  'ECC 3.5 em 12/01' || E'\n' || 'vendido para fazenda X',
+  'a baixa observation is appended after the prior general observation, not substituted for it — the prior text survives the baixa (CR-01, data loss)'
+);
+
+-- ---- Assertions 30-31 (CR-01 null/empty no-op): the common path — the Dart caller sends NULL
+--      whenever the "Observação" field is blank — must leave the prior observation byte-unchanged.
+PREPARE baixa_null_obs AS
+  SELECT register_baixa(
+    'aaaaaaaa-7777-7777-7777-777777777779'::uuid, 'death', '2026-03-02'::date, NULL
+  );
+SELECT lives_ok('EXECUTE baixa_null_obs',
+  'register_baixa succeeds for a baixa with no observation supplied (CR-01)');
+
+SELECT is(
+  (SELECT observation FROM animals WHERE id = 'aaaaaaaa-7777-7777-7777-777777777779'),
+  'mancando pata traseira esquerda',
+  'a NULL baixa observation is a strict no-op on the animal''s prior general observation — no trailing separator appended (CR-01)'
+);
+
+-- ---- Assertions 32-33 (WR-02): a repeated uuid inside one add_animals_to_atf payload produces
+--      exactly one active membership row instead of failing the batch with a raw 23505. ATF A1
+--      (...991) is still active — ATF A2 (...992) was closed above.
+PREPARE add_dup_animal_ids AS
+  SELECT add_animals_to_atf(
+    'aaaaaaaa-9999-9999-9999-999999999991'::uuid,
+    '["aaaaaaaa-7777-7777-7777-777777777780", "aaaaaaaa-7777-7777-7777-777777777780"]'::jsonb
+  );
+SELECT lives_ok('EXECUTE add_dup_animal_ids',
+  'add_animals_to_atf accepts a payload containing the same animal uuid twice without raising (WR-02)');
+
+SELECT is(
+  (SELECT count(*) FROM animal_atf_memberships
+    WHERE animal_id = 'aaaaaaaa-7777-7777-7777-777777777780'
+      AND atf_batch_id = 'aaaaaaaa-9999-9999-9999-999999999991'),
+  1::bigint,
+  'a duplicated uuid within one add_animals_to_atf payload yields exactly one active membership row (WR-02)'
+);
 
 SELECT * FROM finish();
 ROLLBACK;
