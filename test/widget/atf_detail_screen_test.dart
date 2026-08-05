@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 // ---------------------------------------------------------------------------
 // Fake repository (05-06 — composition remove flow)
@@ -171,6 +172,55 @@ Widget _buildScreen({
       ],
       supportedLocales: [Locale('pt', 'BR')],
       home: AtfDetailScreen(atfId: 'atf-1'),
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Router harness (05-11, G-05-1-nav) — back button needs a real GoRouter in
+// the tree to exercise the canPop()/pop() vs go(reproducao) fallback.
+// ---------------------------------------------------------------------------
+
+Widget _buildRoutedScreen({required AsyncValue<AtfBatch?> atf}) {
+  final router = GoRouter(
+    initialLocation: '/atf/atf-1',
+    routes: [
+      GoRoute(
+        path: '/atf/:atfId',
+        builder: (context, state) =>
+            AtfDetailScreen(atfId: state.pathParameters['atfId']!),
+      ),
+      GoRoute(
+        path: '/reproducao',
+        builder: (context, state) =>
+            const Scaffold(body: Text('reproducao-list')),
+      ),
+    ],
+  );
+  return ProviderScope(
+    overrides: [
+      atfByIdProvider.overrideWith((ref, id) {
+        return atf.when(
+          data: (v) => Future.value(v),
+          loading: () => Completer<AtfBatch?>().future,
+          error: (e, st) => Future.error(e, st),
+        );
+      }),
+      atfActiveMembershipsProvider.overrideWith((ref, id) async => const []),
+      atfMembershipsProvider.overrideWith((ref, id) async => const []),
+      dgRecordsByAtfProvider.overrideWith((ref, id) async => const []),
+      atfListByPropertyProvider.overrideWith((ref) async => const []),
+      memberPropertiesProvider.overrideWith((ref) async => const [_vet]),
+      atfRepositoryProvider.overrideWithValue(_FakeAtfRepo()),
+    ],
+    child: MaterialApp.router(
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('pt', 'BR')],
+      routerConfig: router,
     ),
   );
 }
@@ -855,6 +905,60 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
+    });
+  });
+
+  group('back control (G-05-1-nav)', () {
+    testWidgets('loading state renders a BackButton', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(atf: const AsyncValue.loading()),
+      );
+      await tester.pump();
+
+      expect(find.byType(BackButton), findsOneWidget);
+    });
+
+    testWidgets('error state renders a BackButton', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.error(Exception('boom'), StackTrace.empty),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BackButton), findsOneWidget);
+    });
+
+    testWidgets('null-ATF state renders a BackButton', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(atf: const AsyncValue.data(null)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BackButton), findsOneWidget);
+    });
+
+    testWidgets('loaded-data state renders a BackButton', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(atf: AsyncValue.data(_atf())),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BackButton), findsOneWidget);
+    });
+
+    testWidgets(
+        'tapping the back control with no navigation history lands on /reproducao',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildRoutedScreen(atf: AsyncValue.data(_atf())),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('reproducao-list'), findsOneWidget);
     });
   });
 }

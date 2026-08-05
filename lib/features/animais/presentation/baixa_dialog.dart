@@ -17,7 +17,10 @@ import '../data/animal_repository.dart';
 /// - Observação multi-line (optional)
 ///
 /// Submit calls [AnimalRepository.registerBaixa]. On success invalidates
-/// [animalByIdProvider] and [animalListByPropertyProvider], pops with true.
+/// [animalByIdProvider], [animalListByPropertyProvider],
+/// [reproductiveHistoryByAnimalProvider], and the whole
+/// [atfActiveMembershipsProvider] / [atfMembershipsProvider] /
+/// [atfListByPropertyProvider] families (G-05-1), then pops with true.
 class BaixaDialog extends ConsumerStatefulWidget {
   const BaixaDialog({super.key, required this.animal});
 
@@ -88,6 +91,14 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
       // (trg_animals_baixa_deactivates_atf). The reproductive history section
       // on this same screen reads this provider (WR-01).
       ref.invalidate(reproductiveHistoryByAnimalProvider(widget.animal.id));
+      // G-05-1/D-19: BaixaDialog only knows the animal, not its atfBatchId,
+      // so unlike encerrar_atf_dialog.dart / atf_animal_selection_screen.dart
+      // (which invalidate per-id because they know the ATF) this invalidates
+      // the whole family — the only option without plumbing an ATF id
+      // through the animais feature.
+      ref.invalidate(atfActiveMembershipsProvider);
+      ref.invalidate(atfMembershipsProvider);
+      ref.invalidate(atfListByPropertyProvider);
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;
