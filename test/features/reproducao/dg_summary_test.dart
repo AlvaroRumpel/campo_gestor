@@ -10,6 +10,7 @@ DgRecord _dg(
   String animalId,
   String result, {
   required DateTime createdAt,
+  DateTime? examDate,
 }) =>
     DgRecord(
       id: 'dg-$animalId-${createdAt.microsecondsSinceEpoch}',
@@ -17,7 +18,7 @@ DgRecord _dg(
       atfBatchId: 'atf-id',
       animalId: animalId,
       result: result,
-      examDate: createdAt,
+      examDate: examDate ?? createdAt,
       createdAt: createdAt,
     );
 
@@ -34,7 +35,7 @@ void main() {
 
     test(
         'two DG records for the same animal collapse to one — the later '
-        'createdAt wins (D-12)', () {
+        'examDate wins (D-12, G-05-4)', () {
       final earlier = DateTime.utc(2026, 11, 1);
       final later = DateTime.utc(2026, 11, 15);
       final records = [
@@ -88,6 +89,78 @@ void main() {
       expect(summary.total, 1);
       expect(summary.pregnant, 1);
       expect(summary.pending, 0); // clamped, never negative
+    });
+
+    test(
+        'summarizeDg regression: greater-examDate record wins even when it '
+        'was inserted first (G-05-4)', () {
+      final recordA = _dg(
+        'a1',
+        'pregnant',
+        examDate: DateTime.utc(2026, 11, 15),
+        createdAt: DateTime.utc(2026, 11, 16),
+      );
+      final recordB = _dg(
+        'a1',
+        'not_pregnant',
+        examDate: DateTime.utc(2026, 11, 10),
+        createdAt: DateTime.utc(2026, 11, 20),
+      );
+      final summary = summarizeDg([recordA, recordB], compositionCount: 1);
+      expect(summary.total, 1);
+      expect(summary.pregnant, 1); // recordA wins on examDate, not createdAt
+    });
+  });
+
+  group('isLaterDg (A-DG-ORDER, G-05-4)', () {
+    test('greater examDate wins regardless of insert order', () {
+      final candidate = _dg(
+        'a1',
+        'pregnant',
+        examDate: DateTime.utc(2026, 11, 15),
+        createdAt: DateTime.utc(2026, 11, 1),
+      );
+      final current = _dg(
+        'a1',
+        'not_pregnant',
+        examDate: DateTime.utc(2026, 11, 10),
+        createdAt: DateTime.utc(2026, 11, 20),
+      );
+      expect(isLaterDg(candidate, current), isTrue);
+    });
+
+    test('equal examDate falls back to the greater createdAt', () {
+      final sameExam = DateTime.utc(2026, 11, 15);
+      final candidate = _dg(
+        'a1',
+        'pregnant',
+        examDate: sameExam,
+        createdAt: DateTime.utc(2026, 11, 16),
+      );
+      final current = _dg(
+        'a1',
+        'not_pregnant',
+        examDate: sameExam,
+        createdAt: DateTime.utc(2026, 11, 10),
+      );
+      expect(isLaterDg(candidate, current), isTrue);
+    });
+
+    test('is antisymmetric on a strict pair', () {
+      final earlier = _dg(
+        'a1',
+        'doubtful',
+        examDate: DateTime.utc(2026, 11, 1),
+        createdAt: DateTime.utc(2026, 11, 1),
+      );
+      final later = _dg(
+        'a1',
+        'pregnant',
+        examDate: DateTime.utc(2026, 11, 15),
+        createdAt: DateTime.utc(2026, 11, 15),
+      );
+      expect(isLaterDg(later, earlier), isTrue);
+      expect(isLaterDg(earlier, later), isFalse);
     });
   });
 
