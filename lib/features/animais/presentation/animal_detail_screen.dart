@@ -274,6 +274,11 @@ class AnimalInfoCard extends ConsumerWidget {
               label: 'Cadastrado em',
               value: Text(dateFmt.format(animal.createdAt.toLocal())),
             ),
+            if (animal.observation != null &&
+                animal.observation!.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _KvRow(label: 'Observação', value: Text(animal.observation!)),
+            ],
             const SizedBox(height: 8),
             // Status badge
             _KvRow(

@@ -319,4 +319,47 @@ void main() {
       expect(find.text('atf-detail-atf-1'), findsOneWidget);
     });
   });
+
+  group('AnimalDetailScreen — Observação display', () {
+    testWidgets('shows Observação label and text when observation is set',
+        (tester) async {
+      final animal = _activeAnimal.copyWith(observation: 'Manso, fácil manejo.');
+      await tester.pumpWidget(_buildScreen(animal: animal, role: 'veterinarian'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Observação'), findsOneWidget);
+      expect(find.text('Manso, fácil manejo.'), findsOneWidget);
+    });
+
+    testWidgets('hides Observação label when observation is null',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(animal: _activeAnimal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Observação'), findsNothing);
+    });
+
+    testWidgets('hides Observação label when observation is blank string',
+        (tester) async {
+      final animal = _activeAnimal.copyWith(observation: '');
+      await tester.pumpWidget(_buildScreen(animal: animal, role: 'veterinarian'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Observação'), findsNothing);
+    });
+
+    testWidgets('renders full multi-line observation text, not just first line',
+        (tester) async {
+      final animal = _activeAnimal.copyWith(
+        observation: 'Tratamento inicial em 10/01.\nBaixa em 20/03: vendido.',
+      );
+      await tester.pumpWidget(_buildScreen(animal: animal, role: 'veterinarian'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Observação'), findsOneWidget);
+      expect(find.textContaining('Baixa em 20/03: vendido.'), findsOneWidget);
+    });
+  });
 }
