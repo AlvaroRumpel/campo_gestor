@@ -681,6 +681,58 @@ void main() {
     });
 
     testWidgets(
+        'CR-01: typing an observation on a row whose chip is never touched '
+        'still saves that row, carrying the existing DG result forward',
+        (tester) async {
+      final repo = _FakeAtfRepo();
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [_dg('a1', 'pregnant')],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // No chip tap at all — only the observation field is touched. Before
+      // the CR-01 fix, _changedAnimalIds() never saw this row, so the save
+      // button stayed disabled and the observation was unreachable.
+      // 05-09: composition fully DG'd renders the encerramento banner above
+      // the DG section, pushing it off the fixed test viewport.
+      final obsIconFinder = find.byTooltip('Adicionar observação').first;
+      await tester.ensureVisible(obsIconFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(obsIconFinder);
+      await tester.pumpAndSettle();
+      final obsFieldFinder = find.widgetWithText(TextFormField, 'Observação');
+      await tester.ensureVisible(obsFieldFinder);
+      await tester.pumpAndSettle();
+      await tester.enterText(obsFieldFinder, 'Reconfirmado em campo');
+      await tester.pumpAndSettle();
+
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      await tester.ensureVisible(saveButtonFinder);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<FilledButton>(saveButtonFinder).onPressed,
+        isNotNull,
+      );
+      await tester.tap(saveButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedDgRecords, hasLength(1));
+      expect(repo.capturedDgRecords!.single['animal_id'], 'a1');
+      // The already-persisted result must be carried forward since the
+      // chip's staged value was never set for this row.
+      expect(repo.capturedDgRecords!.single['result'], 'pregnant');
+      expect(
+        repo.capturedDgRecords!.single['observation'],
+        'Reconfirmado em campo',
+      );
+    });
+
+    testWidgets(
         'a failing saveDgRecords leaves the staged chip selection intact',
         (tester) async {
       final repo = _FakeAtfRepo(shouldThrow: true);

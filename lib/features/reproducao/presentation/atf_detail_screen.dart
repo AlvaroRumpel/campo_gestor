@@ -661,6 +661,19 @@ class _DgSectionState extends ConsumerState<_DgSection> {
     for (final entry in _staged.entries) {
       if (entry.value != _mostRecentDg(entry.key)) changed.add(entry.key);
     }
+    // CR-01 (05-REVIEW.md): a typed observation must be saved even when the
+    // DG chip selection for that row never changed — otherwise it is
+    // silently dropped whenever some OTHER row in the batch has a real
+    // change (which is what makes the save button enabled at all). Guarded
+    // on a resolvable result because dg_records.result is NOT NULL — a row
+    // with no DG history AND no staged chip has nothing to persist yet.
+    for (final entry in _obsControllers.entries) {
+      if (entry.value.text.trim().isEmpty) continue;
+      final animalId = entry.key;
+      if (_staged.containsKey(animalId) || _mostRecentDg(animalId) != null) {
+        changed.add(animalId);
+      }
+    }
     return changed;
   }
 
@@ -712,7 +725,10 @@ class _DgSectionState extends ConsumerState<_DgSection> {
       for (final animalId in changed)
         {
           'animal_id': animalId,
-          'result': _staged[animalId]!.dbValue,
+          // Obs-only rows (chip untouched) have no _staged entry — fall
+          // back to the currently-displayed (most-recent persisted) DG so
+          // 'result' is never force-unwrapped null (CR-01, 05-REVIEW.md).
+          'result': (_staged[animalId] ?? _mostRecentDg(animalId))!.dbValue,
           'exam_date': _dateOnlyFmt
               .format(_dateOverrides[animalId] ?? _sessionDate),
           if ((_obsControllers[animalId]?.text.trim() ?? '').isNotEmpty)
@@ -799,6 +815,11 @@ class _DgSectionState extends ConsumerState<_DgSection> {
                 onSelect: (r) => setState(() => _staged[m.animalId] = r),
                 onPickDate: () => _pickRowDate(m.animalId),
                 onToggleObservation: () => _toggleObservation(m.animalId),
+                // CR-01 (05-REVIEW.md): typing alone must recompute
+                // changedCount so "Salvar DGs" reflects an obs-only edit —
+                // without this the button stays stuck disabled since typing
+                // into the controller does not otherwise trigger a rebuild.
+                onObservationChanged: () => setState(() {}),
               ),
             );
           },
@@ -840,6 +861,7 @@ class _DgChipRow extends StatelessWidget {
     required this.onSelect,
     required this.onPickDate,
     required this.onToggleObservation,
+    required this.onObservationChanged,
   });
 
   final AtfMembershipView membership;
@@ -850,6 +872,7 @@ class _DgChipRow extends StatelessWidget {
   final ValueChanged<DgResult> onSelect;
   final VoidCallback onPickDate;
   final VoidCallback onToggleObservation;
+  final VoidCallback onObservationChanged;
 
   Color _selectedBg(ColorScheme cs, DgResult r) => switch (r) {
         DgResult.pregnant => cs.primaryContainer,
@@ -942,6 +965,7 @@ class _DgChipRow extends StatelessWidget {
             child: TextFormField(
               controller: observationController,
               enabled: canEdit,
+              onChanged: (_) => onObservationChanged(),
               decoration: const InputDecoration(
                 labelText: 'Observação',
                 border: OutlineInputBorder(),
