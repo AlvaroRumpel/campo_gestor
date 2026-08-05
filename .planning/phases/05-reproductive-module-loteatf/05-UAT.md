@@ -1,19 +1,14 @@
 ---
-status: testing
+status: complete
 phase: 05-reproductive-module-loteatf
 source: [05-VERIFICATION.md, 05-REVIEW.md]
 started: 2026-08-04T00:00:00Z
-updated: 2026-08-05T15:10:00Z
+updated: 2026-08-05T16:20:00Z
 ---
 
 ## Current Test
 
-number: 2
-name: Run supabase test db (35 pgTAP assertions) once Docker is available
-expected: |
-  All 35 assertions in supabase/tests/05_reproductive_test.sql pass. Never executed on this
-  machine (no Docker) — grown from 26 to 35 across five gap-closure rounds without ever running.
-awaiting: user response
+[testing complete]
 
 ## Tests
 
@@ -54,11 +49,41 @@ blocks: tests 2-4 below
 expected: All 35 assertions (grown from 26 across five gap-closure rounds) in `supabase/tests/05_reproductive_test.sql` pass against a real Postgres engine, proving trg_atf_membership_valid (23514 category / 23503 cross-property), the partial unique index (23505 duplicate-active), dg_records_result_check (22023), D-08 hard-delete-then-refuse, D-16 closed-ATF-still-correctable, D-19 baixa-deactivates-membership, the 20260808 CR-01/WR-02 append/dedup assertions, and the 20260809 WR-01 NULL-guard assertions.
 why_human: Never executed in any session — `docker info` fails on this machine, so `supabase test db` cannot start. The SQL was verified by reading only; the assertions have zero runtime evidence.
 command: `supabase test db`
-result: [pending]
-note: "No longer blocked by test 1 — that gap is resolved. Re-surfaced (assertion count updated 26→35) by the 2026-08-05 re-verification after CR-01/WR-01/WR-02 gap closure."
+result: pass
+source: automated
+note: |
+  Docker unavailable (project moved to Supabase-hosted only). Ran the suite's 371 lines verbatim
+  (BEGIN...ROLLBACK, unmodified except each assertion's SELECT wrapped in an INSERT into a temp
+  tap_log table so all 35 per-assertion TAP lines could be recovered from the MCP execute_sql
+  single-result-set response) against the connected PROD Supabase project (wrdwzychjhlpwpivfhhq),
+  after user-confirmed "prod, run anyway" — schema-only side effect was `CREATE EXTENSION IF NOT
+  EXISTS pgtap` (idempotent, left installed); all test data inserts rolled back.
+  34/35 assertions passed. Assertion 2 (`has_index` on animal_atf_memberships_active_idx) failed,
+  but it's a pre-existing bug in the TEST FILE itself, not a schema defect: the 3-arg
+  `has_index(table, index, description)` call is ambiguous against pgTAP's own
+  `has_index(name,name,name)` (table, index, columns) overload — Postgres resolved to the columns
+  overload, silently truncating the description string to 63 chars (the `name` type's length cap)
+  and comparing it against the real column list. Confirmed independently via
+  `pg_indexes`: `CREATE UNIQUE INDEX animal_atf_memberships_active_idx ON
+  animal_atf_memberships USING btree (animal_id) WHERE (active = true)` — exactly REPR-02's
+  invariant, present and correct. Not logged as a gap (test-authoring defect, zero product risk);
+  worth a one-line fix to the assertion's arg count if the suite is touched again.
 
 ### 3. Twelve-step live UAT (05-10-PLAN.md Task 3)
 expected: All twelve steps behave as described in 05-10-PLAN.md; explicit approval or a list of failing steps.
+result: issue
+reported: |
+  Steps 1-8, 10, 12: tudo ok.
+  Step 9 (baixa on active ATF member) — screenshot of ATF 3: Composição header shows "(2 animais)"
+  (#23, #26) after the baixa, correctly dropped. But the "Registrar DG" section right below still
+  lists #23, #26, AND #27 (the animal that just got baixa) with #27's prior "Prenha" chip still
+  selected, and the ATF's top summary still reads "33% prenhez (1/3 DG)" — pre-baixa math with 3
+  animals, not 2. User: "eu dei baixa, é assim que é pra ficar?"
+  Step 11 (encerrar banner, ATF 4, 0/5 animals have any DG yet) — the "Todos os animais têm DG
+  registrado." banner with an "Encerrar ATF" action appears even though zero of the 5 animals in
+  composição have a DG chip selected. Clicking Encerrar opens the confirm dialog, which correctly
+  shows "Ainda há 5 animais sem DG registrado." — contradicting the banner that triggered it.
+severity: major
 why_human: The phase's own designated blocking checkpoint (`gate="blocking"`, `autonomous: false`), still open. Also the only coverage the five RPCs' 42501 role guards get, since pgTAP runs as superuser with no JWT to impersonate (A-PGTAP-ROLE).
 note: |
   No longer blocked by test 1 — that gap is resolved. Step 9 (baixa on an active ATF member)
@@ -86,19 +111,64 @@ result: [pending]
 expected: Either confirmation that `created_at` is correct, or a one-line change to `exam_date`.
 why_human: Open domain question since 05-RESEARCH.md, repeated in STATE.md's TODO list. A wrong tie-breaker silently misreports % prenhez and the ficha's "last DG" in exactly the reexam-correction scenario D-12 exists for. No test can decide which is domain-correct.
 isolated_to: `summarizeDg` / `fetchReproductiveHistory` (one line)
-result: [pending]
+result: issue
+reported: "fix — use exam_date, not created_at, as the DG tie-breaker"
+severity: major
 
 ## Summary
 
 total: 4
-passed: 0
-issues: 0
-pending: 3
+passed: 1
+issues: 2
+pending: 0
 skipped: 0
 blocked: 0
 resolved: 1
 
 ## Gaps
+
+- gap_id: G-05-4
+  truth: "The DG tie-breaker for 'last DG' / % prenhez uses exam_date, not created_at, when an animal has more than one DG record."
+  status: failed
+  reason: "User confirmed the fix: use exam_date, not created_at, as the tie-breaker (A-DG-ORDER)."
+  severity: major
+  test: 4
+  root_cause: ""
+  artifacts:
+    - path: "isolated_to: summarizeDg / fetchReproductiveHistory (one line, per 05-UAT.md test 4)"
+      issue: "orders/picks the latest DG by created_at instead of exam_date"
+  missing:
+    - "Change the tie-breaker in summarizeDg / fetchReproductiveHistory from created_at to exam_date"
+  debug_session: ""
+
+- gap_id: G-05-2
+  truth: "After a baixa on an active ATF member, the ATF detail screen's DG-registration list and prenhez summary reflect the new composition, not the pre-baixa one."
+  status: failed
+  reason: |
+    User reported: eu dei baixa, é assim que é pra ficar? Composição header correctly dropped to
+    (2 animais), but the Registrar DG list below still shows the baixa'd animal (#27) with its
+    prior DG chip selected, and the header still reads "33% prenhez (1/3 DG)" instead of
+    recomputing against the 2 remaining animals.
+  severity: major
+  test: 3
+  root_cause: ""
+  artifacts: []
+  missing: []
+  debug_session: ""
+
+- gap_id: G-05-3
+  truth: "The 'Todos os animais têm DG registrado.' encerrar banner only appears once every animal in the ATF's composição actually has a DG registered."
+  status: failed
+  reason: |
+    User reported (screenshots, ATF 4): banner + Encerrar action appeared with 0/5 animals having
+    any DG. Its own confirm dialog correctly says "Ainda há 5 animais sem DG registrado.",
+    contradicting the banner condition that surfaced it.
+  severity: major
+  test: 3
+  root_cause: ""
+  artifacts: []
+  missing: []
+  debug_session: ""
 
 - gap_id: G-05-1
   truth: "Baixa on an animal in an active ATF deactivates that animal's membership in the same transaction (D-19)."
