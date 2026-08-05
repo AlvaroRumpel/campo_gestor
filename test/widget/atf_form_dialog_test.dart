@@ -128,6 +128,22 @@ final _touro = AnimalWithContext(
   paddockName: 'Piquete Norte',
 );
 
+/// With-breed fixture (WR-01) — exercises `_bullLabel`'s breed branch.
+final _touroComBreed = AnimalWithContext(
+  animal: Animal(
+    id: 'animal-touro-2',
+    propertyId: 'prop-1',
+    lotId: 'lot-a',
+    category: 'touro',
+    number: 13,
+    breed: 'Nelore',
+    createdAt: DateTime(2025, 1, 1),
+  ),
+  lotName: 'Lote A',
+  paddockId: 'p1',
+  paddockName: 'Piquete Norte',
+);
+
 // ---------------------------------------------------------------------------
 // Widget builder
 // ---------------------------------------------------------------------------
@@ -282,7 +298,7 @@ void main() {
     });
 
     testWidgets(
-        'valid submission with a real touro calls createAtf once with bullAnimalId set and bullName null',
+        'valid submission with a real touro persists a readable bullName (WR-01)',
         (tester) async {
       final repo = _FakeAtfRepository();
       await tester.pumpWidget(_buildApp(repo: repo, animals: [_touro]));
@@ -303,7 +319,34 @@ void main() {
 
       expect(repo.createCallCount, 1);
       expect(repo.lastCreateArgs?['bullAnimalId'], 'animal-touro-1');
-      expect(repo.lastCreateArgs?['bullName'], isNull);
+      expect(repo.lastCreateArgs?['bullName'], '#12');
+    });
+
+    testWidgets(
+        'valid submission with a real touro with breed persists "#num — breed" (WR-01)',
+        (tester) async {
+      final repo = _FakeAtfRepository();
+      await tester.pumpWidget(
+        _buildApp(repo: repo, animals: [_touro, _touroComBreed]),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nome do ATF *'),
+        'ATF Primavera',
+      );
+      await tester.tap(find.byType(DropdownButtonFormField<String?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('#13 — Nelore').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Criar ATF'));
+      await tester.pumpAndSettle();
+
+      expect(repo.createCallCount, 1);
+      expect(repo.lastCreateArgs?['bullAnimalId'], 'animal-touro-2');
+      expect(repo.lastCreateArgs?['bullName'], '#13 — Nelore');
     });
 
     testWidgets(
