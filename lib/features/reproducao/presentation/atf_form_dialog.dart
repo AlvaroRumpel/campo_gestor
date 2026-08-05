@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
 import '../data/atf_repository.dart';
 
 /// Sentinel dropdown value for the "Outro / sêmen externo" bull option (D-05).
 const kOtherBull = '__other__';
+
+/// Single source of the bull display label (WR-01): used by the dropdown item
+/// builder AND by `_submit()`'s persisted `bull_name`, so the label shown at
+/// selection time can never drift from the label written to the database.
+String _bullLabel(AnimalWithContext aw) => aw.animal.breed != null
+    ? '#${aw.animal.number} — ${aw.animal.breed}'
+    : '#${aw.animal.number}';
 
 /// Creation-only dialog for a new LoteATF (REPR-01, D-01, D-05).
 ///
@@ -107,6 +115,10 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
     try {
       final repo = ref.read(atfRepositoryProvider);
       final obsText = _obsCtrl.text.trim();
+      final animals = ref.read(animalListByPropertyProvider).asData?.value ??
+          const <AnimalWithContext>[];
+      final selectedBull =
+          animals.where((aw) => aw.animal.id == _selectedBull).firstOrNull;
       final created = await repo.createAtf(
         propertyId: widget.propertyId,
         name: _nameCtrl.text.trim(),
@@ -115,8 +127,9 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
         bullAnimalId: _selectedBull != null && _selectedBull != kOtherBull
             ? _selectedBull
             : null,
-        bullName:
-            _selectedBull == kOtherBull ? _bullNameCtrl.text.trim() : null,
+        bullName: _selectedBull == kOtherBull
+            ? _bullNameCtrl.text.trim()
+            : (selectedBull != null ? _bullLabel(selectedBull) : null),
         observation: obsText.isEmpty ? null : obsText,
       );
       ref.invalidate(atfListByPropertyProvider);
@@ -210,13 +223,9 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                   ),
                   items: [
                     ...touros.map((aw) {
-                      final breed = aw.animal.breed;
-                      final label = breed != null
-                          ? '#${aw.animal.number} — $breed'
-                          : '#${aw.animal.number}';
                       return DropdownMenuItem<String?>(
                         value: aw.animal.id,
-                        child: Text(label),
+                        child: Text(_bullLabel(aw)),
                       );
                     }),
                     const DropdownMenuItem<String?>(

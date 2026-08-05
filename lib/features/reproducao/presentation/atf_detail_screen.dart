@@ -285,10 +285,14 @@ class AtfHeaderCard extends StatelessWidget {
 
   Widget _buildBullValue(BuildContext context) {
     if (atf.bullAnimalId != null) {
+      // WR-01: bullAnimalId is a navigation target only — it must never be
+      // rendered as user-facing text. A legacy row created before the
+      // WR-01 fix has bullAnimalId set with bullName null; fall back to a
+      // readable link placeholder instead of the raw uuid.
       return InkWell(
         onTap: () => context.go(AppRoutes.animalDetail(atf.bullAnimalId!)),
         child: Text(
-          atf.bullName ?? atf.bullAnimalId!,
+          atf.bullName ?? 'Ver touro',
           style: TextStyle(
             color: Theme.of(context).colorScheme.primary,
             decoration: TextDecoration.underline,
