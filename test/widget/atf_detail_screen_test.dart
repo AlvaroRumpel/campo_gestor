@@ -330,6 +330,31 @@ void main() {
     });
 
     testWidgets(
+        'bull link: legacy row (bullAnimalId set, bullName null) never renders the raw uuid (WR-01)',
+        (tester) async {
+      const legacyUuid = '11111111-2222-3333-4444-555555555555';
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf(bullAnimalId: legacyUuid)),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Load-bearing: the uuid must never reach the widget tree as text.
+      // Reverting the production `atf.bullName ?? 'Ver touro'` change (i.e.
+      // going back to `atf.bullName ?? atf.bullAnimalId!`) must turn this red.
+      expect(find.text(legacyUuid), findsNothing);
+      expect(find.text('Ver touro'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AtfHeaderCard),
+          matching: find.byType(InkWell),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
         'zero DG: renders "— · aguardando DG" and no widget containing "0%"',
         (tester) async {
       await tester.pumpWidget(
