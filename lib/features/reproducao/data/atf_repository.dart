@@ -160,8 +160,8 @@ class AtfRepository {
   /// Reproductive history for [animalId] — REPR-05.
   ///
   /// One entry per ATF the animal participated in, active or closed alike,
-  /// carrying the most recent DG for that ATF (greatest `createdAt`),
-  /// ordered by insemination date descending (D-14).
+  /// carrying the most recent DG for that ATF (greatest `examDate`, via
+  /// [isLaterDg], G-05-4), ordered by insemination date descending (D-14).
   Future<List<ReproductiveHistoryEntry>> fetchReproductiveHistory(
     String animalId,
   ) async {
@@ -181,11 +181,14 @@ class AtfRepository {
         .map((r) => DgRecord.fromJson(r as Map<String, dynamic>))
         .toList();
 
-    // Most-recent DG per ATF (D-12's tie-breaker, applied per-ATF here).
+    // Most-recent DG per ATF (isLaterDg's exam-date tie-breaker, applied
+    // per-ATF here, G-05-4). lastDgDate below reads lastDg?.examDate, so the
+    // displayed date and the selection rule now finally agree — that
+    // mismatch is exactly why this site's bug was invisible before.
     final lastDgByAtf = <String, DgRecord>{};
     for (final dg in dgRecords) {
       final current = lastDgByAtf[dg.atfBatchId];
-      if (current == null || dg.createdAt.isAfter(current.createdAt)) {
+      if (current == null || isLaterDg(dg, current)) {
         lastDgByAtf[dg.atfBatchId] = dg;
       }
     }

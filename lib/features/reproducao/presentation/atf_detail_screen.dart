@@ -641,13 +641,13 @@ class _DgSectionState extends ConsumerState<_DgSection> {
     super.dispose();
   }
 
-  /// Most-recent DG for [animalId] in this ATF (D-12's tie-breaker:
-  /// `createdAt`, per A-DG-ORDER).
+  /// Most-recent DG for [animalId] in this ATF (D-12's tie-breaker: the
+  /// exam-date rule in [isLaterDg], G-05-4).
   DgResult? _mostRecentDg(String animalId) {
     DgRecord? latest;
     for (final r in widget.dgRecords) {
       if (r.animalId != animalId) continue;
-      if (latest == null || r.createdAt.isAfter(latest.createdAt)) {
+      if (latest == null || isLaterDg(r, latest)) {
         latest = r;
       }
     }

@@ -116,14 +116,21 @@ Future<void> _setDateViaInput(
   await tester.pumpAndSettle();
 }
 
-DgRecord _dg(String animalId, String result) => DgRecord(
-      id: 'dg-$animalId',
+DgRecord _dg(
+  String animalId,
+  String result, {
+  DateTime? examDate,
+  DateTime? createdAt,
+  String? id,
+}) =>
+    DgRecord(
+      id: id ?? 'dg-$animalId',
       propertyId: 'prop-1',
       atfBatchId: 'atf-1',
       animalId: animalId,
       result: result,
-      examDate: DateTime(2026, 10, 1),
-      createdAt: DateTime(2026, 10, 1),
+      examDate: examDate ?? DateTime(2026, 10, 1),
+      createdAt: createdAt ?? DateTime(2026, 10, 1),
     );
 
 // ---------------------------------------------------------------------------
@@ -730,6 +737,99 @@ void main() {
         repo.capturedDgRecords!.single['observation'],
         'Reconfirmado em campo',
       );
+    });
+
+    testWidgets(
+        'G-05-4: DG chip preselection follows examDate, not insertion order',
+        (tester) async {
+      final repo = _FakeAtfRepo();
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [
+            // Inserted first (earlier createdAt), but greater examDate.
+            _dg(
+              'a1',
+              'pregnant',
+              id: 'dg-a1-1',
+              examDate: DateTime(2026, 11, 15),
+              createdAt: DateTime(2026, 11, 15),
+            ),
+            // Inserted later (greater createdAt), but earlier examDate.
+            _dg(
+              'a1',
+              'not_pregnant',
+              id: 'dg-a1-2',
+              examDate: DateTime(2026, 11, 10),
+              createdAt: DateTime(2026, 11, 20),
+            ),
+          ],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final prenhaChip =
+          find.widgetWithText(ChoiceChip, 'Prenha').first;
+      final naoPrenhaChip =
+          find.widgetWithText(ChoiceChip, 'Não-prenha').first;
+      await tester.ensureVisible(prenhaChip);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<ChoiceChip>(prenhaChip).selected, isTrue);
+      expect(tester.widget<ChoiceChip>(naoPrenhaChip).selected, isFalse);
+    });
+
+    testWidgets(
+        'G-05-4: with no chip touched, an observation-only save carries '
+        'forward the greater-examDate result', (tester) async {
+      final repo = _FakeAtfRepo();
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [
+            _dg(
+              'a1',
+              'pregnant',
+              id: 'dg-a1-1',
+              examDate: DateTime(2026, 11, 15),
+              createdAt: DateTime(2026, 11, 15),
+            ),
+            _dg(
+              'a1',
+              'not_pregnant',
+              id: 'dg-a1-2',
+              examDate: DateTime(2026, 11, 10),
+              createdAt: DateTime(2026, 11, 20),
+            ),
+          ],
+          repo: repo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 05-09: composition fully DG'd renders the encerramento banner above
+      // the DG section, pushing it off the fixed test viewport.
+      final obsIconFinder = find.byTooltip('Adicionar observação').first;
+      await tester.ensureVisible(obsIconFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(obsIconFinder);
+      await tester.pumpAndSettle();
+      final obsFieldFinder = find.widgetWithText(TextFormField, 'Observação');
+      await tester.ensureVisible(obsFieldFinder);
+      await tester.pumpAndSettle();
+      await tester.enterText(obsFieldFinder, 'Confirmado');
+      await tester.pumpAndSettle();
+
+      final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
+      await tester.ensureVisible(saveButtonFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(saveButtonFinder);
+      await tester.pumpAndSettle();
+
+      expect(repo.capturedDgRecords!.single['result'], 'pregnant');
     });
 
     testWidgets(
