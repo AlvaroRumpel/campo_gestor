@@ -147,3 +147,7 @@ None - no external service configuration required.
 ---
 *Phase: 05-reproductive-module-loteatf*
 *Completed: 2026-08-05*
+
+## Self-Check: PASSED
+
+All 4 modified source/test files and all 4 commits (`e4a84cd`, `c9e6303`, `9de0267`, and this SUMMARY's own commit `4223851`) verified present on disk / in `git log --oneline --all`.
