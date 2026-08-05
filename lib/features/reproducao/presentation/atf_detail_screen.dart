@@ -18,8 +18,11 @@ import 'encerrar_atf_dialog.dart';
 ///
 /// This plan (05-04) built the shell + [AtfHeaderCard]. Plan 05-06 added
 /// [_CompositionSection] and the remove-animal flow. Plan 05-08 added the DG
-/// mass-entry section. This plan (05-09) adds the encerramento banner and
-/// the AppBar "Encerrar ATF" action.
+/// mass-entry section. Plan 05-09 added the encerramento banner and the
+/// AppBar "Encerrar ATF" action. Plan 05-11 added the AppBar back control
+/// (G-05-1-nav) — `/atf/:atfId` is a root-level GoRoute reached via
+/// `context.go(...)`, which leaves no Navigator history for Material's
+/// default AppBar back arrow to detect.
 class AtfDetailScreen extends ConsumerWidget {
   const AtfDetailScreen({super.key, required this.atfId});
   final String atfId;
@@ -39,11 +42,11 @@ class AtfDetailScreen extends ConsumerWidget {
 
     return atfAsync.when(
       loading: () => Scaffold(
-        appBar: AppBar(title: const Text('ATF')),
+        appBar: AppBar(title: const Text('ATF'), leading: _backButton(context)),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, st) => Scaffold(
-        appBar: AppBar(title: const Text('ATF')),
+        appBar: AppBar(title: const Text('ATF'), leading: _backButton(context)),
         body: const Center(
           child: Text('Erro ao carregar. Verifique sua conexão e tente novamente.'),
         ),
@@ -51,7 +54,7 @@ class AtfDetailScreen extends ConsumerWidget {
       data: (atf) {
         if (atf == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('ATF')),
+            appBar: AppBar(title: const Text('ATF'), leading: _backButton(context)),
             body: const Center(
               child: Text('Erro ao carregar. Verifique sua conexão e tente novamente.'),
             ),
@@ -76,6 +79,7 @@ class AtfDetailScreen extends ConsumerWidget {
 
         return Scaffold(
           appBar: AppBar(
+            leading: _backButton(context),
             title: Text(atf.name),
             actions: [
               if (showEncerrarAction)
@@ -135,6 +139,26 @@ class AtfDetailScreen extends ConsumerWidget {
         .firstOrNull;
     return role == 'veterinarian';
   }
+}
+
+/// Back control for every [AtfDetailScreen] AppBar state (G-05-1-nav).
+///
+/// `/atf/:atfId` is a root-level `GoRoute` (router.dart) reached via
+/// `context.go(...)`, which replaces the whole nav stack, so
+/// `Navigator.canPop()` is false on arrival and Material's default AppBar
+/// back arrow never renders. Falls back to [AppRoutes.reproducao] — unlike
+/// `lote_detail_screen.dart` there is no parent-entity path to reconstruct,
+/// since the ATF list lives at the reproducao shell branch.
+Widget _backButton(BuildContext context) {
+  return BackButton(
+    onPressed: () {
+      if (context.canPop()) {
+        context.pop();
+        return;
+      }
+      context.go(AppRoutes.reproducao);
+    },
+  );
 }
 
 /// Opens [EncerrarAtfDialog] and shows the success confirmation
