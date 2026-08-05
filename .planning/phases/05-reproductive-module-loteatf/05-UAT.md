@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 05-reproductive-module-loteatf
 source: [05-VERIFICATION.md, 05-REVIEW.md]
 started: 2026-08-04T00:00:00Z
-updated: 2026-08-05T16:20:00Z
+updated: 2026-08-05T17:00:00Z
 ---
 
 ## Current Test
@@ -129,17 +129,29 @@ resolved: 1
 
 - gap_id: G-05-4
   truth: "The DG tie-breaker for 'last DG' / % prenhez uses exam_date, not created_at, when an animal has more than one DG record."
-  status: failed
+  status: diagnosed
   reason: "User confirmed the fix: use exam_date, not created_at, as the tie-breaker (A-DG-ORDER)."
   severity: major
   test: 4
-  root_cause: ""
+  root_cause: |
+    Three independent, hand-written "keep the DG record with the max createdAt per animal"
+    reduction loops exist (not one shared function) — each written separately under A-DG-ORDER's
+    original (now-overruled) assumption that exam_date was untrustworthy since D-11 lets a vet
+    manually correct it. Only two of the three were named in the UAT's isolated_to note; the third
+    was uncataloged and 05-02-SUMMARY.md incorrectly claimed the tie-breaker was "already isolated,
+    no callers to touch."
   artifacts:
-    - path: "isolated_to: summarizeDg / fetchReproductiveHistory (one line, per 05-UAT.md test 4)"
-      issue: "orders/picks the latest DG by created_at instead of exam_date"
+    - path: "lib/features/reproducao/data/dg_summary.dart:41"
+      issue: "summarizeDg() compares r.createdAt.isAfter(current.createdAt) — feeds % prenhez summary"
+    - path: "lib/features/reproducao/data/atf_repository.dart:188"
+      issue: "fetchReproductiveHistory() has its own separate createdAt.isAfter loop — feeds the ficha's last-DG display"
+    - path: "lib/features/reproducao/presentation/atf_detail_screen.dart:646-655"
+      issue: "private _mostRecentDg() in _DgSectionState, createdAt.isAfter at line 650 — drives DG chip preselection and the save_dg_records diff payload; NOT named in the original UAT isolated_to note"
   missing:
-    - "Change the tie-breaker in summarizeDg / fetchReproductiveHistory from created_at to exam_date"
-  debug_session: ""
+    - "Swap createdAt -> examDate in the isAfter comparison at all three sites (3 one-token changes, not 1)"
+    - "Optional: extract a single shared latestByExamDate(Iterable<DgRecord>) helper reused by all three, since 3 independent copies already caused one to be missed from tracking docs once"
+    - "Decide + document tie-handling when two records share an identical exam_date (currently first-encountered-in-loop wins, no explicit secondary tie-break)"
+  debug_session: ".planning/debug/dg-tie-breaker-created-at.md"
 
 - gap_id: G-05-2
   truth: "After a baixa on an active ATF member, the ATF detail screen's DG-registration list and prenhez summary reflect the new composition, not the pre-baixa one."
@@ -151,22 +163,63 @@ resolved: 1
     recomputing against the 2 remaining animals.
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: |
+    NOT a stale-cache repeat of G-05-1 — every provider involved (atfMembershipsProvider,
+    dgRecordsByAtfProvider) already returns fresh data after baixa; 05-11's family-wide
+    invalidation already covers this provider. The real cause is a documented design conflation
+    (D-16/D-19/D-20): "active=false because ATF closed" and "active=false because the animal was
+    baixa'd" are the same boolean with no distinguishing signal. _DgSection renders every row from
+    the unfiltered provider by design (so D-16 closed-ATF DG correction keeps working), and
+    summarizeDg intentionally keeps a baixa'd animal's historical DG in the % prenhez total
+    regardless of live composition (D-20) — verified the math is byte-identical pre/post baixa,
+    not stale. User decision (2026-08-05): keep D-20's historical-total behavior; the actual fix
+    is UI-only — stop rendering a baixa'd animal as an editable row in "Registrar DG" specifically
+    (it can't be corrected there), while a closed-but-not-baixa'd ATF's rows keep rendering per D-16.
+  artifacts:
+    - path: "lib/features/reproducao/presentation/atf_detail_screen.dart (_DgSection, lines 585-846)"
+      issue: "renders every atfMembershipsProvider row unconditionally — no signal to tell 'animal baixa'd' apart from 'ATF closed, correction still allowed'"
+    - path: "lib/features/reproducao/data/atf_repository.dart (fetchMemberships, lines 72-98)"
+      issue: "select() never joins animals.deleted_at, so the Dart layer has no data to distinguish the two active=false cases"
+    - path: "lib/features/reproducao/data/atf_model.dart (AtfMembershipView, lines 34-49)"
+      issue: "no field carries the member animal's soft-delete status"
+  missing:
+    - "Join animals.deleted_at into fetchMemberships()'s select and AtfMembershipView"
+    - "Filter _DgSection's rendered rows to exclude memberships whose animal is baixa'd (deleted_at not null), while still showing rows for a closed-but-not-baixa'd ATF (D-16 unchanged)"
+    - "Leave summarizeDg's D-20 total-counting behavior untouched per user decision — no change to % prenhez math"
+  debug_session: ".planning/debug/atf-dg-list-stale-after-baixa.md"
 
 - gap_id: G-05-3
   truth: "The 'Todos os animais têm DG registrado.' encerrar banner only appears once every animal in the ATF's composição actually has a DG registered."
-  status: failed
+  status: diagnosed
   reason: |
     User reported (screenshots, ATF 4): banner + Encerrar action appeared with 0/5 animals having
     any DG. Its own confirm dialog correctly says "Ainda há 5 animais sem DG registrado.",
     contradicting the banner condition that surfaced it.
   severity: major
   test: 3
-  root_cause: ""
-  artifacts: []
+  root_cause: |
+    showBanner and the AppBar's pendingCount both gate on dgSummary.pending == 0, where dgSummary
+    = summarizeDg(dgRecords, compositionCount: activeMemberships.length). By D-20 design, total
+    counts every animalId that EVER had a DG for this atf_batch_id, including animals since
+    removed/baixa'd — correct for the % prenhez header, but reused (wrongly) as a live "does every
+    CURRENT member have a DG" check. When composition churns (a DG'd animal is removed/baixa'd and
+    a DG-less animal is added in its place), cumulative historical total can reach/exceed the NEW
+    compositionCount, clamping pending to 0 with zero current members actually having a DG — the
+    exact reported symptom. Secondary finding: the banner's own embedded "Encerrar ATF" button
+    hardcodes pendingCount: 0 to the confirm dialog; the correct live count the user saw in the
+    dialog ("Ainda há 5...") most likely came from the AppBar's separate icon action, which
+    recomputes independently, not the banner's own button.
+  artifacts:
+    - path: "lib/features/reproducao/presentation/atf_detail_screen.dart (showBanner/dgSummary, lines 64-78; banner button ~line 570)"
+      issue: "reuses summarizeDg's cross-composition-cycle total as a live per-member gate instead of checking current members individually; banner's own Encerrar button hardcodes pendingCount: 0"
+    - path: "lib/features/reproducao/presentation/atf_detail_screen.dart (_CompositionSection, lines 406-457)"
+      issue: "already computes the correct per-row primitive (dgAnimalIds.contains(m.animalId)) for its remove-button gate, but it's never hoisted/reused for the banner"
+  missing:
+    - "Hoist dgAnimalIds = dgRecords.map((d) => d.animalId).toSet() to the parent build method"
+    - "Replace showBanner's dgSummary.pending == 0 with activeMemberships.every((m) => dgAnimalIds.contains(m.animalId))"
+    - "Replace AppBar/banner pendingCount with activeMemberships.where((m) => !dgAnimalIds.contains(m.animalId)).length instead of dgSummary.pending"
+    - "Leave dg_summary.dart's summarizeDg/D-20 behavior untouched — it's correct for the % prenhez header"
+  debug_session: ".planning/debug/atf-encerrar-banner-premature.md"
   missing: []
   debug_session: ""
 
