@@ -147,7 +147,7 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 13 plans (11 executed, 2 pending gap closure)
+**Plans:** 13/13 plans executed
 
 Plans:
 **Wave 1**
@@ -184,8 +184,8 @@ Plans:
 
 **Wave 8** *(gap closure — verification CR-01, review WR-01/WR-02; 05-12 and 05-13 are independent, no file overlap)*
 
-- [ ] 05-12-PLAN.md — [BLOCKING] Corrective migration: register_baixa appends the baixa observation instead of overwriting it (CR-01) + add_animals_to_atf payload dedup (WR-02) + pgTAP
-- [ ] 05-13-PLAN.md — ATF header shows a readable bull label instead of a raw animal UUID (WR-01)
+- [x] 05-12-PLAN.md — [BLOCKING] Corrective migration: register_baixa appends the baixa observation instead of overwriting it (CR-01) + add_animals_to_atf payload dedup (WR-02) + pgTAP
+- [x] 05-13-PLAN.md — ATF header shows a readable bull label instead of a raw animal UUID (WR-01)
 
 **UI hint:** yes
 
@@ -247,7 +247,7 @@ Plans:
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
-| 5. Reproductive Module | 11/11 | In Progress|  |
+| 5. Reproductive Module | 13/13 | In Progress|  |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
