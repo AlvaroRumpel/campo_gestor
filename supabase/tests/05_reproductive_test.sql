@@ -20,7 +20,7 @@
 
 BEGIN;
 
-SELECT plan(33);
+SELECT plan(35);
 
 -- ---- Fixtures: two properties, one paddock + one lot in each, three animals in property A
 --      (vaca, novilha, touro), one animal in property B (vaca), two atf_batches in property A
@@ -336,6 +336,35 @@ SELECT is(
   1::bigint,
   'a duplicated uuid within one add_animals_to_atf payload yields exactly one active membership row (WR-02)'
 );
+
+-- ============================================================
+-- Plan 05-13 additions (05-REVIEW-FIX.md, WR-01): register_baixa's reason/date NULL guards.
+-- `NULL NOT IN (...)` evaluates to NULL, not TRUE, so plpgsql's `IF NULL THEN` took the false
+-- branch — the pre-existing allow-list check alone silently let p_reason => NULL through, and
+-- p_date had no NULL guard at all. Both closed by 20260809_05_fix_register_baixa_null_guards.sql.
+-- ============================================================
+
+INSERT INTO animals (id, property_id, lot_id, category, number) VALUES
+  ('aaaaaaaa-7777-7777-7777-777777777781', 'aaaaaaaa-1111-1111-1111-111111111111', 'aaaaaaaa-5555-5555-5555-555555555555', 'vaca', 9012);
+
+-- ---- Assertion 34 (WR-01): a NULL p_reason is rejected, not silently accepted — reverting the
+--      `IF p_reason IS NULL OR p_reason NOT IN (...)` guard back to the bare NOT IN must turn this
+--      RED (the call would instead lives_ok and archive the animal with baixa_reason = NULL).
+PREPARE baixa_null_reason AS
+  SELECT register_baixa(
+    'aaaaaaaa-7777-7777-7777-777777777781'::uuid, NULL, '2026-03-03'::date, NULL
+  );
+SELECT throws_ok('EXECUTE baixa_null_reason', '22023', NULL,
+  'register_baixa rejects a NULL p_reason instead of silently passing NULL NOT IN (...) (WR-01)');
+
+-- ---- Assertion 35 (WR-01): a NULL p_date is rejected — this path had zero guard before this
+--      migration, not a NULL-semantics gap like p_reason's.
+PREPARE baixa_null_date AS
+  SELECT register_baixa(
+    'aaaaaaaa-7777-7777-7777-777777777781'::uuid, 'sale', NULL, NULL
+  );
+SELECT throws_ok('EXECUTE baixa_null_date', '22023', NULL,
+  'register_baixa rejects a NULL p_date (WR-01)');
 
 SELECT * FROM finish();
 ROLLBACK;
