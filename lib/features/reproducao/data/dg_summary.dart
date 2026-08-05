@@ -23,14 +23,30 @@ class DgSummary {
   int? get percent => total == 0 ? null : (pregnant / total * 100).round();
 }
 
+/// Returns true when [candidate] supersedes [current] as an animal's (or an
+/// ATF's) latest DG.
+///
+/// The tie-breaker is the vet-entered exam date (A-DG-ORDER, resolved by the
+/// veterinarian 2026-08-05 in 05-UAT.md test 4, G-05-4): the record with the
+/// greater `examDate` wins, regardless of insertion order. `createdAt` is
+/// only the secondary tie-break, for the rare case of an exact same-date
+/// exam, so a same-day correction still supersedes the record it corrects.
+/// This is the ONE place the rule lives — three independent copies
+/// previously drifted and one was lost from tracking docs entirely.
+bool isLaterDg(DgRecord candidate, DgRecord current) {
+  final cmp = candidate.examDate.compareTo(current.examDate);
+  if (cmp != 0) return cmp > 0;
+  return candidate.createdAt.isAfter(current.createdAt);
+}
+
 /// Aggregates [records] into a [DgSummary] (REPR-04).
 ///
-/// Reduces to one record per `animalId`, keeping the one with the greatest
-/// `createdAt` (D-12 — insertion order, not `examDate`, per A-DG-ORDER: D-11
-/// lets the vet override `examDate` per animal, so a reexam could legitimately
-/// carry an earlier corrected date). A DG record whose animal is no longer in
-/// [compositionCount] still counts toward [DgSummary.total]/[DgSummary.pregnant]
-/// (D-20 — a baixa'd animal that already had a DG).
+/// Reduces to one record per `animalId`, keeping the one that wins under
+/// [isLaterDg] (D-12, G-05-4 — the vet-entered `examDate` is authoritative,
+/// with `createdAt` as the same-date tie-break). A DG record whose animal is
+/// no longer in [compositionCount] still counts toward
+/// [DgSummary.total]/[DgSummary.pregnant] (D-20 — a baixa'd animal that
+/// already had a DG).
 DgSummary summarizeDg(
   List<DgRecord> records, {
   required int compositionCount,
@@ -38,7 +54,7 @@ DgSummary summarizeDg(
   final byAnimal = <String, DgRecord>{};
   for (final r in records) {
     final current = byAnimal[r.animalId];
-    if (current == null || r.createdAt.isAfter(current.createdAt)) {
+    if (current == null || isLaterDg(r, current)) {
       byAnimal[r.animalId] = r;
     }
   }
