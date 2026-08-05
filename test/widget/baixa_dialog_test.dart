@@ -197,17 +197,17 @@ void main() {
       // no-op on a provider that was never read.
       container.listen(
         atfActiveMembershipsProvider('atf-1'),
-        (_, __) {},
+        (_, _) {},
         fireImmediately: true,
       );
       container.listen(
         atfMembershipsProvider('atf-1'),
-        (_, __) {},
+        (_, _) {},
         fireImmediately: true,
       );
       container.listen(
         atfListByPropertyProvider,
-        (_, __) {},
+        (_, _) {},
         fireImmediately: true,
       );
 
