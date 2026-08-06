@@ -5,11 +5,11 @@ milestone_name: milestone
 current_phase: 6 — Sanitary Module (Snapshot)
 current_plan: Not started
 status: in-progress
-stopped_at: Completed 05-15-PLAN.md
-last_updated: "2026-08-06T17:52:11.333Z"
+stopped_at: Phase 6 context gathered
+last_updated: "2026-08-06T20:48:15.943Z"
 last_activity: 2026-08-06
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
   total_plans: 38
   completed_plans: 38
@@ -125,10 +125,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Completed 05-15-PLAN.md
-**Resume file:** None
+**Stopped at:** Phase 6 context gathered
+**Resume file:** .planning/phases/06-sanitary-module-snapshot/06-CONTEXT.md
 
-**Last session:** 2026-08-06T05:30:42.574Z
+**Last session:** 2026-08-06T20:48:15.917Z
 **Next action:** `/gsd-discuss-phase 5` — Phase 5 (Reproductive Module / LoteATF) has no CONTEXT.md yet. Two items carried over, neither blocking Phase 5: (1) the Supabase dashboard for project `wrdwzychjhlpwpivfhhq` still needs Site URL + allowed redirect URLs set to `https://campo-gestor.pages.dev`, otherwise signup confirmation emails stay on localhost; (2) the 4 fixes from quick task 260804-fpk are green on 103/103 tests but were never confirmed live in the browser.
 **Files of interest:**
 
