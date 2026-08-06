@@ -210,7 +210,38 @@ Plans:
   4. Usuário visualiza histórico sanitário do lote ordenado por data com lista de aplicações
   5. Usuário visualiza histórico sanitário de um animal específico via lookup nos snapshots, mesmo que o animal já tenha sido movido para outro lote
 
-**Plans:** TBD
+**Plans:** 12 plans
+Plans:
+**Wave 1**
+
+- [ ] 06-01-PLAN.md — Wave 0 validation: pgTAP suite + pure calculation module + its two Dart test files
+- [ ] 06-02-PLAN.md — Both migrations authored: doses, sanitary_applications header, kg_per_ua, indexes, policies, isolation trigger, both RPCs
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 06-03-PLAN.md — Dose data layer (SANI-01) + Property.kgPerUa
+- [ ] 06-04-PLAN.md — Sanitary application data layer: model, exception, repository, five providers
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 06-05-PLAN.md — /aplicacoes/:id route + EstornarAplicacaoDialog + AplicacaoDetailScreen
+- [ ] 06-06-PLAN.md — DoseFormDialog with live computed per-UA fields (SANI-01)
+- [ ] 06-07-PLAN.md — ResumoAplicacaoDialog: totals, permanence warning, duplicate gate, the RPC write
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 06-08-PLAN.md — SanitaryAnimalSelectionScreen (SANI-03) + AplicacaoFormDialog
+- [ ] 06-09-PLAN.md — Shared sanitary history section + animal ficha wiring (SANI-05, D-37 Phase 8 contract)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 06-10-PLAN.md — SanitarioScreen: two tabs, filters, both toggles, cards (SANI-01, SANI-04)
+- [ ] 06-11-PLAN.md — LoteDetailScreen: registration button + sanitary history section (SANI-04)
+
+**Wave 6** *(blocked on Wave 5)*
+
+- [ ] 06-12-PLAN.md — [BLOCKING] apply both migrations + replay 06_sanitary_test.sql and 04_movements_test.sql + human UAT
+
 **UI hint:** yes
 
 ### Phase 7: Expenses by Paddock
@@ -256,7 +287,7 @@ Plans:
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
-| 6. Sanitary Module | 0/0 | Not started | - |
+| 6. Sanitary Module | 0/12 | Planned | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
