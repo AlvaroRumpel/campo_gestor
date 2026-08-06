@@ -1,7 +1,7 @@
 ---
 phase: 6
 slug: sanitary-module-snapshot
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-06
@@ -286,7 +286,7 @@ extra-confirmation warning box.
 1. Title: `"Confirmar aplicação"`
 2. KvRows (same `_KvRow` pattern, label width 120): Dose, Lote, Data
 3. Totals block (`bodyLarge` w600, `colorScheme.primary` for the numbers): `"N animais · X,X UA"`, `"Volume total: Y mL"` (or `"Y,Y L"` when ≥1000 mL), and `"Custo total: R$ Z,ZZ"` only when the dose has a non-null cost (D-11)
-4. If any animals were deselected: muted line `"M animal(is) desmarcado(s)."` (`bodyMedium`, `onSurface` 60%)
+4. If any animals were deselected: muted line via `Intl.plural` — `"1 animal desmarcado."` / `"M animais desmarcados."` (`bodyMedium`, `onSurface` 60%); omitted entirely at M = 0
 5. Permanence warning (always shown): `Container` styled as an inline notice, `colorScheme.surfaceContainerHigh` background, `Icons.info_outline` leading, text `"Este registro é permanente e não pode ser editado ou apagado depois de confirmado."` (`bodyMedium`)
 6. **Duplicate-detection warning (D-34, conditional):** when a recent identical application (same dose + lote + data) is detected, a `Container` with `colorScheme.tertiaryContainer`/`onTertiaryContainer`, `Icons.warning_amber` leading, text `"Uma aplicação idêntica (mesma dose, lote e data) já foi registrada recentemente. Confirmar mesmo assim?"` + a `CheckboxListTile` "Sim, registrar mesmo assim" that must be checked to enable the final confirm button. This is the "segunda confirmação" resolved client-side (D-34 — no server block, no unique index for this case).
 7. **Inline error slot (D-35/D-36, conditional):** when the RPC call fails, the mapped pt-BR message from `SanitaryApplicationException` renders here (`colorScheme.error` text) with a `TextButton` "Recarregar" beside it — tapping it pops this dialog AND the `SanitaryAnimalSelectionScreen`, re-pushing a freshly reloaded selection screen per D-32/D-33 (preserves still-valid deselections, drops departed animals, pre-checks newly-active ones). SnackBar is reserved for success only (D-36).
@@ -319,7 +319,8 @@ AppBar: dose_name + back button (resolved-fallback above)
 Body (ListView, padding: EdgeInsets.all(16)):
   ├── AplicacaoHeaderCard
   ├── SizedBox(height: 16)
-  ├── if (skipped_count > 0): muted note "N animal(is) desmarcado(s) nesta aplicação."
+  ├── if (skipped_count > 0): muted note via Intl.plural —
+  │     "1 animal desmarcado nesta aplicação." / "N animais desmarcados nesta aplicação."
   ├── SizedBox(height: 16)
   └── _CompositionListSection ("Composição", N animais)
 ```
@@ -462,7 +463,9 @@ All copy in pt-BR. No emojis. Tone matches Phases 1–5: direct, imperative verb
 | Toggle label — archived doses | "Mostrar arquivadas" |
 | Filter — period picker placeholder | "Período" |
 | Live selection counter (D-21) | "[N] de [M] selecionados · [X,X] UA" |
-| Deselected note (resumo dialog) | "[M] animal(is) desmarcado(s)." |
+| Deselected note (resumo dialog) | `Intl.plural`: "1 animal desmarcado." / "[M] animais desmarcados." (omitido quando M = 0) |
+| Contagem de animais (totais, composição) | `Intl.plural`: "1 animal" / "[N] animais" |
+| Ação — ver lista completa (seções embutidas, >10 linhas) | "Ver todas" |
 | Permanence warning (D-23) | "Este registro é permanente e não pode ser editado ou apagado depois de confirmado." |
 | Duplicate-application warning (D-34) | "Uma aplicação idêntica (mesma dose, lote e data) já foi registrada recentemente. Confirmar mesmo assim?" |
 | Duplicate-application checkbox | "Sim, registrar mesmo assim" |
@@ -480,7 +483,7 @@ All copy in pt-BR. No emojis. Tone matches Phases 1–5: direct, imperative verb
 | Empty state — no sanitary history for animal | "Nenhuma aplicação sanitária registrada para este animal." |
 | Empty state heading — no doses | "Nenhuma dose cadastrada" |
 | Empty state body — no doses | "Cadastre uma dose para registrar aplicações sanitárias." |
-| Skipped-animals note (detail screen) | "[N] animal(is) desmarcado(s) nesta aplicação." |
+| Skipped-animals note (detail screen) | `Intl.plural`: "1 animal desmarcado nesta aplicação." / "[N] animais desmarcados nesta aplicação." |
 | Concurrency error (D-32, exact template) | "[N] animais mudaram desde que a tela foi aberta — recarregue." |
 | Recovery action (D-36) | "Recarregar" |
 | Error — role not permitted | "Apenas veterinários podem registrar aplicações sanitárias." |
@@ -512,12 +515,34 @@ All copy in pt-BR. No emojis. Tone matches Phases 1–5: direct, imperative verb
 
 ## UI Considerations
 
-Applicable state considerations resolved manually against the 8-category taxonomy
-(`ui-consideration-probe.md`) over the 9 surfaces above. **58 applicable considerations: 54
-covered, 3 backstop, 1 unresolved.**
+Applicable state considerations computed by `ui-consideration-probe.cjs` over the surfaces above,
+then resolved. **59 applicable considerations: 57 covered, 2 backstop, 0 unresolved.**
+
+**Kind-confirmation note (propose-then-confirm, load-bearing):** the probe's prose classifier
+under-matched on pt-BR text — its first pass detected only `static-content`/`long-text` on 5
+surfaces and returned 3 as `unclassified` (33 applicable). Element kinds were authored explicitly
+(`form` / `list-collection` / `nav` / `static-content`), user-confirmed, and the probe re-run,
+raising coverage to 59 applicable with zero `unclassified`. Three cross-cutting axes the spec did
+not answer (overflow-truncation, pt-BR pluralization, long-list pagination) were resolved by user
+decision this session — see the contracts folded into the rows below.
 
 Empty- and error-state COPY lives in `## Copywriting Contract`; rows below reference it rather
 than restating it.
+
+**Cross-cutting contracts (apply to every row that references them):**
+- **Truncation:** primary title lines in cards and list rows are `maxLines: 1` +
+  `TextOverflow.ellipsis`. Detail surfaces (`AplicacaoDetailScreen` KvRows, observação, motivo do
+  estorno) render in full with normal wrapping — never truncated.
+- **Pluralization:** counts branch through `Intl.plural` (package `intl`, already a dependency) —
+  `"1 animal"` / `"3 animais"`, `"1 animal desmarcado"` / `"2 animais desmarcados"`. The
+  `"animal(is)"` / `"(s)"` parenthetical form is NOT used.
+- **Pagination:** none in this phase. Global lists use `ListView.builder` lazy rendering with no
+  cap. Sections embedded in another screen (`LoteDetailScreen`, `AnimalDetailScreen` sanitary
+  history) render at most 10 rows plus a "Ver todas" action that navigates to the global
+  Aplicações list pre-filtered by that lote/animal.
+  <!-- ponytail: no pagination — ListView.builder holds to a few thousand rows; add incremental
+       loading if a property's application volume makes the first paint measurably slow. -->
+
 
 ### E1 — SanitarioScreen, Aplicações tab (list-collection)
 
@@ -543,7 +568,7 @@ than restating it.
 | partial | ✅ covered | Custo row/values omitted entirely when `custo_por_kg` is null (D-11) — never "R$ 0,00/kg" |
 | overflow | ✅ covered | `ListView.builder`, no pagination |
 | zero-one-many | ✅ covered | No count label needed — the list is the count |
-| long-text | ✅ covered | Nome/princípio ativo wrap normally in a `Card`, no fixed-width truncation needed (these are short pharma names in practice) |
+| long-text | ✅ covered | Nome comercial and princípio ativo are each `maxLines: 1` + `TextOverflow.ellipsis` per the truncation contract; the full name is readable in `DoseFormDialog` on edit |
 
 ### E3 — DoseFormDialog (form)
 
@@ -588,7 +613,7 @@ than restating it.
 | error | ✅ covered | Inline `SanitaryApplicationException`-mapped message + "Recarregar" recovery action (D-35/D-36); SnackBar reserved for success |
 | partial | ✅ covered | Cost/volume lines conditionally rendered per D-11; deselected-count line only when M > 0 |
 | long-text | ✅ covered | Dose/lote names in KvRows follow the same `_KvRow` wrap behavior as elsewhere, no fixed truncation |
-| zero-one-many | ⚠ unresolved | "[M] animal(is) desmarcado(s)." — same pt-BR plural-parenthetical ambiguity flagged in Phase 5's E10 (`pendente(s)`). Planner must confirm the exact `(is)`/`(s)` suffix convention already used elsewhere in the codebase rather than invent a new one. Flagged as an assumption, not silently dropped |
+| zero-one-many | ✅ covered | Resolved this session: `Intl.plural` branch, not the parenthetical form — `"1 animal desmarcado."` / `"2 animais desmarcados."`; the line is omitted entirely at M = 0. Same rule applies to the totals line (`"1 animal · 0,8 UA"` / `"47 animais · 42,5 UA"`) |
 
 ### E7 — AplicacaoDetailScreen
 
@@ -621,8 +646,9 @@ than restating it.
 | error | ✅ covered | Section-local generic load-failure copy, never blanks the whole screen |
 | populated | ✅ covered | Row format locked by D-20, ordered by `applied_at` descending |
 | partial | ✅ covered | Rows without `total_cost` omit that segment |
-| overflow | ✅ covered | `ListView.builder(shrinkWrap: true)` inside the page scroll, same shape as `_AnimalList` |
-| zero-one-many | ✅ covered | No count label — rows are the count, matching E8 (Phase 5's reproductive-history precedent) |
+| overflow | ✅ covered | Embedded-section cap per the pagination contract: at most 10 rows (`ListView.builder(shrinkWrap: true)` inside the page scroll, same shape as `_AnimalList`), then a "Ver todas" `TextButton` → global Aplicações list pre-filtered by this lote |
+| zero-one-many | ✅ covered | No count label — rows are the count, matching E8 (Phase 5's reproductive-history precedent). The "Ver todas" action appears only when the lote has more than 10 applications |
+| long-text | ✅ covered | Row line is `maxLines: 1` + ellipsis per the truncation contract (dose name is the variable-length part) |
 
 ### E10 — AnimalDetailScreen, Sanitary History section (list-collection)
 
@@ -633,8 +659,9 @@ than restating it.
 | error | ✅ covered | "Erro ao carregar histórico sanitário." — section-local, never blanks the whole ficha |
 | populated | ✅ covered | Row format locked by D-25, ordered by `applied_at` descending, using the frozen lote name (D-04) even if the animal has since moved |
 | partial | ✅ covered | An animal's lote name shown is always the frozen one at time of application — never a live re-lookup that could silently "correct" history |
-| overflow | ✅ covered | Full list, no cap — same reasoning as Phase 5's E8 (an animal accumulates roughly a handful of applications per year) |
-| zero-one-many | ✅ covered | No count label on this section — the rows are the count |
+| overflow | ✅ covered | Same embedded-section cap as E9: at most 10 rows, then "Ver todas" → global Aplicações list pre-filtered by this animal. In practice an animal accumulates a handful of applications per year, so the cap rarely engages — it exists so the ficha can never be dominated by one section |
+| zero-one-many | ✅ covered | No count label on this section — the rows are the count. "Ver todas" appears only past 10 rows |
+| long-text | ✅ covered | Row line is `maxLines: 1` + ellipsis (dose name + frozen lote name are the variable-length parts) |
 
 <!-- Status vocabulary (locked by probe-core projectTruths):
      ✅ covered   → a plain truth string lifted into must_haves.truths
@@ -717,14 +744,14 @@ Registry safety gate not applicable for Flutter.
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved (gsd-ui-checker, 6/6 dimensions PASS)
 
 ---
 
