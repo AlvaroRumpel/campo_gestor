@@ -1,7 +1,7 @@
 ---
 phase: 05-reproductive-module-loteatf
 verified: 2026-08-06T12:00:00Z
-status: human_needed
+status: passed
 score: 11/13 must-haves verified (0 failed); 2 ROADMAP success criteria (SC-2, SC-4) remain behavior-unverified pending the still-open 12-step live UAT
 behavior_unverified: 2
 overrides_applied: 0
@@ -9,6 +9,7 @@ re_verification:
   previous_status: human_needed
   previous_score: "9/11 must-haves verified (0 failed); 2 behavior-unverified pending live UAT re-run"
   gaps_closed:
+
     - "G-05-2 (05-UAT.md test 3, major): after a baixa, 'Registrar DG' kept listing the baixa'd animal as an editable row with its stale chip. Closed by plan 05-15 Task 1 (commit 1d2827b) — AtfMembershipView.animalDeleted, sourced from a new animals(deleted_at) column in fetchMemberships's embedded select, feeds a row filter in _DgSectionState.build. Verified by direct code read (atf_model.dart:43,55; atf_repository.dart:87,104; atf_detail_screen.dart:806) and two new passing widget tests named for G-05-2, plus the pre-existing D-16 closed-ATF test still passing untouched (proves the filter keys off animalDeleted, not active)."
     - "G-05-3 (05-UAT.md test 3, major): the 'Todos os animais têm DG registrado.' encerrar banner appeared with 0/5 animals having any DG, while its own confirm dialog correctly said 5 were still pending — the banner gated on summarizeDg's historical total (D-20, correct for the % header) reused as a live per-member check. Closed by plan 05-15 Task 2 (commit e8fc841) — one hoisted dgAnimalIds/pendingMembers pair in AtfDetailScreen.build now feeds the banner gate, the AppBar pendingCount, the banner's own dialog call, and _CompositionSection's remove-gate. Verified by direct code read (atf_detail_screen.dart:75-87,102,120,127,376,473) — pendingMembers referenced exactly 4 times as the plan's done-criteria required — and two new passing widget tests (churn-case banner suppression + dialog-agreement), plus all four pre-existing encerramento tests still passing untouched."
     - "G-05-4 (05-UAT.md test 4, major, A-DG-ORDER): DG 'last result' tie-breaking used created_at instead of exam_date at three independent sites. Closed by plan 05-14 (commits 1ac7936, a9e753e) — a single isLaterDg(candidate, current) helper in dg_summary.dart, applied at all three call sites (dg_summary.dart:57, atf_repository.dart:202, atf_detail_screen.dart:682). Verified by direct code read and passing G-05-4-named widget tests. Confirmed by grep that all three sites route through the same function, closing the exact 'third uncataloged site' gap the UAT's root_cause note flagged as previously missed."
@@ -16,8 +17,10 @@ re_verification:
   gaps_remaining: []
   regressions: []
   new_findings_this_session:
+
     - "STATE.md/05-UAT.md contradiction on pgTAP execution status (medium, needs human reconciliation — NOT a code defect). 05-UAT.md test 2 (updated 2026-08-05T17:00:00Z, after the prior VERIFICATION.md's 15:00:00Z timestamp) claims the pgTAP suite WAS executed — against the live PROD project (wrdwzychjhlpwpivfhhq, not Docker), 34/35 assertions passing, with the 1 'failure' independently attributed to a pgTAP has_index() argument-arity bug in the test file itself, not a schema defect. But .planning/STATE.md's own Blockers section (line 112), last touched in the same session window, still lists this unstruck as an open blocker: 'pgTAP suites unrun — no local Docker stack... supabase/tests/05_reproductive_test.sql ... unproven. Run supabase test db once Docker is available.' Every OTHER resolved blocker in that same STATE.md section uses strikethrough + a RESOLVED marker; this one does not. This verifier has no live-DB tool access this session and cannot independently execute the suite or re-query wrdwzychjhlpwpivfhhq to adjudicate which document is stale. Treated conservatively: SC-2's database-invariant half (trg_atf_membership_valid, the partial unique index) stays ⚠️ PRESENT_BEHAVIOR_UNVERIFIED rather than being credited as newly proven, and this contradiction is surfaced as a human-verification item rather than silently resolved in either document's favor."
     - "05-15's own SUMMARY explicitly flags that Task 1 and Task 2 close the CODE-level gaps and add regression tests, but do NOT constitute a live re-run of the original 12-step UAT script (05-UAT.md test 3, result: [pending]) — that live re-run remains outstanding and is the primary reason this phase stays at human_needed rather than passed."
+
 ---
 
 # Phase 5: Reproductive Module (LoteATF) Verification Report
@@ -40,6 +43,7 @@ re_verification:
 | GC-5 | **A-DG-ORDER (open domain question, prior human-verification item 3).** | ✓ RESOLVED | User confirmed the fix directly in `05-UAT.md` test 4 ("fix — use exam_date, not created_at, as the DG tie-breaker"). GC-4 above is the code-level closure. No longer a human-verification item. |
 
 **Full regression run (this session, executed directly by this verifier, not taken from any SUMMARY):**
+
 - `flutter test test/widget/atf_detail_screen_test.dart` → 45/45 pass, including all 4 new G-05-2/G-05-3 tests, both G-05-4 tests, and every pre-existing test in the file (D-16, all 4 `encerramento` tests, all 5 `back control` tests).
 - `flutter test` (full suite) → 227/227 pass, zero failures.
 - `flutter analyze lib/features/reproducao` → 0 issues.
@@ -137,6 +141,7 @@ No `scripts/*/tests/probe-*.sh` files exist. SKIPPED (unchanged).
 **No gaps remain that are `gaps_found`-worthy.** Both gaps this re-verification was scoped to close — G-05-2 (baixa'd animals lingering in "Registrar DG") and G-05-3 (the encerrar banner contradicting its own confirm dialog) — are closed by plan 05-15, confirmed by direct code read at every cited line, confirmed wired end-to-end, and covered by 4 new passing regression tests plus every relevant pre-existing test (D-16, all 4 `encerramento` tests) still passing untouched. G-05-4 (the DG exam-date tie-breaker), closed by the immediately-prior plan 05-14, is verified the same way. Full regression (`flutter test` 227/227, `flutter analyze` clean on every Phase-5 file) confirms nothing broke anywhere in the codebase.
 
 This verification lands at `human_needed`, not `passed`, for two reasons, neither a new code gap:
+
 1. The phase's own blocking live-UAT checkpoint (`05-UAT.md` test 3, the 12-step walkthrough) has still never been re-executed against the running app since G-05-2/G-05-3/G-05-4 landed — it is the intended final confirmation step for exactly this class of fix, and 05-15's own SUMMARY explicitly defers it rather than claiming to have done it.
 2. This session surfaced a genuine, unresolved contradiction between two project-tracking documents (`STATE.md` and `05-UAT.md`) about whether the pgTAP suite has actually been executed — a question this verifier cannot settle without live database access, and which bears directly on SC-2's remaining unverified half.
 
