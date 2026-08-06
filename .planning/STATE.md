@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 05
-current_plan: 1
+current_phase: 6 — Sanitary Module (Snapshot)
+current_plan: Not started
 status: in-progress
 stopped_at: Completed 05-15-PLAN.md
-last_updated: "2026-08-06T05:30:42.588Z"
-last_activity: 2026-08-05
+last_updated: "2026-08-06T17:52:11.333Z"
+last_activity: 2026-08-06
 progress:
   total_phases: 6
   completed_phases: 6
@@ -22,8 +22,8 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 05
-**Current plan:** 1
+**Current phase:** 6 — Sanitary Module (Snapshot)
+**Current plan:** Not started
 **Progress:** [██████████] 100%
 
 ---
@@ -52,7 +52,7 @@ See: .planning/PROJECT.md
 | Phases complete | 5 (0–4) |
 | Requirements mapped | 26/26 |
 | Plans complete | 6 (00-01 through 00-06) |
-| Last activity | 2026-08-05 |
+| Last activity | 2026-08-06 |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
@@ -109,7 +109,8 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - ~~CR-01: baixa aborted for any animal in an active ATF~~ **RESOLVED 2026-08-04.** Code review caught it; `trg_atf_membership_valid` was unscoped (`BEFORE INSERT OR UPDATE`), so the D-19 baixa chain re-validated an animal it had just archived and rolled the transaction back. Corrective migrations `20260806_05_fix_atf_membership_trigger_scope` (CR-01) and `20260807_05_fix_remove_animal_from_atf_notfound` (WR-02) applied to live and verified via `pg_get_triggerdef`/`tgattr`. Ledger now at 12 migrations. The originals were left untouched — forward-only corrections, no dev/prod drift.
 - ~~CR-01: `register_baixa` replaced instead of appending the baixa observation; WR-02: `add_animals_to_atf` payload duplicate uuid raised 23505~~ **RESOLVED 2026-08-05.** Corrective migration `20260808_05_fix_baixa_observation_and_atf_dedup` applied to live and verified: both function bodies read back correct (CASE-append, SELECT DISTINCT), SQL round-trip proved the append/no-op/dedup behavior transactionally (rolled back, zero leftover rows). Ledger now at 13 migrations.
 - ~~WR-01 (05-REVIEW.md #2): `register_baixa` silently accepted `p_reason IS NULL` / `p_date IS NULL` (SQL `NOT IN` on NULL is NULL, not TRUE)~~ **RESOLVED 2026-08-05.** Corrective migration `20260809_05_fix_register_baixa_null_guards` applied to live and verified via a transactional round-trip (both NULL cases now raise `22023`). Ledger now at 14 migrations.
-- **pgTAP suites unrun — no local Docker stack.** `docker info` fails and `supabase status` cannot reach the Docker named pipe, so `supabase test db` cannot start. `supabase/tests/05_reproductive_test.sql` (35 assertions, up from 26) and `04_movements_test.sql` are both authored and committed but **unproven**. Run `supabase test db` once Docker is available; a failure is a real migration defect, not an assertion to weaken.
+- ~~`05_reproductive_test.sql` unrun~~ **RESOLVED 2026-08-06.** No local Docker stack (`docker info`/`supabase status` fail), so `supabase test db` still can't start — but the suite's 371 lines were run verbatim (BEGIN...ROLLBACK) against live PROD `wrdwzychjhlpwpivfhhq` via MCP `execute_sql`, confirmed during Phase 5's final UAT re-run. 34/35 assertions passed; the 1 failure is a pre-existing 3-arg `has_index()` overload-ambiguity bug in the TEST FILE itself (confirmed via direct `pg_indexes` read that the real index is correct), not a schema defect.
+- **`04_movements_test.sql` still unrun** — same Docker blocker, no live-PROD run attempted yet for this suite. Run `supabase test db` once Docker is available, or repeat the MCP `execute_sql` workaround; a failure is a real migration defect, not an assertion to weaken.
 - **`anon` can EXECUTE the SECURITY DEFINER RPCs** (all five Phase 5 ones and Phase 4's `move_animal_to_lot`). `REVOKE ALL … FROM public` does not remove Supabase's `ALTER DEFAULT PRIVILEGES` grant to `anon`. Fails closed — `is_member_of()` is false when `auth.uid()` is NULL → `42501` — but leaves a UUID-existence oracle (`23503` vs `42501`) because the row lookup precedes the membership check. Low severity (122-bit v4 UUIDs), pre-existing since Phase 1. Route through `/gsd-secure-phase`.
 - **Supabase Auth URL config not set for the deployed origin.** Project `wrdwzychjhlpwpivfhhq` still has Site URL at `http://localhost:3000`, so signup confirmation emails link to localhost. The `emailRedirectTo` client fix (quick task 260804-fpk, F-04-02) is inert until a human sets Site URL + allowed redirect URLs to `https://campo-gestor.pages.dev` in the dashboard.
 

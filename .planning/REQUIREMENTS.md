@@ -39,11 +39,11 @@
 
 ### Reprodutivo — LoteATF (REPR)
 
-- [ ] **REPR-01**: Usuário pode criar LoteATF com nome, data implantação, data inseminação, touro, observação
+- [x] **REPR-01**: Usuário pode criar LoteATF com nome, data implantação, data inseminação, touro, observação
 - [x] **REPR-02**: Ao criar LoteATF, usuário seleciona animais (apenas vacas e novilhas aceitas); sistema valida que nenhum já está em ATF ativo
 - [x] **REPR-03**: Usuário pode registrar DG por animal do LoteATF (prenha / não-prenha / duvidosa + data + observação)
 - [x] **REPR-04**: Sistema calcula automaticamente % de prenhez = prenhas / total DG realizados × 100
-- [ ] **REPR-05**: Usuário pode visualizar histórico reprodutivo de um animal (todos ATFs e DGs que participou)
+- [x] **REPR-05**: Usuário pode visualizar histórico reprodutivo de um animal (todos ATFs e DGs que participou)
 
 ### Sanitário (SANI)
 
@@ -127,11 +127,11 @@
 | ANIM-06 | Phase 3 — Lots & Animals | Pending |
 | MOV-01 | Phase 4 — Movements | Complete |
 | MOV-02 | Phase 4 — Movements | Complete |
-| REPR-01 | Phase 5 — Reproductive Module | Pending |
+| REPR-01 | Phase 5 — Reproductive Module | Complete |
 | REPR-02 | Phase 5 — Reproductive Module | Complete |
 | REPR-03 | Phase 5 — Reproductive Module | Complete |
 | REPR-04 | Phase 5 — Reproductive Module | Complete |
-| REPR-05 | Phase 5 — Reproductive Module | Pending |
+| REPR-05 | Phase 5 — Reproductive Module | Complete |
 | SANI-01 | Phase 6 — Sanitary Module | Pending |
 | SANI-02 | Phase 6 — Sanitary Module | Pending |
 | SANI-03 | Phase 6 — Sanitary Module | Pending |

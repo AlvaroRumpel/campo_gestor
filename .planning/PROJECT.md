@@ -15,9 +15,9 @@ O histórico técnico do animal individual — reprodutivo e sanitário — aces
 - [x] Estruturar propriedade com piquetes e lotes (hierarquia Propriedade → Piquete → Lote → Animal) — Validated in Phase 2
 - [x] Gerar e controlar animais individualmente por lote — Validated in Phase 3: lote operacional com composição inicial, numeração única global, edição individual, busca, filtros combinados, baixa com soft-delete
 - [x] Movimentar animais entre lotes e lotes entre piquetes — Validated in Phase 4: MOV-01 (animal → outro lote da mesma propriedade) e MOV-02 (lote inteiro → outro piquete, atomicamente). Ambos via RPC SECURITY DEFINER, com triggers de isolamento multi-tenant que valem em qualquer caminho de escrita (inclusive PATCH cru)
+- [x] Registrar e consultar histórico reprodutivo (lote ATF, DG, % prenhez) — Validated in Phase 5: REPR-01..05 (criação de LoteATF, composição restrita a vacas/novilhas com bloqueio de ATF duplicado, DG por animal editável até encerramento manual, % prenhez auto-atualizado, histórico reprodutivo na ficha do animal). 5 rodadas de gap-closure (UAT + review) até UAT limpo com 0 issues.
 
 ### Active
-- [ ] Registrar e consultar histórico reprodutivo (lote ATF, DG, % prenhez)
 - [ ] Registrar e consultar histórico sanitário (aplicações com snapshot congelado)
 - [ ] Controlar gastos por piquete
 - [ ] Autenticar usuários com perfis: proprietário, veterinário, leitor
@@ -93,4 +93,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-08-04 after Phase 4 (Movements)*
+*Last updated: 2026-08-06 after Phase 5 (Reproductive Module — LoteATF)*

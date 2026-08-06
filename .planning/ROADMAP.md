@@ -14,7 +14,7 @@
 - [ ] **Phase 2: Property & Paddock Structure** — CRUD de propriedade e piquete; protótipos de risco (numeração RPC, snapshot JSONB, ATF partial unique index)
 - [ ] **Phase 3: Lots & Animals (Operational Core)** — Lote operacional CRUD, criação em batch de animais via RPC, edição e ficha do animal, busca/filtro, baixa
 - [x] **Phase 4: Movements** — Mover animal entre lotes, mover lote inteiro entre piquetes (atômico via RPC) (completed 2026-08-04)
-- [ ] **Phase 5: Reproductive Module (LoteATF)** — CRUD LoteATF, validação 1 ATF ativo/animal, DG, % prenhez, histórico reprodutivo na ficha
+- [x] **Phase 5: Reproductive Module (LoteATF)** — CRUD LoteATF, validação 1 ATF ativo/animal, DG, % prenhez, histórico reprodutivo na ficha (completed 2026-08-06)
 - [ ] **Phase 6: Sanitary Module (Snapshot)** — Doses, aplicação sanitária com snapshot congelado, desmarcar individuais, histórico por lote e por animal
 - [ ] **Phase 7: Expenses by Paddock** — Lançamento de gasto vinculado a piquete, total por período
 - [ ] **Phase 8: Animal Dossier Consolidation** — Ficha consolidada do animal cruzando lote atual + histórico reprodutivo + histórico sanitário num único view
@@ -147,7 +147,7 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 15/15 plans executed
+**Plans:** 15/15 plans complete
 
 Plans:
 **Wave 1**
@@ -255,7 +255,7 @@ Plans:
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
-| 5. Reproductive Module | 15/15 | In Progress|  |
+| 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
