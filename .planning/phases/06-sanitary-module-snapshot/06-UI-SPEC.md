@@ -516,7 +516,11 @@ All copy in pt-BR. No emojis. Tone matches Phases 1–5: direct, imperative verb
 ## UI Considerations
 
 Applicable state considerations computed by `ui-consideration-probe.cjs` over the surfaces above,
-then resolved. **59 applicable considerations: 57 covered, 2 backstop, 0 unresolved.**
+then resolved. **69 applicable considerations: 67 covered, 2 backstop, 0 unresolved.**
+
+The probe engine reported 59 applicable over a 9-surface decomposition; the tables below use the
+researcher's finer 10-surface split (E1/E2 separate the two `SanitarioScreen` tabs), which yields 69
+rows. The 10-surface split is authoritative — every probe-surfaced category is covered by it.
 
 **Kind-confirmation note (propose-then-confirm, load-bearing):** the probe's prose classifier
 under-matched on pt-BR text — its first pass detected only `static-content`/`long-text` on 5
