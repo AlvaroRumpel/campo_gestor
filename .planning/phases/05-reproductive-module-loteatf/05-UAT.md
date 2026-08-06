@@ -16,7 +16,7 @@ updated: 2026-08-06T00:00:00Z
 expected: |
   Baixa succeeds for an animal that is a member of an active ATF, and that animal's
   membership is deactivated in the same transaction (D-19).
-result: resolved
+result: pass
 resolution: |
   Plan 05-11 (commits: see 05-11-SUMMARY.md) fixed both gaps below. BaixaDialog._submit() now
   invalidates the atfActiveMembershipsProvider/atfMembershipsProvider/atfListByPropertyProvider
@@ -92,6 +92,10 @@ note: |
   observation (now visible on the ficha — the display gap is also closed), and a baixa
   attempted with a blank/NULL reason or date is rejected rather than silently archiving the
   animal.
+confirmation: |
+  Re-verified live in test 3, step 9 ("tudo ok" — 2026-08-06 run): baixa on an active ATF
+  member now succeeds and the animal drops out of composition, confirming test 1's
+  requirement (D-19) directly.
 steps: |
   1.  flutter run -d edge against the live project
   2.  Sign in as veterinarian, open Reprodução — list renders (empty state), not an error
@@ -112,12 +116,13 @@ steps: |
 expected: Either confirmation that `created_at` is correct, or a one-line change to `exam_date`.
 why_human: Open domain question since 05-RESEARCH.md, repeated in STATE.md's TODO list. A wrong tie-breaker silently misreports % prenhez and the ficha's "last DG" in exactly the reexam-correction scenario D-12 exists for. No test can decide which is domain-correct.
 isolated_to: `summarizeDg` / `fetchReproductiveHistory` (one line)
-result: resolved
+result: pass
 resolution: |
   User confirmed the fix (exam_date, not created_at). Plan 05-14 applied it via a shared
   isLaterDg helper at all three sites (dg_summary.dart, atf_repository.dart,
-  atf_detail_screen.dart), with unit + widget test coverage. No further live re-test needed —
-  folded into test 3's step 7 (re-mark a chip on an animal that already has a DG).
+  atf_detail_screen.dart), with unit + widget test coverage. Re-verified live in test 3,
+  step 7 ("tudo ok" — 2026-08-06 run): re-marking a chip on an animal that already has a DG
+  reflects the new result correctly.
 severity: major
 
 ## Summary
