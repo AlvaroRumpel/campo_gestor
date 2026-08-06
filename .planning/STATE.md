@@ -5,14 +5,14 @@ milestone_name: milestone
 current_phase: 05
 current_plan: 1
 status: in-progress
-stopped_at: Phase 5 planned — 10 plans, ready to execute
-last_updated: "2026-08-05T03:00:44.088Z"
+stopped_at: Completed 05-15-PLAN.md
+last_updated: "2026-08-06T05:30:42.588Z"
 last_activity: 2026-08-05
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 34
-  completed_plans: 33
+  completed_phases: 6
+  total_plans: 38
+  completed_plans: 38
 ---
 
 # Project State
@@ -68,6 +68,7 @@ See: .planning/PROJECT.md
 | Phase 04-movements P05 | 25min | 3 tasks | 4 files |
 | Phase 04 P06 | 5min | 3 tasks | 4 files |
 | Phase 04 P07 | 8min | 3 tasks | 3 files |
+| Phase 05 P15 | 30min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -123,10 +124,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 5 UI-SPEC approved
-**Resume file:** .planning/phases/05-reproductive-module-loteatf/05-UI-SPEC.md
+**Stopped at:** Completed 05-15-PLAN.md
+**Resume file:** None
 
-**Last session:** 2026-08-04T16:53:28.132Z
+**Last session:** 2026-08-06T05:30:42.574Z
 **Next action:** `/gsd-discuss-phase 5` — Phase 5 (Reproductive Module / LoteATF) has no CONTEXT.md yet. Two items carried over, neither blocking Phase 5: (1) the Supabase dashboard for project `wrdwzychjhlpwpivfhhq` still needs Site URL + allowed redirect URLs set to `https://campo-gestor.pages.dev`, otherwise signup confirmation emails stay on localhost; (2) the 4 fixes from quick task 260804-fpk are green on 103/103 tests but were never confirmed live in the browser.
 **Files of interest:**
 
@@ -154,3 +155,4 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 04]: 04-05: Closed WR-01..04 + IN-01 gap-closure findings from 04-REVIEW.md (invalidations, mounted guard, pt-BR plural, submit-flow tests) — CR-01 and RPC-live UAT remain owned by 04-04
 - [Phase 04]: 04-06: Closed reopened CR-01 (04-REVIEW.md) with a trigger, not an RLS WITH CHECK tightening — access-path-independent, protects INSERT too, matches existing snapshot-immutability idiom; also closed WR-01 TOCTOU; MOV-02's identical lots.paddock_id bypass explicitly deferred (plan-locked scope: animals only); Task 3 DB push BLOCKED (unlinked CLI), now covers 3 migrations
 - [Phase 04]: 04-07: Closed WR-02/CR-01-parallel (04-REVIEW.md) with trg_lots_paddock_same_property, mirroring the 04-06 animals trigger onto lots.paddock_id (MOV-02); scope reversal (accept->mitigate, T-4-08) per explicit user decision 2026-07-16; Task 3 DB push BLOCKED (unlinked CLI), now covers 4 migrations
+- [Phase 05]: 05-15: closed G-05-2/G-05-3 (AtfDetailScreen rendering/gating gaps) — added AtfMembershipView.animalDeleted from a new deleted_at select column, and hoisted a single dgAnimalIds/pendingMembers derivation shared by the encerrar banner, its AppBar action, its dialog, and the composition remove-gate; dg_summary.dart left untouched per explicit user decision

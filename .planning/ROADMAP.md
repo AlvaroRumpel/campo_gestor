@@ -147,7 +147,7 @@ Plans:
   4. % de prenhez é exibido no LoteATF e atualiza automaticamente conforme DGs vão sendo registrados (= prenhas / total DG realizados × 100)
   5. Histórico reprodutivo do animal mostra todos LoteATFs em que participou com respectivos resultados de DG
 
-**Plans:** 14/15 plans executed
+**Plans:** 15/15 plans executed
 
 Plans:
 **Wave 1**
@@ -193,7 +193,7 @@ Plans:
 
 **Wave 10** *(gap closure — UAT G-05-2, G-05-3; shares atf_detail_screen.dart with 05-14)*
 
-- [ ] 05-15-PLAN.md — Hide baixa'd animals from Registrar DG (G-05-2) + gate the encerrar banner on current members (G-05-3)
+- [x] 05-15-PLAN.md — Hide baixa'd animals from Registrar DG (G-05-2) + gate the encerrar banner on current members (G-05-3)
 
 **UI hint:** yes
 
@@ -255,7 +255,7 @@ Plans:
 | 2. Property & Paddock Structure | 0/0 | Not started | - |
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
-| 5. Reproductive Module | 14/15 | In Progress|  |
+| 5. Reproductive Module | 15/15 | In Progress|  |
 | 6. Sanitary Module | 0/0 | Not started | - |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
