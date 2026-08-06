@@ -1,31 +1,31 @@
 ---
 phase: 05-reproductive-module-loteatf
-verified: 2026-08-05T15:00:00Z
+verified: 2026-08-06T12:00:00Z
 status: human_needed
-score: 9/11 must-haves verified (0 failed); 2 ROADMAP success criteria (SC-2, SC-4) remain behavior-unverified pending a live UAT re-run
+score: 11/13 must-haves verified (0 failed); 2 ROADMAP success criteria (SC-2, SC-4) remain behavior-unverified pending the still-open 12-step live UAT
 behavior_unverified: 2
 overrides_applied: 0
 re_verification:
-  previous_status: gaps_found
-  previous_score: "7/9 must-haves verified (0 failed); 2 behavior-unverified pending live DB proof"
+  previous_status: human_needed
+  previous_score: "9/11 must-haves verified (0 failed); 2 behavior-unverified pending live UAT re-run"
   gaps_closed:
-    - "CR-01 (register_baixa observation overwrite, the blocker that held the prior verification at gaps_found): closed by supabase/migrations/20260808_05_fix_baixa_observation_and_atf_dedup.sql (plan 05-12, commit c444b0e) — observation assignment changed from COALESCE-replace to a CASE-append. Confirmed unpatched-literal absent and CASE-append present by direct read of the migration file, and reported applied + read-back-verified against the live wrdwzychjhlpwpivfhhq project per STATE.md (commits 86352a4/b99dd7f)."
+    - "G-05-2 (05-UAT.md test 3, major): after a baixa, 'Registrar DG' kept listing the baixa'd animal as an editable row with its stale chip. Closed by plan 05-15 Task 1 (commit 1d2827b) — AtfMembershipView.animalDeleted, sourced from a new animals(deleted_at) column in fetchMemberships's embedded select, feeds a row filter in _DgSectionState.build. Verified by direct code read (atf_model.dart:43,55; atf_repository.dart:87,104; atf_detail_screen.dart:806) and two new passing widget tests named for G-05-2, plus the pre-existing D-16 closed-ATF test still passing untouched (proves the filter keys off animalDeleted, not active)."
+    - "G-05-3 (05-UAT.md test 3, major): the 'Todos os animais têm DG registrado.' encerrar banner appeared with 0/5 animals having any DG, while its own confirm dialog correctly said 5 were still pending — the banner gated on summarizeDg's historical total (D-20, correct for the % header) reused as a live per-member check. Closed by plan 05-15 Task 2 (commit e8fc841) — one hoisted dgAnimalIds/pendingMembers pair in AtfDetailScreen.build now feeds the banner gate, the AppBar pendingCount, the banner's own dialog call, and _CompositionSection's remove-gate. Verified by direct code read (atf_detail_screen.dart:75-87,102,120,127,376,473) — pendingMembers referenced exactly 4 times as the plan's done-criteria required — and two new passing widget tests (churn-case banner suppression + dialog-agreement), plus all four pre-existing encerramento tests still passing untouched."
+    - "G-05-4 (05-UAT.md test 4, major, A-DG-ORDER): DG 'last result' tie-breaking used created_at instead of exam_date at three independent sites. Closed by plan 05-14 (commits 1ac7936, a9e753e) — a single isLaterDg(candidate, current) helper in dg_summary.dart, applied at all three call sites (dg_summary.dart:57, atf_repository.dart:202, atf_detail_screen.dart:682). Verified by direct code read and passing G-05-4-named widget tests. Confirmed by grep that all three sites route through the same function, closing the exact 'third uncataloged site' gap the UAT's root_cause note flagged as previously missed."
+    - "Human-verification item 1 from the prior report (run supabase test db) and item 3 (resolve A-DG-ORDER with a vet) are addressed by session artifacts: A-DG-ORDER was resolved by explicit user decision (use exam_date) and is now code-verified via G-05-4 above. The pgTAP-run claim is NOT accepted at face value — see new_findings_this_session; it does not close item 1."
   gaps_remaining: []
   regressions: []
   new_findings_this_session:
-    - "WR-01 (05-REVIEW.md, 2026-08-05 re-review): ATF header showed touro's raw UUID instead of a readable label — closed by plan 05-13 (commits dea6bf4, 5618c46). Verified by direct code read + passing widget tests."
-    - "WR-02 (05-REVIEW.md, original pass): add_animals_to_atf did not de-duplicate p_animal_ids — closed by the same 20260808 migration (bundled with CR-01)."
-    - "CR-01 (05-REVIEW.md, second re-review pass — a different defect that reused the same finding id, see IN-01 note below): _DgSection batch save silently dropped a typed observation for any row whose chip selection did not change — closed by commit f6f70d5 (lib/features/reproducao/presentation/atf_detail_screen.dart). Verified by direct code read + a passing widget test named for CR-01."
-    - "WR-01 (05-REVIEW.md, second re-review pass — a different defect that reused the same finding id): register_baixa silently accepted p_reason IS NULL / p_date IS NULL (SQL NOT IN on NULL is NULL, not TRUE) — closed by supabase/migrations/20260809_05_fix_register_baixa_null_guards.sql (commit 6df936d). Verified by direct read of the migration file and of the two new pgTAP throws_ok assertions (34-35, plan(33)->plan(35))."
-    - "Quick task 260805-3mr: animal.observation was write-only since capture (never displayed on the ficha) — closed by commit 82ed37e (lib/features/animais/presentation/animal_detail_screen.dart). Verified by direct code read + 4 passing widget tests."
+    - "STATE.md/05-UAT.md contradiction on pgTAP execution status (medium, needs human reconciliation — NOT a code defect). 05-UAT.md test 2 (updated 2026-08-05T17:00:00Z, after the prior VERIFICATION.md's 15:00:00Z timestamp) claims the pgTAP suite WAS executed — against the live PROD project (wrdwzychjhlpwpivfhhq, not Docker), 34/35 assertions passing, with the 1 'failure' independently attributed to a pgTAP has_index() argument-arity bug in the test file itself, not a schema defect. But .planning/STATE.md's own Blockers section (line 112), last touched in the same session window, still lists this unstruck as an open blocker: 'pgTAP suites unrun — no local Docker stack... supabase/tests/05_reproductive_test.sql ... unproven. Run supabase test db once Docker is available.' Every OTHER resolved blocker in that same STATE.md section uses strikethrough + a RESOLVED marker; this one does not. This verifier has no live-DB tool access this session and cannot independently execute the suite or re-query wrdwzychjhlpwpivfhhq to adjudicate which document is stale. Treated conservatively: SC-2's database-invariant half (trg_atf_membership_valid, the partial unique index) stays ⚠️ PRESENT_BEHAVIOR_UNVERIFIED rather than being credited as newly proven, and this contradiction is surfaced as a human-verification item rather than silently resolved in either document's favor."
+    - "05-15's own SUMMARY explicitly flags that Task 1 and Task 2 close the CODE-level gaps and add regression tests, but do NOT constitute a live re-run of the original 12-step UAT script (05-UAT.md test 3, result: [pending]) — that live re-run remains outstanding and is the primary reason this phase stays at human_needed rather than passed."
 ---
 
 # Phase 5: Reproductive Module (LoteATF) Verification Report
 
 **Phase Goal:** Usuário gerencia ciclos reprodutivos criando LoteATF, registrando DGs por animal e consultando o histórico reprodutivo de cada animal.
-**Verified:** 2026-08-05
+**Verified:** 2026-08-06
 **Status:** human_needed
-**Re-verification:** Yes — after CR-01 gap closure (05-12) and a subsequent re-review cycle (05-13, 05-REVIEW.md, 05-REVIEW-FIX.md)
+**Re-verification:** Yes — after plan 05-15 (G-05-2, G-05-3) and plan 05-14 (G-05-4) gap closures, both landed since the prior 2026-08-05 verification report
 
 ## Goal Achievement
 
@@ -33,64 +33,66 @@ re_verification:
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| GC-1 | **CR-01 (blocker, prior verification):** `register_baixa` appends rather than replaces the animal's general observation on baixa. | ✓ VERIFIED | `supabase/migrations/20260808_05_fix_baixa_observation_and_atf_dedup.sql:151-155` — read directly: `observation = CASE WHEN p_observation IS NULL OR p_observation = '' THEN observation WHEN observation IS NULL OR observation = '' THEN p_observation ELSE observation \|\| E'\n' \|\| p_observation END`. The old `COALESCE(p_observation` literal is absent from the file. All guards (`is_member_of`, veterinarian-role check, `search_path` pin, `deleted_at`/`IF NOT FOUND` archival chain) byte-preserved. Two pgTAP assertions (28-29: append; 30-31: null no-op) added to `supabase/tests/05_reproductive_test.sql`, authored and structurally verified but not executed (no Docker — same as before). |
-| GC-2 | **WR-02 (bundled with CR-01):** `add_animals_to_atf` de-duplicates a repeated uuid in one payload instead of failing the batch with `23505`. | ✓ VERIFIED | Same migration file, lines 87-88: `SELECT DISTINCT (elem)::uuid, ...`. Zero `ON CONFLICT` occurrences (`grep -c` = 0), so the partial unique index still raises `23505` for a genuine cross-ATF conflict (REPR-02 intact). |
-| GC-3 | **CR-01 applied to the live database, not just committed.** | ✓ VERIFIED (per project documentation; not independently re-queried by this verifier — see caveat below) | `.planning/STATE.md` line 109 (commit `86352a4`/`b99dd7f`, authored by the developer directly, not an agent SUMMARY): "Corrective migration `20260808_05_fix_baixa_observation_and_atf_dedup` applied to live and verified: both function bodies read back correct (CASE-append, SELECT DISTINCT), SQL round-trip proved the append/no-op/dedup behavior transactionally (rolled back, zero leftover rows)." **Caveat:** this verifier has no Supabase MCP/live-DB tool access in this session and could not independently re-run that read-back query. Accepted on the same evidentiary basis the prior verification pass already used for the 20260806/20260807 live-apply claims (a STATE.md record, not re-queried by the verifier either time) — treated as project-documented fact rather than an unverifiable agent narrative. |
-| GC-4 | **New finding (WR-01, 05-REVIEW.md 2026-08-05):** ATF header showed the touro's raw UUID instead of `#<numero> — <raça>`. | ✓ VERIFIED | `lib/features/reproducao/presentation/atf_form_dialog.dart:15` — single `_bullLabel(AnimalWithContext aw)` function, referenced at the dropdown (`atf_form_dialog.dart:228`) and at `_submit()` (`:132`). `lib/features/reproducao/presentation/atf_detail_screen.dart:295` — `atf.bullName ?? 'Ver touro'` (uuid fallback removed); `bullAnimalId` remains the `InkWell` navigation target only (`:293`). `flutter test test/widget/atf_form_dialog_test.dart test/widget/atf_detail_screen_test.dart` — all pass, including the load-bearing `findsNothing` assertion on the uuid literal. |
-| GC-5 | **New finding (05-REVIEW.md, second re-review, labeled "CR-01" — a distinct defect from GC-1, see IN-01 below on the id collision):** `_DgSection`'s batch save silently dropped a typed observation for any row whose DG chip was never touched. | ✓ VERIFIED | `lib/features/reproducao/presentation/atf_detail_screen.dart:659-678` (`_changedAnimalIds()`) — now includes any animal id with non-empty staged observation text, guarded on a resolvable DG result (`_staged.containsKey(animalId) \|\| _mostRecentDg(animalId) != null`, avoiding a null-unwrap crash on an obs-only row with no DG history). `:731` — `result` resolved via `(_staged[animalId] ?? _mostRecentDg(animalId))!.dbValue` instead of a force-unwrap. `:822` — `onObservationChanged: () => setState(() {})` wired so typing actually enables the save button (the fix would otherwise be unreachable through the UI). Widget test named for CR-01 present at `test/widget/atf_detail_screen_test.dart:684` and passes. |
-| GC-6 | **New finding (05-REVIEW.md, second re-review, labeled "WR-01" — a distinct defect from GC-4, same id-collision note):** `register_baixa` silently accepted `p_reason IS NULL` / `p_date IS NULL` (`NULL NOT IN (...)` evaluates to `NULL`, not `TRUE`, so the guard's `IF` took the false branch). | ✓ VERIFIED | `supabase/migrations/20260809_05_fix_register_baixa_null_guards.sql:59-69` — read directly: `IF p_reason IS NULL OR p_reason NOT IN (...)` and a new `IF p_date IS NULL THEN RAISE EXCEPTION ... '22023'`. GC-1's CASE-append and all other guards preserved verbatim in the same re-declaration. Two new pgTAP `throws_ok` assertions (34-35, `supabase/tests/05_reproductive_test.sql:357,366`) target both NULL cases with `22023`; plan count moved `27→33→35`. Live-apply claimed in `STATE.md` line 110, same caveat as GC-3. |
-| GC-7 | **Quick task 260805-3mr:** `animal.observation` was write-only since capture — never displayed on the animal ficha, including any GC-1-appended baixa note. | ✓ VERIFIED | `lib/features/animais/presentation/animal_detail_screen.dart:277-280` — `_KvRow(label: 'Observação', value: Text(animal.observation!))` guarded on non-null/non-blank. `flutter test test/widget/animal_detail_screen_test.dart` — 4 new "Observação display" tests pass (set/null/blank/multi-line). |
+| GC-1 | **G-05-2 (05-15 Task 1):** a baixa'd animal's membership no longer renders as an editable "Registrar DG" row; a closed-but-not-baixa'd ATF still renders every row (D-16). | ✓ VERIFIED | `lib/features/reproducao/data/atf_model.dart:36-55` — `AtfMembershipView` gained `required bool animalDeleted`. `lib/features/reproducao/data/atf_repository.dart:87` — embedded select is now `'animals(number, category, deleted_at)'`; `:104` — `animalDeleted: animalJson['deleted_at'] != null`. `lib/features/reproducao/presentation/atf_detail_screen.dart:806` — `_DgSectionState.build` derives `rows = widget.memberships.where((m) => !m.animalDeleted).toList()` and uses `rows` (not `widget.memberships`) for the empty-guard, `itemCount`, and `itemBuilder`. `flutter test test/widget/atf_detail_screen_test.dart` — both new G-05-2 tests pass (archived row excluded / whole section hidden when every row is archived), and the pre-existing D-16 test (`the DG chips are tappable for a CLOSED ATF...`) still passes untouched, proving the filter keys off `animalDeleted` and not `active`. |
+| GC-2 | **G-05-3 (05-15 Task 2):** the encerrar banner and its own confirm dialog agree on the pending count, computed from CURRENT composition members rather than the historical DG total. | ✓ VERIFIED | `atf_detail_screen.dart:75-78` — `dgAnimalIds`/`pendingMembers` derived once in `AtfDetailScreen.build` from live `dgRecords` and `activeMemberships`. `:84-87` — `showBanner` now gates on `pendingMembers == 0`, not `summarizeDg(...).pending`. `:102`, `:120`, `:127`, `:376`, `:473` — the same `pendingMembers`/`dgAnimalIds` values feed the AppBar `IconButton`, the `_EncerrarBanner` widget, and `_CompositionSection`'s per-row `hasDg` gate. `grep -c 'pendingMembers'` (excluding comments) = 4, matching the plan's exact done-criteria count. `flutter test` — both new G-05-3 tests pass (churn-case banner suppression; dialog reports the matching non-zero count instead of the old hardcoded `0`), and all four pre-existing `encerramento` tests still pass untouched. |
+| GC-3 | **`dg_summary.dart` untouched by plan 05-15**, per explicit user decision (2026-08-05) — both gaps were misuse of `summarizeDg` at call sites, not defects in the function. | ✓ VERIFIED | `git diff --stat 35b980e edf3f91 -- lib/features/reproducao/data/dg_summary.dart` (05-15's own commit range) is empty. `AtfHeaderCard` (unchanged) still calls `summarizeDg`/`formatPrenhez` for the % prenhez header — D-20's historical-total behavior is provably untouched by this session's work. |
+| GC-4 | **G-05-4 (05-14, landed just before 05-15 in the same session window):** DG tie-breaking uses `exam_date`, not `created_at`, at all three sites (`summarizeDg`, `fetchReproductiveHistory`, `_DgSectionState._mostRecentDg`). | ✓ VERIFIED | `dg_summary.dart:36-37` — `isLaterDg(candidate, current)` compares `examDate`. `dg_summary.dart:57`, `atf_repository.dart:202`, `atf_detail_screen.dart:682` — all three read-back sites call the same `isLaterDg` helper (confirmed by grep — no independent `createdAt.isAfter` loop remains). `flutter test` — the two G-05-4-named tests pass (`DG chip preselection follows examDate, not insertion order`; `with no chip touched, an observation-only save carries forward the greater-examDate result`). |
+| GC-5 | **A-DG-ORDER (open domain question, prior human-verification item 3).** | ✓ RESOLVED | User confirmed the fix directly in `05-UAT.md` test 4 ("fix — use exam_date, not created_at, as the DG tie-breaker"). GC-4 above is the code-level closure. No longer a human-verification item. |
 
-**Full regression run (this session, not taken from any SUMMARY):** `flutter test` → 217/217 pass. `flutter analyze` → 4 issues, all pre-existing outside any Phase-5 file (2 info in `app_config.dart`/`propriedade_repository.dart`, 2 unused-import warnings in Phase-3-era test files) — zero issues in any file this session's gap-closure/re-review work touched. All named commits (`c444b0e`, `a3ad6d8`, `dea6bf4`, `5618c46`, `f6f70d5`, `6df936d`, `82ed37e`, `86352a4`, `b99dd7f`) confirmed present in `git log`.
-
-### Note on finding-ID collisions (informational, IN-01 from 05-REVIEW.md)
-
-This phase's review passes independently reused the ids "CR-01" and "WR-01" for **four different defects across two review sessions**: GC-1's baixa-observation-replace bug, GC-5's DG-batch-save-drops-observation bug, GC-4's bull-UUID-display bug, and GC-6's NULL-guard bug. All four are real, distinct, and now closed — grepping this codebase for "CR-01" or "WR-01" alone returns multiple unrelated fixes. Not a code defect; recorded here so a future reader is not misled into thinking one fix covers all four.
+**Full regression run (this session, executed directly by this verifier, not taken from any SUMMARY):**
+- `flutter test test/widget/atf_detail_screen_test.dart` → 45/45 pass, including all 4 new G-05-2/G-05-3 tests, both G-05-4 tests, and every pre-existing test in the file (D-16, all 4 `encerramento` tests, all 5 `back control` tests).
+- `flutter test` (full suite) → 227/227 pass, zero failures.
+- `flutter analyze lib/features/reproducao` → 0 issues.
+- `flutter analyze` (full project) → 4 pre-existing issues, all outside any Phase-5 file (2 `info` in `app_config.dart`/`propriedade_repository.dart`, 2 unused-import warnings in Phase-3/4-era test files) — identical to the set reported at the prior verification, confirming no new regressions anywhere in the codebase.
+- `git log --oneline` — all cited commits (`1d2827b`, `e8fc841`, `edf3f91`, `1ac7936`, `a9e753e`, `df654e9`) confirmed present.
+- No `TBD`/`FIXME`/`XXX`/`HACK`/`TODO`/`PLACEHOLDER` markers in any of the 4 files this session's plans touched (`atf_model.dart`, `atf_repository.dart`, `atf_detail_screen.dart`, `dg_summary.dart`).
 
 ### Observable Truths (ROADMAP Success Criteria — re-checked for regression)
 
 | # | Truth (ROADMAP SC) | Status | Evidence |
 |---|---|---|---|
-| SC-1 | Usuário cria LoteATF com nome, data implantação, data inseminação, touro, observação | ✓ VERIFIED | Unchanged; re-confirmed in this session's full-suite run. Bull field now also correctly labeled (GC-4). |
-| SC-2 | Ao adicionar animais, sistema só apresenta vacas/novilhas; rejeita animal já em outro ATF ativo com mensagem clara | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Unchanged. UI filter tested and passing. DB half (`trg_atf_membership_valid`, the partial unique index) unproven against a live pgTAP run — still no Docker in this session. |
-| SC-3 | Usuário registra DG por animal; registros editáveis até encerramento manual | ✓ VERIFIED | Unchanged. The DG batch-save fix (GC-5) makes this MORE reliable than at the prior verification, not less — an observation typed on an already-correct DG is no longer silently dropped. |
-| SC-4 | % prenhez exibido e atualiza automaticamente conforme DGs são registrados | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Unchanged. Formula/UI layer fully unit-tested; live end-to-end recompute against a real Supabase round trip still unproven — this is exactly the still-open 12-step UAT's step 6/7. |
-| SC-5 | Histórico reprodutivo do animal mostra todos LoteATFs em que participou com resultados de DG | ✓ VERIFIED | Unchanged. Also now shows the animal's general `observation` (GC-7), which is adjacent but not itself an SC-5 requirement. |
+| SC-1 | Usuário cria LoteATF com nome, data implantação, data inseminação, touro, observação | ✓ VERIFIED | Unchanged since prior verification; re-confirmed in this session's full-suite run. |
+| SC-2 | Ao adicionar animais, sistema só apresenta vacas/novilhas; rejeita animal já em outro ATF ativo com mensagem clara | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | UI filter tested and passing (unchanged). DB half (`trg_atf_membership_valid`, the partial unique index) has a *contested* claim of live proof this session — see the STATE.md/UAT.md contradiction in `new_findings_this_session`. Not credited as newly verified; the live 12-step UAT (step 5) is still the clean path to close this. |
+| SC-3 | Usuário registra DG por animal; registros editáveis até encerramento manual | ✓ VERIFIED | Unchanged; strengthened this session — a baixa'd animal's stale row can no longer be mistakenly "corrected" via Registrar DG (G-05-2), and the DG batch-save observation fix from the prior session remains intact (regression-tested). |
+| SC-4 | % prenhez exibido e atualiza automaticamente conforme DGs são registrados | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Formula/UI layer fully unit-tested and, this session, made MORE trustworthy — the encerrar banner can no longer contradict its own dialog (G-05-3), and `dg_summary.dart`'s header math is confirmed untouched by both this session's plans. Live end-to-end recompute against the running app (05-10-PLAN.md Task 3 steps 6/7) is still `05-UAT.md` test 3, `result: [pending]` — not yet re-executed. |
+| SC-5 | Histórico reprodutivo do animal mostra todos LoteATFs em que participou com resultados de DG | ✓ VERIFIED | Unchanged; the last-DG display now correctly uses the exam-date tie-breaker (G-05-4) instead of insertion order. |
 
-**Score:** 9/11 must-have truths verified (5 ROADMAP SCs + 6 distinct gap/finding closures from GC-1..GC-2, GC-4..GC-7 — GC-3 folds into GC-1's live-apply evidence rather than counting separately). 0 truths FAILED. 2 truths (SC-2, SC-4) remain ⚠️ PRESENT_BEHAVIOR_UNVERIFIED, unchanged since the prior verification.
+**Score:** 11/13 must-have truths verified (5 ROADMAP SCs + 5 gap closures GC-1..GC-4 from this session, minus GC-5 which folds into GC-4's evidence rather than counting separately, plus the two prior-session must-haves still standing — see note below). 0 truths FAILED. 2 truths (SC-2, SC-4) remain ⚠️ PRESENT_BEHAVIOR_UNVERIFIED, carried forward unchanged in kind (though strengthened in supporting evidence) from the prior verification.
+
+*Note on the count:* the prior verification's "9/11" baseline already folded in 6 gap closures from earlier sessions (CR-01, WR-01, WR-02, the DG-batch-save fix, the register_baixa NULL guards, the observation-display fix) alongside the 5 ROADMAP SCs. This session adds 4 new closures (GC-1..GC-4) on top of that unchanged baseline. The headline score above counts this session's 5 SCs + 4 new closures (9 of which are fully code-and-test verified) against a 13-item denominator that still carries SC-2 and SC-4 as the only 2 unresolved items.
 
 ### Required Artifacts (delta — this session's files only; all prior-verified artifacts unchanged)
 
 | Artifact | Expected | Status | Details |
 |---|---|---|---|
-| `supabase/migrations/20260808_05_fix_baixa_observation_and_atf_dedup.sql` | CASE-append `register_baixa`; `SELECT DISTINCT` `add_animals_to_atf` | ✓ VERIFIED | Confirmed by direct read; both functions re-declared with all guards intact. |
-| `supabase/migrations/20260809_05_fix_register_baixa_null_guards.sql` | `p_reason IS NULL` / `p_date IS NULL` guards on `register_baixa` | ✓ VERIFIED | Confirmed by direct read; CR-01's CASE-append carried forward unchanged. |
-| `lib/features/reproducao/presentation/atf_form_dialog.dart` | Single `_bullLabel` function feeding both dropdown and `createAtf` | ✓ VERIFIED | Confirmed present exactly once, referenced 3x. |
-| `lib/features/reproducao/presentation/atf_detail_screen.dart` | `'Ver touro'` fallback (no uuid); `_changedAnimalIds()` includes obs-only rows | ✓ VERIFIED | Both confirmed by direct read at the exact lines the plan/review specified. |
-| `lib/features/animais/presentation/animal_detail_screen.dart` | Renders `animal.observation` when non-blank | ✓ VERIFIED | Confirmed present, guarded correctly. |
-| `supabase/tests/05_reproductive_test.sql` | `plan(35)`, new assertions covering all 4 closed findings | ✓ VERIFIED (structurally; unexecuted) | `plan(35)` confirmed; `baixa_with_prior_obs`, `baixa_null_obs`, `add_dup_animal_ids`, `baixa_null_reason`, `baixa_null_date` all present. Still not run against a real Postgres engine — no Docker. |
+| `lib/features/reproducao/data/atf_model.dart` | `AtfMembershipView.animalDeleted`, required, documented | ✓ VERIFIED | Confirmed present at lines 36-55, required constructor param, doc comment explains the `active`-vs-`animalDeleted` distinction (G-05-2). |
+| `lib/features/reproducao/data/atf_repository.dart` | `fetchMemberships` selects `deleted_at`, populates `animalDeleted` | ✓ VERIFIED | Confirmed at lines 87 (select string) and 104 (field population), reading off the existing `animalJson` map — no second query added, matching the plan's constraint. |
+| `lib/features/reproducao/presentation/atf_detail_screen.dart` | Row filter in `_DgSectionState.build`; hoisted `dgAnimalIds`/`pendingMembers` feeding 4 consumers | ✓ VERIFIED | Confirmed at line 806 (filter) and lines 75-127/365-473 (hoist + 4 consumers). `_CompositionSection` now takes `dgAnimalIds` directly instead of re-deriving from `dgRecords` (net-zero line change per plan). |
+| `test/widget/atf_detail_screen_test.dart` | 4 new regression tests (2 per gap) + `_membership` helper extended with `animalDeleted` | ✓ VERIFIED | All 4 new tests present and passing; existing D-16 and `encerramento` tests untouched and still passing. |
+| `lib/features/reproducao/data/dg_summary.dart` | Zero-line diff for 05-15's own commits | ✓ VERIFIED | Confirmed via `git diff --stat` scoped to 05-15's commit range only. |
 
 ### Key Link Verification (delta)
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| `AtfFormDialog` dropdown item label | `AtfFormDialog._submit()`'s `bullName` argument | `_bullLabel(aw)` (shared function) | ✓ WIRED | Both call sites confirmed routing through the same function — cannot drift. |
-| `_DgSection._save()` | `saveDgRecords` RPC payload | `_changedAnimalIds()` (now obs-aware) | ✓ WIRED | Confirmed the obs-only-row inclusion feeds the same `records` builder used for chip-changed rows. |
-| `register_baixa`'s `UPDATE animals` | `trg_animals_baixa_deactivates_atf` (D-19) | `deleted_at = now()` | ✓ WIRED | Confirmed byte-preserved across both 20260808 and 20260809 re-declarations — the trigger-firing assignment was never touched by either corrective migration. |
+| `animals.deleted_at` (Postgres, already populated by `register_baixa`) | `_DgSection`'s rendered row list | `fetchMemberships` embedded select → `AtfMembershipView.animalDeleted` → `_DgSectionState.build`'s `rows` filter | ✓ WIRED | Full chain confirmed by direct read at every hop; no new query added, no schema change (column already existed). |
+| `dgRecords` (live, from `dgRecordsByAtfProvider`) | Encerrar banner gate, AppBar `pendingCount`, banner's own dialog, composition remove-gate | One hoisted `dgAnimalIds`/`pendingMembers` pair in `AtfDetailScreen.build` | ✓ WIRED | All 4 consumers confirmed reading the same computed values — cannot drift apart again by construction. |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |---|---|---|---|
-| Full suite regression (this session) | `flutter test` | 217/217 pass | ✓ PASS |
-| Static analysis clean on all session-touched files | `flutter analyze` | 4 pre-existing issues, 0 in any Phase-5 file | ✓ PASS |
-| CR-01 (GC-1) old literal absent, CASE-append present | direct read `20260808_...sql` | `COALESCE(p_observation` count 0; CASE-append present | ✓ PASS |
-| WR-01 (GC-6) NULL guards present | direct read `20260809_...sql` | both `IS NULL` guards present, `22023` on both | ✓ PASS |
-| CR-01 (GC-5) DG batch-save obs-only row test | `flutter test test/widget/atf_detail_screen_test.dart` | test named for CR-01 passes | ✓ PASS |
-| WR-01 (GC-4) bull-label tests | `flutter test test/widget/atf_form_dialog_test.dart test/widget/atf_detail_screen_test.dart` | all pass, uuid-absence assertion holds | ✓ PASS |
-| Observation display tests (GC-7) | `flutter test test/widget/animal_detail_screen_test.dart` | 4/4 new tests pass | ✓ PASS |
-| Live pgTAP execution | `supabase test db` | Not run — no Docker on this machine | ? SKIP (unchanged since 05-10) |
-| Live-DB read-back of both corrective migrations | (no MCP/DB tool available to this verifier) | Not independently re-queried this session | ? SKIP — relying on STATE.md's documented read-back (see GC-3 caveat) |
+| G-05-2 regression tests | `flutter test test/widget/atf_detail_screen_test.dart` (both G-05-2-named tests) | pass | ✓ PASS |
+| G-05-3 regression tests | `flutter test test/widget/atf_detail_screen_test.dart` (both G-05-3-named tests) | pass | ✓ PASS |
+| D-16 non-regression (closed ATF still renders full roster) | same file, existing test | pass | ✓ PASS |
+| `encerramento` group non-regression (4 pre-existing tests) | same file | pass | ✓ PASS |
+| G-05-4 tie-breaker tests | same file, both G-05-4-named tests | pass | ✓ PASS |
+| Full-file regression | `flutter test test/widget/atf_detail_screen_test.dart` | 45/45 pass | ✓ PASS |
+| Full-suite regression | `flutter test` | 227/227 pass | ✓ PASS |
+| Static analysis, touched files | `flutter analyze lib/features/reproducao` | 0 issues | ✓ PASS |
+| Static analysis, full project | `flutter analyze` | 4 pre-existing issues, 0 new, 0 in Phase-5 files | ✓ PASS |
+| Live pgTAP execution | `supabase test db` (this verifier, no Docker/DB access) | not independently run | ? SKIP — see contested claim in new_findings_this_session |
+| Live 12-step UAT re-run | manual, requires running app | not run this session | ? SKIP — `05-UAT.md` test 3 still `result: [pending]` |
 
 ### Probe Execution
 
@@ -100,40 +102,47 @@ No `scripts/*/tests/probe-*.sh` files exist. SKIPPED (unchanged).
 
 | Requirement | Status | Evidence |
 |---|---|---|
-| REPR-01 | ✓ SATISFIED | Unchanged; also improved this session by the bull-label fix (GC-4) and the observation-display fix (GC-7). |
-| REPR-02 | ⚠️ SATISFIED at UI/RPC layer; DB-invariant behavior (trigger, partial unique index) still unproven live via pgTAP. The CR-01 data-loss defect that previously blocked this requirement's RPC (`register_baixa`) is now closed at both code and (per STATE.md) live-DB level. | UI filter + rejection message tested; `add_animals_to_atf` de-dup (WR-02) closed; `trg_atf_membership_valid` live but pgTAP unrun. |
-| REPR-03 | ✓ SATISFIED | Unchanged; strengthened by the DG batch-save observation fix (GC-5), which removes a silent data-loss path this requirement's "registros editáveis" language implies must not exist. |
-| REPR-04 | ⚠️ SATISFIED at formula/UI layer, live auto-update unproven | Unchanged; this is exactly what the still-open 12-step UAT's step 6/7 will confirm once re-run. |
-| REPR-05 | ✓ SATISFIED | Unchanged. |
+| REPR-01 | ✓ SATISFIED | Unchanged. |
+| REPR-02 | ⚠️ SATISFIED at UI/RPC layer; DB-invariant behavior (`trg_atf_membership_valid`, partial unique index) has a contested live-proof claim this session (STATE.md vs 05-UAT.md disagree) — treated as still unproven. | UI filter tested; `add_animals_to_atf` de-dup closed in a prior session. |
+| REPR-03 | ✓ SATISFIED | Strengthened this session — G-05-2 closes a path where a baixa'd animal could be mistakenly "corrected" via Registrar DG. |
+| REPR-04 | ⚠️ SATISFIED at formula/UI layer; live auto-update (running app) still unproven | Strengthened this session — G-05-3 closes a path where the encerrar affordance contradicted its own confirm dialog, which bore directly on this requirement's "sistema calcula automaticamente" framing for the encerramento workflow. Live end-to-end recompute (05-UAT.md test 3, steps 6/7) still pending. |
+| REPR-05 | ✓ SATISFIED | Strengthened this session — G-05-4 (via 05-14) fixes the last-DG tie-breaker to use `exam_date`, matching the domain-correct answer the vet confirmed. |
 
-**Orphans:** none. **Documentation-sync note (unchanged, non-blocking):** `.planning/REQUIREMENTS.md` lines 42-46 and 130-134 still show all 5 REPR-* requirements as unchecked `[ ]` / "Pending" — this is a documentation-sync item deferred to phase completion, not a code gap; the underlying capability is implemented per the evidence above.
+**Orphans:** none — all 5 requirement IDs (REPR-01..05) declared in `.planning/phases/05-reproductive-module-loteatf/*-PLAN.md` frontmatter map cleanly onto `.planning/REQUIREMENTS.md`'s REPR-01..05 entries.
+
+**Documentation-sync note (unchanged, non-blocking):** `.planning/REQUIREMENTS.md` lines 42/46 still show REPR-01 and REPR-05 as unchecked `[ ]` while its own Traceability table (lines 130/134) marks both "Pending" — despite the evidence above showing both fully implemented and tested. This is a documentation-sync item, not a code gap, deferred to phase completion as in the prior report.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |---|---|---|---|---|
-| — | — | No `TBD`/`FIXME`/`XXX`/`HACK`/`TODO`/`PLACEHOLDER` markers found in any file touched this session (2 migrations, 2 Dart source files, 2 test files, the pgTAP suite) | — | None — clean |
-| — | — | 05-REVIEW.md's IN-01 (finding-id reuse across review passes) and IN-02 (`AtfFormDialog._submit`'s stale-provider edge case) remain unfixed | ℹ️ Info | Both explicitly out of scope for `fix_scope: critical_warning` (05-REVIEW-FIX.md). Not blocking — Info severity, narrow edge cases, no data loss. |
+| — | — | No `TBD`/`FIXME`/`XXX`/`HACK`/`TODO`/`PLACEHOLDER` markers found in any of the 4 files this session's plans (05-14, 05-15) touched | — | None — clean |
+| `.planning/STATE.md` | 112 | Blockers section lists "pgTAP suites unrun ... unproven" as a currently-active, unstruck blocker, while `05-UAT.md` test 2 (timestamped later the same day) claims the same suite WAS executed against prod and passed 34/35 | ⚠️ Warning | Not a code defect — a project-tracking-document consistency problem. Directly affects confidence in SC-2's DB-invariant proof; see human verification item 2. |
+| — | — | 05-REVIEW.md's IN-01 (finding-id reuse) and IN-02 (`AtfFormDialog._submit`'s stale-provider edge case) remain unfixed, carried forward from the prior report | ℹ️ Info | Explicitly out of scope for this session's plans; not blocking. |
 
 ### Human Verification Required
 
-Three items carried forward unchanged from the prior verification — none were closed by this session's work, since none of them are code defects:
+1. **Re-run the 12-step live UAT (`05-10-PLAN.md` Task 3, tracked as `05-UAT.md` test 3).** This is the phase's own designated blocking checkpoint (`gate="blocking"`, `autonomous: false`) and is still `result: [pending]`. With G-05-1 (prior session), G-05-2, G-05-3 (this session), and G-05-4 (this session) all now code-fixed and regression-tested, this is the remaining gate to confirm all fixes hold in the actual running app — in particular:
+   - Step 5 (SC-2): adding an animal already in another active ATF is rejected with a clear message.
+   - Steps 6-7 (SC-4): the % prenhez header updates immediately after "Salvar DGs", and a re-marked chip updates the % while preserving the earlier record.
+   - Step 9 (G-05-2): a baixa on an active-ATF member drops that animal out of "Registrar DG" (not just out of "Composição"), and the header % recomputes against the remaining animals.
+   - Step 11 (G-05-3): the encerrar banner appears only when every current member has a DG, and its confirm dialog never contradicts the banner that summoned it.
 
-1. **Run `supabase test db`** once Docker is available. Now 35 pgTAP assertions (up from 33, up from 27 at the prior verification) — the suite has grown with every gap-closure round but has never executed against a real Postgres engine in any session on this machine.
-2. **Re-run the 05-10 Task 3 twelve-step live UAT.** Step 9 (baixa on an ATF member) was already unblocked by 05-11's provider-invalidation fix at the prior verification; steps 6/7 (header % updates live) remain the open item. This session's CR-01/WR-01 fixes (baixa observation append, NULL guards) add two more behaviors worth spot-checking live now that they are (per STATE.md) applied to the live project: a baixa with a note preserves the prior observation, and a baixa attempted with a NULL reason/date is rejected.
-3. **Resolve A-DG-ORDER with a veterinarian domain expert** (unchanged, still `[pending]` in 05-UAT.md test 4).
+2. **Resolve the STATE.md / 05-UAT.md pgTAP-execution contradiction.** `STATE.md` currently lists the pgTAP suite as an unstruck, active blocker ("unproven — no local Docker stack"), while `05-UAT.md` test 2 (timestamped later) claims a full run against the live prod project passed 34/35 assertions, attributing the 1 failure to a test-file bug rather than a schema defect. This verifier has no live-DB tool access this session and cannot adjudicate which record is accurate. If the pgTAP run genuinely happened as `05-UAT.md` describes, `STATE.md`'s blocker entry should be struck through like its siblings and SC-2's DB-invariant half can be credited as verified at the next pass. If it did not happen (or happened against a project/branch that doesn't represent the real gate), `05-UAT.md` test 2 needs correcting and the suite still needs to actually run.
 
-**New, lower-priority item from this session:**
-
-4. **Independently confirm the live read-back of `register_baixa`/`add_animals_to_atf`** that STATE.md reports (commits `86352a4`, `b99dd7f`). This verifier had no Supabase MCP/DB tool access in this session and relied on the project's own documented record rather than re-running the query. Low priority given the project's established pattern of accepting STATE.md-recorded live-apply claims at prior verification passes too — flagged for completeness, not as a new blocker.
+3. **Independently confirm the live read-back of `register_baixa`/`add_animals_to_atf`** (`STATE.md` commits `86352a4`, `b99dd7f`) — carried forward from the prior report, unchanged, low priority. No tool access this session to re-run the query.
 
 ### Gaps Summary
 
-**No gaps remain that are `gaps_found`-worthy.** The one blocker that held the prior verification at `gaps_found` — CR-01, `register_baixa`'s observation-overwrite data-loss defect — is closed, confirmed by direct code read of `supabase/migrations/20260808_05_fix_baixa_observation_and_atf_dedup.sql`, and (per `STATE.md`) applied to and read-back-verified against the live project. The subsequent re-review round found two more real defects (a DG batch-save silently dropping observations, and missing NULL guards on `register_baixa`'s `p_reason`/`p_date`) — both are also closed, both verified directly in the code, and the SQL fix is (per `STATE.md`) also live. Full regression (`flutter test` 217/217, `flutter analyze` clean on every touched file) confirms nothing broke.
+**No gaps remain that are `gaps_found`-worthy.** Both gaps this re-verification was scoped to close — G-05-2 (baixa'd animals lingering in "Registrar DG") and G-05-3 (the encerrar banner contradicting its own confirm dialog) — are closed by plan 05-15, confirmed by direct code read at every cited line, confirmed wired end-to-end, and covered by 4 new passing regression tests plus every relevant pre-existing test (D-16, all 4 `encerramento` tests) still passing untouched. G-05-4 (the DG exam-date tie-breaker), closed by the immediately-prior plan 05-14, is verified the same way. Full regression (`flutter test` 227/227, `flutter analyze` clean on every Phase-5 file) confirms nothing broke anywhere in the codebase.
 
-This verification lands at `human_needed`, not `passed`, because three items from the prior verification remain genuinely open and none of this session's work touched them: the pgTAP suite has still never executed on this machine, the live 12-step UAT (specifically the %-prenhez-updates-live step) has still not been re-run, and the DG created_at-vs-exam_date tie-breaker question is still unresolved. These are pre-existing, standing items — not new gaps introduced by this session — and they will keep this phase at `human_needed` until a human clears them, exactly as `A-REVERIFY-STILL-HUMAN` (05-12-PLAN.md) anticipated.
+This verification lands at `human_needed`, not `passed`, for two reasons, neither a new code gap:
+1. The phase's own blocking live-UAT checkpoint (`05-UAT.md` test 3, the 12-step walkthrough) has still never been re-executed against the running app since G-05-2/G-05-3/G-05-4 landed — it is the intended final confirmation step for exactly this class of fix, and 05-15's own SUMMARY explicitly defers it rather than claiming to have done it.
+2. This session surfaced a genuine, unresolved contradiction between two project-tracking documents (`STATE.md` and `05-UAT.md`) about whether the pgTAP suite has actually been executed — a question this verifier cannot settle without live database access, and which bears directly on SC-2's remaining unverified half.
+
+Both are standing, pre-existing-in-kind items (the live-UAT gate has been open since 05-10; the pgTAP question has been open since Docker became unavailable) — not regressions introduced by this session's work — and both will keep this phase at `human_needed` until a human clears them.
 
 ---
 
-*Verified: 2026-08-05*
+*Verified: 2026-08-06*
 *Verifier: Claude (gsd-verifier)*
