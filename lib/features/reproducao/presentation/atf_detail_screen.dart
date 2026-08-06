@@ -63,10 +63,19 @@ class AtfDetailScreen extends ConsumerWidget {
 
         final activeMemberships = membershipsAsync.asData?.value ?? const [];
         final dgRecords = dgRecordsAsync.asData?.value ?? const [];
-        final dgSummary = summarizeDg(
-          dgRecords,
-          compositionCount: activeMemberships.length,
-        );
+        // `summarizeDg(...).pending` counts every animal that EVER had a DG
+        // for this ATF, including ones since removed or baixa'd (D-20 —
+        // correct for the % prenhez header on AtfHeaderCard below). As a
+        // live "is every CURRENT member covered" question it answers a
+        // different one: when composition churns, the historical total can
+        // reach the new composition count and clamp `pending` to 0 even
+        // though none of the CURRENT members have a DG (G-05-3). The
+        // encerramento gate below needs the live question, so it derives its
+        // own per-current-member count instead.
+        final dgAnimalIds = dgRecords.map((d) => d.animalId).toSet();
+        final pendingMembers = activeMemberships
+            .where((m) => !dgAnimalIds.contains(m.animalId))
+            .length;
         // Encerramento affordances (AppBar action + banner) are gated on
         // atf.active AND the veterinarian role — never on the banner's own
         // condition, since the AppBar action must stay reachable even when
@@ -75,7 +84,7 @@ class AtfDetailScreen extends ConsumerWidget {
         final showBanner = atf.active &&
             canEdit &&
             activeMemberships.isNotEmpty &&
-            dgSummary.pending == 0;
+            pendingMembers == 0;
 
         return Scaffold(
           appBar: AppBar(
@@ -90,7 +99,7 @@ class AtfDetailScreen extends ConsumerWidget {
                     context,
                     atfId: atf.id,
                     atfName: atf.name,
-                    pendingCount: dgSummary.pending,
+                    pendingCount: pendingMembers,
                   ),
                 ),
             ],
@@ -105,13 +114,17 @@ class AtfDetailScreen extends ConsumerWidget {
               ),
               if (showBanner) ...[
                 const SizedBox(height: 16),
-                _EncerrarBanner(atfId: atf.id, atfName: atf.name),
+                _EncerrarBanner(
+                  atfId: atf.id,
+                  atfName: atf.name,
+                  pendingCount: pendingMembers,
+                ),
               ],
               const SizedBox(height: 16),
               _CompositionSection(
                 atf: atf,
                 activeMemberships: activeMemberships,
-                dgRecords: dgRecords,
+                dgAnimalIds: dgAnimalIds,
                 canEdit: canEdit,
               ),
               const SizedBox(height: 16),
@@ -349,13 +362,18 @@ class _CompositionSection extends ConsumerWidget {
   const _CompositionSection({
     required this.atf,
     required this.activeMemberships,
-    required this.dgRecords,
+    required this.dgAnimalIds,
     required this.canEdit,
   });
 
   final AtfBatch atf;
   final List<AtfMembershipView> activeMemberships;
-  final List<DgRecord> dgRecords;
+
+  /// Animal ids with at least one DG for this ATF — hoisted once in
+  /// [AtfDetailScreen.build] and shared with the encerrar banner gate, the
+  /// AppBar pending count, and the banner's own dialog (G-05-3), so this
+  /// per-row `hasDg` check can never drift from those.
+  final Set<String> dgAnimalIds;
   final bool canEdit;
 
   void _openSelection(BuildContext context) {
@@ -404,7 +422,6 @@ class _CompositionSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final showAddButton = atf.active && canEdit;
-    final dgAnimalIds = dgRecords.map((d) => d.animalId).toSet();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,18 +535,29 @@ class _RemoveAnimalConfirmDialog extends StatelessWidget {
 /// Encerramento suggestion banner (D-15, 05-UI-SPEC section 3): a suggestion,
 /// never an action taken on the vet's behalf. Rendered by the parent only
 /// when the ATF is active, the viewer is a veterinarian, the composition is
-/// non-empty, and every animal has a DG ([DgSummary.pending] is zero) — the
-/// caller computes and gates on that condition; this widget only owns its
-/// own session-local dismissal state.
+/// non-empty, and every CURRENT member has a DG ([pendingCount] is zero) —
+/// the caller computes and gates on that condition; this widget only owns
+/// its own session-local dismissal state.
 ///
 /// Dismissal does not persist: it is lost on any rebuild that recreates this
 /// widget (e.g. navigating away and back), by design (D-15's "reappears on
 /// the next visit" while the underlying condition still holds — A-BANNER-PERSIST).
 class _EncerrarBanner extends StatefulWidget {
-  const _EncerrarBanner({required this.atfId, required this.atfName});
+  const _EncerrarBanner({
+    required this.atfId,
+    required this.atfName,
+    required this.pendingCount,
+  });
 
   final String atfId;
   final String atfName;
+
+  /// Same per-current-member pending count the parent gated `showBanner` on
+  /// (G-05-3). Passed straight through to [_showEncerrarDialog] so the
+  /// confirm dialog can never disagree with the banner that summoned it —
+  /// unlike the hardcoded `0` this replaces, which trusted that gate instead
+  /// of reading the real number.
+  final int pendingCount;
 
   @override
   State<_EncerrarBanner> createState() => _EncerrarBannerState();
@@ -565,9 +593,7 @@ class _EncerrarBannerState extends State<_EncerrarBanner> {
               context,
               atfId: widget.atfId,
               atfName: widget.atfName,
-              // The banner only renders when pending is already zero — no
-              // warning line will show in the dialog either way.
-              pendingCount: 0,
+              pendingCount: widget.pendingCount,
             ),
             child: const Text('Encerrar ATF'),
           ),

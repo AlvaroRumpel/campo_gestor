@@ -1059,6 +1059,48 @@ void main() {
       expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
     });
 
+    testWidgets(
+        'G-05-3: the banner does not render when composition churn leaves '
+        'the historical DG total at the composition count but none of the '
+        'CURRENT members are covered', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
+          // Both DG records belong to animals no longer in the composition —
+          // under the old gate (summarizeDg(...).pending) the historical
+          // total reaches 2, matching compositionCount, and the banner
+          // appeared. This is the churn case the user hit on ATF 4.
+          dgRecords: [_dg('gone1', 'pregnant'), _dg('gone2', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
+    });
+
+    testWidgets(
+        'G-05-3: the AppBar encerrar dialog reports the same churn-case '
+        'pending count as the banner, never a contradicting zero',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
+          dgRecords: [_dg('gone1', 'pregnant'), _dg('gone2', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Encerrar ATF'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Ainda há 2 animais sem DG registrado.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets("tapping the banner's dismiss icon hides it for the session",
         (tester) async {
       await tester.pumpWidget(
