@@ -27,7 +27,8 @@ sealed class AtfBatch with _$AtfBatch {
       _$AtfBatchFromJson(json);
 }
 
-/// A row from `animal_atf_memberships` joined with `animals(number, category)`.
+/// A row from `animal_atf_memberships` joined with
+/// `animals(number, category, deleted_at)`.
 ///
 /// Built from the embedded-resource select; not a Supabase row by itself —
 /// mirrors [AnimalWithContext]'s convention in `animal_model.dart`.
@@ -39,6 +40,7 @@ class AtfMembershipView {
     required this.active,
     required this.animalNumber,
     required this.animalCategory,
+    required this.animalDeleted,
   });
   final String membershipId;
   final String atfBatchId;
@@ -46,6 +48,11 @@ class AtfMembershipView {
   final bool active;
   final int animalNumber;
   final String animalCategory;
+
+  /// True when the member animal itself was archived by a baixa, as opposed
+  /// to the membership merely being deactivated because the ATF was closed
+  /// (G-05-2). `active` alone cannot distinguish the two cases.
+  final bool animalDeleted;
 }
 
 /// One entry in an animal's reproductive history (REPR-05, D-14).

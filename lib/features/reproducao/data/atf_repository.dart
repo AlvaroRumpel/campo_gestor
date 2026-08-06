@@ -62,20 +62,30 @@ class AtfRepository {
     return AtfBatch.fromJson(row);
   }
 
-  /// Memberships for [atfBatchId], joined with `animals(number, category)`,
-  /// ordered by animal number.
+  /// Memberships for [atfBatchId], joined with
+  /// `animals(number, category, deleted_at)`, ordered by animal number.
   ///
   /// [activeOnly] defaults to false: per RESEARCH Pattern 3 the DG section
   /// lists every membership row regardless of `active` so a closed ATF still
   /// shows its full roster for correction, while the composition section
   /// passes `activeOnly: true`.
+  ///
+  /// Returned rows now carry the member animal's archive status
+  /// ([AtfMembershipView.animalDeleted], G-05-2). A caller rendering an
+  /// editable surface should filter on `animalDeleted`, not on `active` —
+  /// filtering on `active` is what would break the D-16 closed-ATF
+  /// correction flow, since a closed ATF deactivates every membership
+  /// without archiving any animal.
   Future<List<AtfMembershipView>> fetchMemberships(
     String atfBatchId, {
     bool activeOnly = false,
   }) async {
     var query = _service.client
         .from('animal_atf_memberships')
-        .select('id, atf_batch_id, animal_id, active, animals(number, category)')
+        .select(
+          'id, atf_batch_id, animal_id, active, '
+          'animals(number, category, deleted_at)',
+        )
         .eq('atf_batch_id', atfBatchId);
     if (activeOnly) {
       query = query.eq('active', true);
@@ -91,6 +101,7 @@ class AtfRepository {
         active: map['active'] as bool,
         animalNumber: animalJson['number'] as int,
         animalCategory: animalJson['category'] as String,
+        animalDeleted: animalJson['deleted_at'] != null,
       );
     }).toList();
     views.sort((a, b) => a.animalNumber.compareTo(b.animalNumber));

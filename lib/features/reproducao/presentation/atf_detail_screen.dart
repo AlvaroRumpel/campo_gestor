@@ -588,8 +588,14 @@ class _EncerrarBannerState extends State<_EncerrarBanner> {
 ///
 /// Reads the UNFILTERED [memberships] list (`atfMembershipsProvider`, not the
 /// active-only one) so a closed ATF still shows its full roster for
-/// correction (D-16, RESEARCH Pattern 3). [canEdit] gates on role only, never
-/// on `atf.active` — DG correction stays possible after encerramento.
+/// correction (D-16, RESEARCH Pattern 3) — that half of the "unfiltered"
+/// claim is about `active` and stays true. It is NOT true of archived
+/// animals: [_DgSectionState.build] filters out any membership whose
+/// [AtfMembershipView.animalDeleted] is true, so a baixa'd animal stops
+/// appearing as an editable row (G-05-2). Do not "simplify" this into a
+/// single filter on `active` — that would resurrect the D-16 regression
+/// this split exists to prevent. [canEdit] gates on role only, never on
+/// `atf.active` — DG correction stays possible after encerramento.
 class _DgSection extends ConsumerStatefulWidget {
   const _DgSection({
     required this.atf,
@@ -768,10 +774,14 @@ class _DgSectionState extends ConsumerState<_DgSection> {
 
   @override
   Widget build(BuildContext context) {
-    // Hidden entirely when the ATF has no memberships at all (05-UI-SPEC E4)
-    // — NOT gated on the `active` flag per row, since a closed ATF's rows
-    // report active:false yet must still render for D-16 correction.
-    if (widget.memberships.isEmpty) return const SizedBox.shrink();
+    // Archived animals never render a row (G-05-2) — NOT gated on the
+    // `active` flag, since a closed ATF's rows report active:false yet must
+    // still render for D-16 correction.
+    final rows = widget.memberships.where((m) => !m.animalDeleted).toList();
+
+    // Hidden entirely when the ATF has no (non-archived) memberships at all
+    // (05-UI-SPEC E4).
+    if (rows.isEmpty) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
     final editable = widget.canEdit && !_saving;
@@ -799,9 +809,9 @@ class _DgSectionState extends ConsumerState<_DgSection> {
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: widget.memberships.length,
+          itemCount: rows.length,
           itemBuilder: (context, i) {
-            final m = widget.memberships[i];
+            final m = rows[i];
             final selected = _staged[m.animalId] ?? _mostRecentDg(m.animalId);
             final expanded = _expandedObservation.contains(m.animalId);
             return Padding(

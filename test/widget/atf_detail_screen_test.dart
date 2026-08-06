@@ -87,6 +87,7 @@ AtfMembershipView _membership(
   String animalId, {
   int number = 1,
   bool active = true,
+  bool animalDeleted = false,
 }) =>
     AtfMembershipView(
       membershipId: 'm-$animalId',
@@ -95,6 +96,7 @@ AtfMembershipView _membership(
       active: active,
       animalNumber: number,
       animalCategory: 'vaca',
+      animalDeleted: animalDeleted,
     );
 
 /// Drives the real `showDatePicker` via its input-mode toggle (Material 3
@@ -540,6 +542,48 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ChoiceChip), findsNWidgets(6));
+    });
+
+    testWidgets(
+        'G-05-2: a membership whose animal was archived by a baixa renders '
+        'no row, while a normal member still renders its 3 chips',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          allMemberships: [
+            _membership('a1'),
+            _membership(
+              'a2',
+              number: 2,
+              active: false,
+              animalDeleted: true,
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Reverting the `rows` filter in _DgSectionState.build makes this 6.
+      expect(find.byType(ChoiceChip), findsNWidgets(3));
+    });
+
+    testWidgets(
+        'G-05-2: "Registrar DG" is hidden entirely when every membership is '
+        'an archived animal', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: const [],
+          allMemberships: [
+            _membership('a1', active: false, animalDeleted: true),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Registrar DG'), findsNothing);
     });
 
     testWidgets(
