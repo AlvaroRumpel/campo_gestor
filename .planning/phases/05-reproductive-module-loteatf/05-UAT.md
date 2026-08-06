@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 05-reproductive-module-loteatf
-source: [05-VERIFICATION.md, 05-REVIEW.md]
+source: [05-VERIFICATION.md, 05-REVIEW.md, 05-15-SUMMARY.md]
 started: 2026-08-04T00:00:00Z
-updated: 2026-08-05T17:00:00Z
+updated: 2026-08-06T00:00:00Z
 ---
 
 ## Current Test
@@ -71,8 +71,8 @@ note: |
 
 ### 3. Twelve-step live UAT (05-10-PLAN.md Task 3)
 expected: All twelve steps behave as described in 05-10-PLAN.md; explicit approval or a list of failing steps.
-result: issue
-reported: |
+result: pass
+reported_prior: |
   Steps 1-8, 10, 12: tudo ok.
   Step 9 (baixa on active ATF member) — screenshot of ATF 3: Composição header shows "(2 animais)"
   (#23, #26) after the baixa, correctly dropped. But the "Registrar DG" section right below still
@@ -105,31 +105,37 @@ steps: |
   10. Sign in as non-veterinarian — FAB, "+ Animais", remove icons, "Salvar DGs", encerrar are ABSENT (not greyed)
   11. As veterinarian, once every animal has a DG the banner appears; use it to encerrar. Composition/encerrar controls vanish, DG chips stay interactive (D-16)
   12. Add a released animal to a NEW ATF — now selectable
-result: [pending]
+  9b. After the baixa, check "Registrar DG" no longer lists the baixa'd animal, and the % prenhez header recomputes against the remaining members (G-05-2, fixed by plan 05-15)
+  11b. Before every current member has a DG, the encerrar banner must NOT appear (G-05-3, fixed by plan 05-15)
 
 ### 4. Confirm the DG tie-breaker with a veterinarian (A-DG-ORDER)
 expected: Either confirmation that `created_at` is correct, or a one-line change to `exam_date`.
 why_human: Open domain question since 05-RESEARCH.md, repeated in STATE.md's TODO list. A wrong tie-breaker silently misreports % prenhez and the ficha's "last DG" in exactly the reexam-correction scenario D-12 exists for. No test can decide which is domain-correct.
 isolated_to: `summarizeDg` / `fetchReproductiveHistory` (one line)
-result: issue
-reported: "fix — use exam_date, not created_at, as the DG tie-breaker"
+result: resolved
+resolution: |
+  User confirmed the fix (exam_date, not created_at). Plan 05-14 applied it via a shared
+  isLaterDg helper at all three sites (dg_summary.dart, atf_repository.dart,
+  atf_detail_screen.dart), with unit + widget test coverage. No further live re-test needed —
+  folded into test 3's step 7 (re-mark a chip on an animal that already has a DG).
 severity: major
 
 ## Summary
 
 total: 4
-passed: 1
-issues: 2
+passed: 2
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
-resolved: 1
+resolved: 2
 
 ## Gaps
 
 - gap_id: G-05-4
   truth: "The DG tie-breaker for 'last DG' / % prenhez uses exam_date, not created_at, when an animal has more than one DG record."
-  status: diagnosed
+  status: resolved
+  resolved_by: "plan 05-14 — isLaterDg exam_date tie-breaker applied at all three sites"
   reason: "User confirmed the fix: use exam_date, not created_at, as the tie-breaker (A-DG-ORDER)."
   severity: major
   test: 4
@@ -155,7 +161,8 @@ resolved: 1
 
 - gap_id: G-05-2
   truth: "After a baixa on an active ATF member, the ATF detail screen's DG-registration list and prenhez summary reflect the new composition, not the pre-baixa one."
-  status: failed
+  status: resolved
+  resolved_by: "plan 05-15 — baixa'd animals hidden from Registrar DG list"
   reason: |
     User reported: eu dei baixa, é assim que é pra ficar? Composição header correctly dropped to
     (2 animais), but the Registrar DG list below still shows the baixa'd animal (#27) with its
@@ -190,7 +197,8 @@ resolved: 1
 
 - gap_id: G-05-3
   truth: "The 'Todos os animais têm DG registrado.' encerrar banner only appears once every animal in the ATF's composição actually has a DG registered."
-  status: diagnosed
+  status: resolved
+  resolved_by: "plan 05-15 — encerrar banner gated on current members, not historical DG total"
   reason: |
     User reported (screenshots, ATF 4): banner + Encerrar action appeared with 0/5 animals having
     any DG. Its own confirm dialog correctly says "Ainda há 5 animais sem DG registrado.",
