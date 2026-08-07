@@ -2,189 +2,139 @@
 phase: 06-sanitary-module-snapshot
 reviewed: 2026-08-07T00:00:00Z
 depth: standard
-files_reviewed: 25
+files_reviewed: 5
 files_reviewed_list:
-  - lib/core/router/router.dart
-  - lib/core/router/routes.dart
-  - lib/features/animais/presentation/animal_detail_screen.dart
-  - lib/features/lotes/presentation/lote_detail_screen.dart
-  - lib/features/propriedades/data/propriedade_model.dart
-  - lib/features/sanitario/data/dose_model.dart
-  - lib/features/sanitario/data/dose_repository.dart
-  - lib/features/sanitario/data/sanitary_application_exception.dart
-  - lib/features/sanitario/data/sanitary_application_model.dart
+  - supabase/migrations/20260812_06_fix_dose_update_policy.sql
   - lib/features/sanitario/data/sanitary_application_repository.dart
-  - lib/features/sanitario/data/sanitary_calculations.dart
-  - lib/features/sanitario/presentation/aplicacao_detail_screen.dart
-  - lib/features/sanitario/presentation/aplicacao_form_dialog.dart
-  - lib/features/sanitario/presentation/dose_form_dialog.dart
-  - lib/features/sanitario/presentation/estornar_aplicacao_dialog.dart
-  - lib/features/sanitario/presentation/resumo_aplicacao_dialog.dart
-  - lib/features/sanitario/presentation/sanitario_screen.dart
-  - lib/features/sanitario/presentation/sanitary_animal_selection_screen.dart
-  - lib/features/sanitario/presentation/sanitary_history_section.dart
-  - supabase/migrations/20260810_06_sanitary_module.sql
-  - supabase/migrations/20260811_06_sanitary_rpcs.sql
-  - supabase/tests/06_sanitary_test.sql
-  - test/features/sanitario/dose_calculations_test.dart
-  - test/features/sanitario/sanitary_calculations_test.dart
-  - test/widget/aplicacao_form_dialog_test.dart
-  - test/widget/sanitary_animal_selection_screen_test.dart
+  - lib/main.dart
+  - test/features/sanitario/sanitary_application_repository_test.dart
+  - test/core/retry_policy_test.dart
 findings:
-  critical: 2
-  warning: 3
-  info: 3
-  total: 8
+  critical: 0
+  warning: 1
+  info: 1
+  total: 2
 status: issues_found
 ---
 
-# Phase 06: Code Review Report
+# Phase 6: Code Review Report (scoped re-review — 06-13/06-14 gap closure)
 
 **Reviewed:** 2026-08-07T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 25 (+ 1 widget test file listed twice removed → 26 in scope, 25 reviewable Dart/SQL sources)
+**Files Reviewed:** 5
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the Phase 6 sanitary module: two RPCs + supporting Flutter data/presentation layers, pgTAP suite, and unit/widget tests. The append-only snapshot design, concurrency revalidation (D-32), and reversal uniqueness (D-31) are all correctly implemented and covered by the pgTAP suite. However, two BLOCKER-level defects were found: (1) the `doses` UPDATE RLS policy's `USING` clause makes both dose editing and dose restoration silently no-op once a dose is archived, directly contradicting behavior the application code explicitly assumes; (2) reversal rows carry negated totals by design (D-28, for SUM() correctness) but at least three UI surfaces render those negative numbers raw to the user ("-3 animais", "-2,3 UA"), which is reachable through completely ordinary navigation (toggling "Mostrar estornadas", or tapping "Ver estorno"). Three warnings and three info-level findings are also included below.
+Scoped re-review of the two gap-closure plans only: 06-13 (forward-only `doses` UPDATE
+RLS policy fix) and 06-14 (jsonb containment filter JSON-encoding fix + app-wide
+`PostgrestException` retry suppression).
 
-## Critical Issues
+Both fixes were independently verified against the actual dependency source, not just
+read for plausibility:
 
-### CR-01: RLS policy silently blocks editing/restoring an archived dose
+- **06-13 migration**: `DROP POLICY IF EXISTS` + `CREATE POLICY` body verbatim-matches
+  `20260810_06_sanitary_module.sql:47-49`, confirmed idempotent on fresh environments, and
+  is already backed by a pgTAP regression (`supabase/tests/06_sanitary_test.sql` Group 12,
+  lines 546-575) that archives a dose, restores it, and edits it while archived — exactly
+  the scenario the live-PROD drift broke. No issues found.
+- **06-14 `.contains()` fix**: verified against `postgrest-2.7.0`'s actual
+  `PostgrestFilterBuilder.contains()` implementation
+  (`postgrest_filter_builder.dart:267-281`). Confirmed the original `List` argument hit the
+  array-literal branch (`_cleanFilterArray`, curly-brace Postgres array syntax — invalid
+  for a jsonb array), and the `jsonEncode(...)` fix hits the `String` branch, which forwards
+  the value verbatim as `cs.<value>` — producing valid jsonb array syntax on the wire. The
+  regression test captures the real HTTP request via a loopback server rather than mocking
+  the query builder, which is the right level to catch this class of bug. No issues found
+  here either.
 
-**File:** `supabase/migrations/20260810_06_sanitary_module.sql:47-53` (policy), consumed by `lib/features/sanitario/data/dose_repository.dart:75-115` (`updateDose`, `restoreDose`)
-
-**Issue:** The UPDATE policy is:
-```sql
-CREATE POLICY "veterinarian_can_update_active_dose" ON doses FOR UPDATE TO authenticated
-  USING (
-    is_member_of(property_id)
-    AND get_role(property_id) = 'veterinarian'::role_enum
-    AND deleted_at IS NULL
-  )
-  WITH CHECK (is_member_of(property_id) AND get_role(property_id) = 'veterinarian'::role_enum);
-```
-The `USING` clause is evaluated against the **existing** row before the update is allowed to proceed. Because it requires `deleted_at IS NULL` on the pre-update row, PostgREST/RLS silently excludes any already-archived dose from being matched by an `UPDATE ... WHERE id = :id` statement — it does not raise an error, it just updates 0 rows.
-
-This breaks two things the app explicitly relies on:
-1. `DoseRepository.restoreDose()` (dose_repository.dart:110-115) sets `deleted_at = null` on an archived dose — but the row it targets already has `deleted_at IS NOT NULL`, so the `USING` clause excludes it from the very start. The "Reativar dose" button in `sanitario_screen.dart:155-177` will call this, get back a 200 with 0 rows affected (no exception, since neither call chains `.select().single()`), and the dose stays archived with no error shown to the user.
-2. `DoseFormDialog`'s own docstring (dose_form_dialog.dart:12-14) explicitly documents "an edit can touch an archived dose (edit icon stays visible under 'Mostrar arquivadas')" — but `updateDose()` on an archived dose is blocked by the exact same `USING` clause, so editing an archived dose also silently no-ops.
-
-No pgTAP test in `06_sanitary_test.sql` exercises an UPDATE against an archived dose, so this gap was not caught.
-
-**Fix:** Drop `AND deleted_at IS NULL` from the `USING` clause (the archival/restoration action itself should be allowed regardless of current archived state — the app never lets a non-veterinarian or non-member reach this path anyway):
-```sql
-CREATE POLICY "veterinarian_can_update_active_dose" ON doses FOR UPDATE TO authenticated
-  USING (is_member_of(property_id) AND get_role(property_id) = 'veterinarian'::role_enum)
-  WITH CHECK (is_member_of(property_id) AND get_role(property_id) = 'veterinarian'::role_enum);
-```
-Also add a pgTAP case: veterinarian restores/edits an archived dose and the row actually changes (`lives_ok` + a follow-up `is()` on the updated column), so this class of regression is caught going forward.
-
----
-
-### CR-02: Reversal rows show raw negative totals in the UI
-
-**Files:**
-- `lib/features/sanitario/presentation/aplicacao_detail_screen.dart:174-183` (`_AplicacaoHeaderCard` totals line)
-- `lib/features/sanitario/presentation/sanitario_screen.dart:468-478` (`_AplicacaoCard` subtitle)
-- `lib/features/sanitario/presentation/sanitary_history_section.dart:201-214` (`_buildLoteRow`)
-
-**Issue:** Per D-28 (documented in `20260811_06_sanitary_rpcs.sql:131-138`), a reversal row's `animal_count`, `total_ua`, `total_volume` and `total_cost` are all stored **negated**, specifically so that `SUM()` queries self-correct — this is a data-layer convention, not a display convention. None of the three UI call sites above account for this: they feed `app.animalCount`, `app.totalUa`, `app.totalVolume`, `app.totalCost` straight into `Intl.plural(...)`, `formatUa(...)`, `formatVolumeMl(...)`, `formatCurrencyBrl(...)` regardless of whether `app.isReversal` is true.
-
-Concretely, viewing (or listing, with "Mostrar estornadas" on) a reversal row for the fixture in the pgTAP suite (3 animals, 2.25 UA, 900 mL, R$9000) renders:
-- `AplicacaoDetailScreen`: `"-3 animais · -2,3 UA · -900 mL · R$ -9.000,00"`
-- `SanitarioScreen`'s applications-tab card subtitle: `"... · -3 animais · -2,3 UA"`
-- `LoteSanitaryHistorySection` row: `"... · -3 animais ... · R$ -9.000,00"`
-
-This is directly reachable through ordinary use: toggling "Mostrar estornadas" anywhere, or tapping "Ver estorno" / "Estorno de" (both wired via `context.go(AppRoutes.aplicacaoDetail(...))` in `aplicacao_detail_screen.dart:267` and `:286`) navigates straight to a reversal row's own detail page, which always shows this totals line.
-
-**Fix:** Take the absolute value of the four totals whenever rendering them (the sign only needs to matter for `SUM()` queries, never for a single row's display):
-```dart
-final totalsParts = <String>[
-  Intl.plural(app.animalCount.abs(), one: '1 animal', other: '${app.animalCount.abs()} animais'),
-  '${formatUa(app.totalUa.abs())} UA',
-  formatVolumeMl(app.totalVolume.abs()),
-  if (app.totalCost != null) formatCurrencyBrl(app.totalCost!.abs()),
-];
-```
-Apply the same `.abs()` treatment in `_AplicacaoCard` (sanitario_screen.dart) and `_buildLoteRow`/`_buildAnimalRow` (sanitary_history_section.dart) — `_buildAnimalRow` doesn't currently render totals so it is unaffected, but `_buildLoteRow` needs the same fix as the other two.
+One real gap surfaced in the 06-14 retry policy: it is broader than the "statement
+timeout" ceiling the code's own doc comment calls out — see WR-01.
 
 ## Warnings
 
-### WR-01: "Ver todas" query-param seeding only fires once per SanitarioScreen lifetime
+### WR-01: `providerRetryPolicy` also kills retry for transient infra failures, not just deterministic ones
 
-**File:** `lib/features/sanitario/presentation/sanitario_screen.dart:96-109`
+**File:** `lib/main.dart:41-44`
 
-**Issue:** `_seedFiltersFromQuery` guards itself with `if (_filtersSeeded) return;` so it only reads `GoRouterState.of(context).uri.queryParameters` exactly once. Because `SanitarioScreen` lives inside a `StatefulShellBranch` (`_shellSanitarioKey`, `router.dart:211-219`), its `State` is kept alive across navigations within that branch — it is not recreated on a second `context.go('/sanitario?...')`. So: if a user reaches `/sanitario?lote=X` once (via the lote history section's "Ver todas"), `_filtersSeeded` becomes `true` and `_lotFilterId` is set. A later visit to `/sanitario?animal=Y` (via the animal ficha's "Ver todas", `sanitary_history_section.dart:84`) will not update `_animalFilterId` or switch back to the applications tab — the guard silently drops the new query parameters, leaving the screen showing the stale lote filter instead of the requested animal filter.
+**Issue:** The policy blanket-suppresses retry for *every* `PostgrestException`:
 
-**Fix:** Track the last-seeded query string (or watch `GoRouterState.of(context).uri.query` and reseed whenever it changes) instead of a one-shot boolean:
 ```dart
-String? _lastSeededQuery;
-
-void _seedFiltersFromQuery(BuildContext context) {
-  final query = GoRouterState.of(context).uri.query;
-  if (query == _lastSeededQuery) return;
-  _lastSeededQuery = query;
-  final queryParameters = GoRouterState.of(context).uri.queryParameters;
-  final lote = queryParameters['lote'];
-  final animal = queryParameters['animal'];
-  setState(() {
-    _lotFilterId = lote;
-    _animalFilterId = animal;
-  });
-  if (lote != null || animal != null) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _tabController.animateTo(0);
-    });
-  }
+Duration? providerRetryPolicy(int retryCount, Object error) {
+  if (error is PostgrestException) return null;
+  return ProviderContainer.defaultRetry(retryCount, error);
 }
 ```
 
-### WR-02: "Ver estorno" recovery link reads a stale cached provider in the exact race it exists to handle
+The doc comment above it already flags one ceiling (a Postgres `statement_timeout`
+surfaces as `PostgrestException` and gets misclassified). Tracing into
+`postgrest-2.7.0`'s `_parseResponse` (`postgrest_builder.dart:325-348`) shows the
+misclassification is broader than that single case: **any non-2xx HTTP response** —
+including a 502/503/504 from Supabase's edge/gateway, a PgBouncer connection-pool
+refusal, or a cold-start timeout — is wrapped into a `PostgrestException` too. When the
+error body isn't parseable JSON (exactly what an infra-layer HTML error page or a bare
+gateway timeout returns), the code falls into the generic `catch (_)` branch
+(`postgrest_builder.dart:340-344`) and still throws `PostgrestException` with the HTTP
+status code as `code`.
 
-**File:** `lib/features/sanitario/presentation/estornar_aplicacao_dialog.dart:173-184`
+postgrest-dart's own internal retry (`_executeWithRetry`, lines 204-238) only covers
+GET/HEAD requests for status `{503, 520}`, for a maximum of 3 attempts before the
+response even reaches `_parseResponse`. Every other transient-but-not-that response
+shape — and every RPC/mutation call, which is POST and gets zero internal retries by
+design — depends entirely on the Riverpod-level retry to recover. `providerRetryPolicy`
+now takes that away for the exact class of error (infra transients) the fix's own doc
+comment says should "still get [ProviderContainer.defaultRetry]'s backoff." This
+directly undermines the stated intent of G-06-9, not just an accepted edge case: a
+`sanitaryApplicationListByPropertyProvider` read (idempotent GET) that hits a momentary
+502 during a Supabase deploy now fails on the first attempt with no backoff, instead of
+recovering silently as it did before this fix (when it *would* retry, just wastefully
+for the deterministic-error case the fix was written for).
 
-**Issue:** When `reverseApplication` fails with `alreadyReversed` (D-31 race — another user reversed the same application moments earlier), `_ErrorSlot` tries to resolve the sibling reversal row via `ref.watch(sanitaryApplicationsByLotProvider(lotId)).asData?.value`. This provider is a cached `FutureProvider.family` that was almost certainly already resolved (and not invalidated) before the race occurred — it was fetched when `AplicacaoDetailScreen`/`LoteDetailScreen` first rendered, well before the concurrent estorno happened. Nothing in the catch path invalidates or re-fetches `sanitaryApplicationsByLotProvider(lotId)` before this lookup runs, so in the actual race scenario the sibling row is very unlikely to be present, and the code falls back to "message-only" (dropping the "Ver estorno" link) in exactly the case it was built to handle.
+**Fix:** Distinguish deterministic PostgREST/Postgres errors (a real SQLSTATE or a
+4xx-shaped PostgREST error code — malformed filter, RLS denial, constraint violation)
+from HTTP-transport-shaped codes, and only suppress retry for the former:
 
-**Fix:** `ref.invalidate(sanitaryApplicationsByLotProvider(lotId))` (or `ref.refresh(...)`) before/when building `_ErrorSlot` for the `alreadyReversed` reason, so the sibling reversal row created by the other user is actually visible.
+```dart
+Duration? providerRetryPolicy(int retryCount, Object error) {
+  if (error is PostgrestException) {
+    // PostgREST/Postgres error codes are 4-5 digit SQLSTATEs or PostgREST's own
+    // codes (PGRST...); a bare HTTP status string ('502', '503', '504') means the
+    // request never reached Postgres — that's transport-transient, not deterministic.
+    final code = error.code;
+    final isTransportStatus =
+        code != null && RegExp(r'^(50[0-9]|52[0-9])$').hasMatch(code);
+    if (!isTransportStatus) return null;
+  }
+  return ProviderContainer.defaultRetry(retryCount, error);
+}
+```
 
-### WR-03: Existence-leak between error codes in both sanitary RPCs
-
-**File:** `supabase/migrations/20260811_06_sanitary_rpcs.sql:39-51` (`register_sanitary_application`), `:149-160` (`reverse_sanitary_application`)
-
-**Issue:** Both RPCs resolve the target row/lot (bypassing RLS as `SECURITY DEFINER`) and only check `is_member_of`/`get_role` afterward. This means a caller who belongs to *some* property can distinguish "id doesn't exist / lot archived" (`23503`) from "id exists but I'm not a member of that property" (`42501`) for a UUID belonging to a completely different tenant — a minor cross-tenant existence-enumeration channel (practically low-risk given random v4 UUIDs, and this mirrors the guard-sequence convention used by prior-phase RPCs per the file header comment, so it is likely an accepted tradeoff rather than newly introduced risk).
-
-**Fix:** If tightened, fold the membership check into the initial `SELECT` (e.g. `WHERE id = ... AND property_id IN (SELECT property_id FROM property_members WHERE user_id = auth.uid())`) so both "doesn't exist" and "not a member" collapse into the same `23503`/`42501` outcome. Low priority given the established codebase pattern.
+Adjust the regex/allowlist to whatever `code` values are actually observed in
+practice — the point is not to treat every `PostgrestException` as equivalent.
 
 ## Info
 
-### IN-01: `DoseRepository.fetchDose` is unused
+### IN-01: `fetchApplication` orders a single-row query before `.maybeSingle()`
 
-**File:** `lib/features/sanitario/data/dose_repository.dart:40-48`
+**File:** `lib/features/sanitario/data/sanitary_application_repository.dart:70-80`
 
-**Issue:** No caller found anywhere under `lib/` for `fetchDose`. Dead code.
+**Issue:** Not part of the 06-13/06-14 diff, but visible in the reviewed file:
 
-**Fix:** Remove it, or if it is meant for a near-future screen, note that in a comment.
+```dart
+Future<SanitaryApplication?> fetchApplication(String id) async {
+  final row = await _service.client
+      .from('sanitary_applications')
+      .select()
+      .eq('id', id)
+      .order('applied_at', ascending: false)
+      .order('created_at', ascending: false)
+      .maybeSingle();
+  ...
+```
 
-### IN-02: No-op `.order()` chained before `.maybeSingle()` in `fetchApplication`
+`id` is the primary key, so at most one row can ever match `.eq('id', id)`. The two
+`.order()` calls are dead — they can't change which row comes back — and read as if
+multiple rows were expected here, which is misleading to a future reader mirroring this
+method for a non-unique filter.
 
-**File:** `lib/features/sanitario/data/sanitary_application_repository.dart:68-78`
-
-**Issue:** `fetchApplication(id)` filters with `.eq('id', id)` (at most one row can ever match) but still chains `.order('applied_at', ...).order('created_at', ...)` before `.maybeSingle()`. The ordering has no effect since there is only ever 0 or 1 row.
-
-**Fix:** Drop the two `.order()` calls for clarity — they were presumably copy-pasted from `fetchApplicationsByProperty`/`fetchApplicationsByLot`.
-
-### IN-03: `kg/UA` property-join helper duplicated across three files
-
-**Files:** `lib/features/sanitario/presentation/dose_form_dialog.dart:94-101`, `lib/features/sanitario/presentation/sanitario_screen.dart:114-121`, `lib/features/sanitario/presentation/resumo_aplicacao_dialog.dart:106-114`
-
-**Issue:** The same ~6-line "resolve `currentPropertyProvider` id, look it up in `propertyListProvider`, default to 400" logic is copy-pasted verbatim (modulo variable names) in three different `ConsumerState`/`ConsumerStatefulWidget` classes.
-
-**Fix:** Extract a small shared provider (e.g. `kgPerUaProvider` in `sanitary_calculations.dart` or a new tiny file) that all three read via `ref.watch`, rather than three independent copies that must be kept in sync by hand.
-
----
-
-_Reviewed: 2026-08-07T00:00:00Z_
-_Reviewer: Claude (gsd-code-reviewer)_
-_Depth: standard_
+**Fix:** Drop both `.order()` calls; they do nothing given a PK-equality filter.
