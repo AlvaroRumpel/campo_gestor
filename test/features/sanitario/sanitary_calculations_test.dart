@@ -2,8 +2,38 @@
 // aggregation, display formatting for ResumoAplicacaoDialog. See
 // 06-UI-SPEC.md § Screen Inventory items 2 and 5 for the exact rendering
 // rules `formatVolumeMl`/`formatUa` serve.
+import 'package:campo_gestor/features/sanitario/data/sanitary_application_model.dart';
 import 'package:campo_gestor/features/sanitario/data/sanitary_calculations.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// A minimal [SanitaryApplication] fixture — every field has a constant
+/// default except the few named params a given test case cares about, so
+/// each case below reads as one line.
+SanitaryApplication _fixture({
+  String id = 'app-1',
+  DateTime? appliedAt,
+  DateTime? createdAt,
+  String? reversesApplicationId,
+}) {
+  return SanitaryApplication(
+    id: id,
+    propertyId: 'prop-1',
+    lotId: 'lot-1',
+    lotName: 'Lote 1',
+    doseId: 'dose-1',
+    doseName: 'Dose 1',
+    dosagePerKg: 1.0,
+    dosagePerUa: 400.0,
+    appliedAt: appliedAt ?? DateTime(2026, 1, 1),
+    appliedBy: 'user-1',
+    animalCount: 1,
+    totalUa: 1.0,
+    totalVolume: 400.0,
+    skippedCount: 0,
+    reversesApplicationId: reversesApplicationId,
+    createdAt: createdAt ?? DateTime(2026, 1, 1),
+  );
+}
 
 void main() {
   group('sanitary application totals (SANI-02/03)', () {
@@ -54,7 +84,72 @@ void main() {
     });
   });
 
-  // 06-04 appends a "reversal visibility and ordering (SANI-04)" group here
-  // once the SanitaryApplication model exists. Not stubbed now — an empty
-  // group would report as passing coverage that does not exist (D-40).
+  group('reversal visibility and ordering (SANI-04)', () {
+    test(
+        'visibleApplications(showReversed: false) hides both a reversed '
+        'original and its reversal row', () {
+      final normal = _fixture(id: 'a');
+      final original = _fixture(id: 'b');
+      final reversal = _fixture(id: 'c', reversesApplicationId: 'b');
+      final rows = [normal, original, reversal];
+
+      final visible = visibleApplications(rows, showReversed: false);
+
+      expect(visible.map((r) => r.id).toList(), ['a']);
+    });
+
+    test(
+        'visibleApplications(showReversed: true) returns every row, '
+        'including the reversed original and its reversal', () {
+      final normal = _fixture(id: 'a');
+      final original = _fixture(id: 'b');
+      final reversal = _fixture(id: 'c', reversesApplicationId: 'b');
+      final rows = [normal, original, reversal];
+
+      final all = visibleApplications(rows, showReversed: true);
+
+      expect(all.length, 3);
+    });
+
+    test(
+        'a list of only normal applications is unchanged by either flag '
+        'setting', () {
+      final rows = [_fixture(id: 'a'), _fixture(id: 'b')];
+
+      expect(visibleApplications(rows, showReversed: false).length, 2);
+      expect(visibleApplications(rows, showReversed: true).length, 2);
+    });
+
+    test('sortByAppliedAtDesc puts the newest application date first', () {
+      final older = _fixture(id: 'a', appliedAt: DateTime(2026, 1, 1));
+      final newer = _fixture(id: 'b', appliedAt: DateTime(2026, 2, 1));
+
+      final sorted = sortByAppliedAtDesc([older, newer]);
+
+      expect(sorted.map((r) => r.id).toList(), ['b', 'a']);
+    });
+
+    test(
+        'two rows sharing an application date fall back to creation time '
+        'descending', () {
+      final earlyCreated = _fixture(
+        id: 'a',
+        appliedAt: DateTime(2026, 1, 1),
+        createdAt: DateTime(2026, 1, 1, 8),
+      );
+      final lateCreated = _fixture(
+        id: 'b',
+        appliedAt: DateTime(2026, 1, 1),
+        createdAt: DateTime(2026, 1, 1, 10),
+      );
+
+      final sorted = sortByAppliedAtDesc([earlyCreated, lateCreated]);
+
+      expect(sorted.map((r) => r.id).toList(), ['b', 'a']);
+    });
+
+    test('sorting an empty list returns an empty list', () {
+      expect(sortByAppliedAtDesc(const []), isEmpty);
+    });
+  });
 }
