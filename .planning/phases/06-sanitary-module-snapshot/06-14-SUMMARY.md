@@ -137,3 +137,13 @@ None - no external service configuration required.
 ---
 *Phase: 06-sanitary-module-snapshot*
 *Completed: 2026-08-07*
+
+## Self-Check: PASSED
+
+- FOUND: test/features/sanitario/sanitary_application_repository_test.dart
+- FOUND: test/core/retry_policy_test.dart
+- FOUND: .planning/phases/06-sanitary-module-snapshot/06-14-SUMMARY.md
+- FOUND commit: 4381738 (test — request-level regression test)
+- FOUND commit: be02d59 (fix — jsonEncode containment filter)
+- FOUND commit: 17877d6 (test — retry policy)
+- FOUND commit: 23b1d86 (fix — providerRetryPolicy)
