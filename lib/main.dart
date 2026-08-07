@@ -18,12 +18,29 @@ Future<void> main() async {
   // when the developer forgot --dart-define flags or .vscode/launch.json.
   Env.requireOrThrow();
 
-  await Supabase.initialize(
-    url: Env.supabaseUrl,
-    anonKey: Env.supabaseAnonKey,
-  );
+  await Supabase.initialize(url: Env.supabaseUrl, anonKey: Env.supabaseAnonKey);
 
-  runApp(const ProviderScope(child: CampoGestorApp()));
+  runApp(
+    const ProviderScope(retry: providerRetryPolicy, child: CampoGestorApp()),
+  );
+}
+
+/// App-wide retry policy for every Riverpod provider (G-06-9).
+///
+/// PostgREST answers with a [PostgrestException] for anything the server
+/// understood and deliberately refused — a malformed filter, a policy
+/// denial, a constraint violation — which is the non-transient class:
+/// retrying it just re-issues the identical failure roughly ten times
+/// behind a spinner instead of letting the provider settle into its error
+/// state. A genuinely transient failure (a socket or client exception)
+/// still gets [ProviderContainer.defaultRetry]'s backoff.
+///
+/// Ceiling: a Postgres statement timeout also surfaces as a
+/// [PostgrestException] and is misclassified here as non-transient.
+/// Accepted for now — upgrade path is to branch on the exception's `code`.
+Duration? providerRetryPolicy(int retryCount, Object error) {
+  if (error is PostgrestException) return null;
+  return ProviderContainer.defaultRetry(retryCount, error);
 }
 
 class CampoGestorApp extends ConsumerWidget {

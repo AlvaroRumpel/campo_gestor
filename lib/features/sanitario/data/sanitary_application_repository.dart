@@ -3,6 +3,8 @@
 // causes compiler errors in Dart 3.11 (the feature was proposed but not
 // finalized as map-literal syntax). The `if (x != null) 'key': x` pattern is
 // the correct idiom. Mirrors atf_repository.dart's identical suppression.
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -85,12 +87,19 @@ class SanitaryApplicationRepository {
   Future<List<SanitaryApplication>> fetchSanitaryHistoryByAnimal(
     String animalId,
   ) async {
+    // G-06-9: postgrest-dart's .contains() only JSON-encodes a String value;
+    // a Dart List is stringified into a (non-JSON) Postgres array literal
+    // instead. jsonEncode here forwards a String, so this hits the correct
+    // branch and Postgres receives `cs.[{"animal_id":"<uuid>"}]`.
     final rows = await _service.client
         .from('sanitary_applications')
         .select()
-        .contains('composition_snapshot', [
-          {'animal_id': animalId},
-        ])
+        .contains(
+          'composition_snapshot',
+          jsonEncode([
+            {'animal_id': animalId},
+          ]),
+        )
         .order('applied_at', ascending: false)
         .order('created_at', ascending: false);
     return (rows as List)
@@ -146,8 +155,10 @@ class SanitaryApplicationRepository {
       'p_animal_ids': animalIds,
       if (notes != null) 'p_notes': notes,
     };
-    final result = await _service.client
-        .rpc('register_sanitary_application', params: params);
+    final result = await _service.client.rpc(
+      'register_sanitary_application',
+      params: params,
+    );
     return SanitaryApplication.fromJson(result as Map<String, dynamic>);
   }
 
@@ -158,8 +169,10 @@ class SanitaryApplicationRepository {
     required String reason,
   }) async {
     final params = {'p_application_id': applicationId, 'p_reason': reason};
-    final result = await _service.client
-        .rpc('reverse_sanitary_application', params: params);
+    final result = await _service.client.rpc(
+      'reverse_sanitary_application',
+      params: params,
+    );
     return SanitaryApplication.fromJson(result as Map<String, dynamic>);
   }
 }
