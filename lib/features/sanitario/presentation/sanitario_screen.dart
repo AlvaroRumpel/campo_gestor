@@ -42,14 +42,17 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
-  /// Guards the query-parameter seeding so it fires exactly once — mirrors
-  /// `SanitaryAnimalSelectionScreen`'s `_seeded` one-shot guard (06-08).
-  /// `GoRouterState.of(context)` cannot be read in `initState` (Flutter's
-  /// `State.initState` docs explicitly forbid
-  /// `dependOnInheritedWidgetOfExactType` there — `didChangeDependencies`/
-  /// `build` is the earliest safe point), so seeding happens in `build`
-  /// instead, synchronously before the tree is returned.
-  bool _filtersSeeded = false;
+  /// Tracks the last-seeded raw query string (not a one-shot bool) so a
+  /// second in-branch navigation with different `lote`/`animal` params
+  /// (e.g. `Ver todas` from a different ficha) reseeds the filters instead
+  /// of being silently dropped — this screen's `State` survives navigation
+  /// within its `StatefulShellBranch` (WR-01). `GoRouterState.of(context)`
+  /// cannot be read in `initState` (Flutter's `State.initState` docs
+  /// explicitly forbid `dependOnInheritedWidgetOfExactType` there —
+  /// `didChangeDependencies`/`build` is the earliest safe point), so
+  /// seeding happens in `build` instead, synchronously before the tree is
+  /// returned.
+  String? _lastSeededQuery;
 
   // Applications tab filters (D-26) — held here so both the filter row and
   // the list below read the same source.
@@ -94,8 +97,9 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
   /// sections, `sanitary_history_section.dart`, land here pre-filtered),
   /// switching to the applications tab when either is present.
   void _seedFiltersFromQuery(BuildContext context) {
-    if (_filtersSeeded) return;
-    _filtersSeeded = true;
+    final query = GoRouterState.of(context).uri.query;
+    if (query == _lastSeededQuery) return;
+    _lastSeededQuery = query;
     final queryParameters = GoRouterState.of(context).uri.queryParameters;
     final lote = queryParameters['lote'];
     final animal = queryParameters['animal'];
