@@ -5,14 +5,14 @@ milestone_name: milestone
 current_phase: 6
 current_plan: 1
 status: in-progress
-stopped_at: Phase 6 planned — 12 plans in 6 waves, ready to execute
-last_updated: "2026-08-07T00:12:23.765Z"
+stopped_at: Phase 6 executed — 12/12 plans, migrations live, awaiting human UAT
+last_updated: "2026-08-07T04:28:19.945Z"
 last_activity: 2026-08-06
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 50
-  completed_plans: 38
+  completed_plans: 49
 ---
 
 # Project State
@@ -110,7 +110,9 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - ~~CR-01: `register_baixa` replaced instead of appending the baixa observation; WR-02: `add_animals_to_atf` payload duplicate uuid raised 23505~~ **RESOLVED 2026-08-05.** Corrective migration `20260808_05_fix_baixa_observation_and_atf_dedup` applied to live and verified: both function bodies read back correct (CASE-append, SELECT DISTINCT), SQL round-trip proved the append/no-op/dedup behavior transactionally (rolled back, zero leftover rows). Ledger now at 13 migrations.
 - ~~WR-01 (05-REVIEW.md #2): `register_baixa` silently accepted `p_reason IS NULL` / `p_date IS NULL` (SQL `NOT IN` on NULL is NULL, not TRUE)~~ **RESOLVED 2026-08-05.** Corrective migration `20260809_05_fix_register_baixa_null_guards` applied to live and verified via a transactional round-trip (both NULL cases now raise `22023`). Ledger now at 14 migrations.
 - ~~`05_reproductive_test.sql` unrun~~ **RESOLVED 2026-08-06.** No local Docker stack (`docker info`/`supabase status` fail), so `supabase test db` still can't start — but the suite's 371 lines were run verbatim (BEGIN...ROLLBACK) against live PROD `wrdwzychjhlpwpivfhhq` via MCP `execute_sql`, confirmed during Phase 5's final UAT re-run. 34/35 assertions passed; the 1 failure is a pre-existing 3-arg `has_index()` overload-ambiguity bug in the TEST FILE itself (confirmed via direct `pg_indexes` read that the real index is correct), not a schema defect.
-- **`04_movements_test.sql` still unrun** — same Docker blocker, no live-PROD run attempted yet for this suite. Run `supabase test db` once Docker is available, or repeat the MCP `execute_sql` workaround; a failure is a real migration defect, not an assertion to weaken.
+- ~~`04_movements_test.sql` still unrun~~ **RESOLVED 2026-08-07** (Phase 6, plan 06-12, D-42). Replayed verbatim against live PROD `wrdwzychjhlpwpivfhhq` via MCP `execute_sql` in a rolled-back transaction: **5/5 assertions pass**, no fixture rows left behind. Both cross-property guards hold with RLS out of the picture — `trg_animals_lot_same_property` (SC-4) and `trg_lots_paddock_same_property` (MOV-02). A genuine pass, no assertion weakened. Docker is still down, so `supabase test db` remains unavailable; the MCP replay is the standing workaround.
+- **Phase 6 migrations applied 2026-08-07.** `20260810_06_sanitary_module` and `20260811_06_sanitary_rpcs` applied to live PROD via MCP `apply_migration` (CLI authenticated but unlinked, no TTY for a DB password — same path as Phases 3–5). **Migration ledger now at 16.** Preflight confirmed `sanitary_applications` held 0 rows, so the ALTER-only NOT NULL extension needed no backfill. Catalog verification passed 14/14: `doses`, `properties.kg_per_ua`, `animal_ua_weight()`, both SECURITY DEFINER RPCs, 18 new header columns, the partial reversal unique index, the GIN `jsonb_path_ops` index, `trg_sanitary_applications_same_property`, and Phase 2's `trg_snapshot_immutable` still intact. RLS as designed: 1 SELECT-only policy on `sanitary_applications` with **zero** write policies; 3 on `doses` with no DELETE.
+- **`06_sanitary_test.sql`: 74/74 pass** against the live schema (rolled-back replay, nothing left behind). One test-file defect was found and fixed en route (`ec5519b`): the suite used `like(...)`, but pgTAP names its pattern-match assertion `alike(...)` — `pg_catalog` only carries `like(text,text)` as the 2-arg operator function, so the 3-arg call raised `42883` and aborted the whole run before `finish()`, hiding every result. Not a schema defect; no re-migration needed. This is the second pgTAP-overload trap on this project, after Phase 5's 3-arg `has_index()` ambiguity — both now documented in the suite headers.
 - **`anon` can EXECUTE the SECURITY DEFINER RPCs** (all five Phase 5 ones and Phase 4's `move_animal_to_lot`). `REVOKE ALL … FROM public` does not remove Supabase's `ALTER DEFAULT PRIVILEGES` grant to `anon`. Fails closed — `is_member_of()` is false when `auth.uid()` is NULL → `42501` — but leaves a UUID-existence oracle (`23503` vs `42501`) because the row lookup precedes the membership check. Low severity (122-bit v4 UUIDs), pre-existing since Phase 1. Route through `/gsd-secure-phase`.
 - **Supabase Auth URL config not set for the deployed origin.** Project `wrdwzychjhlpwpivfhhq` still has Site URL at `http://localhost:3000`, so signup confirmation emails link to localhost. The `emailRedirectTo` client fix (quick task 260804-fpk, F-04-02) is inert until a human sets Site URL + allowed redirect URLs to `https://campo-gestor.pages.dev` in the dashboard.
 
@@ -125,11 +127,11 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 6 planned — 12 plans in 6 waves, ready to execute
-**Resume file:** .planning/phases/06-sanitary-module-snapshot/06-01-PLAN.md
+**Stopped at:** Phase 6 executed — 12/12 plans, migrations live, awaiting human UAT
+**Resume file:** .planning/phases/06-sanitary-module-snapshot/06-12-PLAN.md
 
-**Last session:** 2026-08-06T22:28:25.283Z
-**Next action:** `/gsd-execute-phase 6` — Phase 6 is planned: 12 plans in 6 waves (RESEARCH, PATTERNS, UI-SPEC, VALIDATION all in place; 5/5 REQs and 42/42 CONTEXT decisions covered). Wave 6 (`06-12`) is `autonomous: false` — it applies both migrations via MCP `apply_migration` against live project `wrdwzychjhlpwpivfhhq` (Supabase CLI is not linked here) and then runs human UAT. Two items still carried over, neither blocking Phase 6: (1) the Supabase dashboard for `wrdwzychjhlpwpivfhhq` still needs Site URL + allowed redirect URLs set to `https://campo-gestor.pages.dev`, otherwise signup confirmation emails stay on localhost; (2) the 4 fixes from quick task 260804-fpk are green on 103/103 tests but were never confirmed live in the browser.
+**Last session:** 2026-08-07T04:28:19.918Z
+**Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
