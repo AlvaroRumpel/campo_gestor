@@ -37,8 +37,8 @@ See: .planning/PROJECT.md
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
 | 3 | Lots & Animals (Operational Core) | complete |
 | 4 | Movements | complete (7/7 plans, UAT 8/8 — 2026-08-04) |
-| 5 | Reproductive Module (LoteATF) | not-started |
-| 6 | Sanitary Module (Snapshot) | not-started |
+| 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
+| 6 | Sanitary Module (Snapshot) | executed (12/12 plans, migrations live) — awaiting UAT |
 | 7 | Expenses by Paddock | not-started |
 | 8 | Animal Dossier Consolidation | not-started |
 
@@ -49,10 +49,10 @@ See: .planning/PROJECT.md
 | Metric | Value |
 |---|---|
 | Phases planned | 9 |
-| Phases complete | 5 (0–4) |
+| Phases complete | 6 (0–5); Phase 6 executed, UAT pending |
 | Requirements mapped | 26/26 |
-| Plans complete | 6 (00-01 through 00-06) |
-| Last activity | 2026-08-06 |
+| Plans complete | 49 of 50 across phases 0–6 |
+| Last activity | 2026-08-07 |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
