@@ -1,61 +1,103 @@
 ---
 phase: 06-sanitary-module-snapshot
-fixed_at: 2026-08-07T00:00:00Z
+fixed_at: 2026-08-07T19:46:50Z
 review_path: .planning/phases/06-sanitary-module-snapshot/06-REVIEW.md
 iteration: 1
-findings_in_scope: 5
-fixed: 4
-skipped: 1
-status: partial
+findings_in_scope: 6
+fixed: 6
+skipped: 0
+status: all_fixed
 ---
 
-# Phase 06: Code Review Fix Report
+# Phase 6: Code Review Fix Report
 
-**Fixed at:** 2026-08-07T00:00:00Z
+**Fixed at:** 2026-08-07T19:46:50Z
 **Source review:** .planning/phases/06-sanitary-module-snapshot/06-REVIEW.md
 **Iteration:** 1
 
 **Summary:**
-- Findings in scope: 5 (fix_scope: critical_warning — CR-01, CR-02, WR-01, WR-02, WR-03; IN-* findings excluded by scope)
-- Fixed: 4
-- Skipped: 1
+- Findings in scope: 6 (critical_warning scope — CR-01, WR-01..WR-05; IN-01..IN-03 excluded)
+- Fixed: 6
+- Skipped: 0
 
 ## Fixed Issues
 
-### CR-01: RLS policy silently blocks editing/restoring an archived dose
+### CR-01: Dose cost field silently drops a malformed value instead of rejecting it
 
-**Files modified:** `supabase/migrations/20260810_06_sanitary_module.sql`, `supabase/tests/06_sanitary_test.sql`
-**Commit:** `ae08dba`
-**Applied fix:** Dropped `AND deleted_at IS NULL` from the `veterinarian_can_update_active_dose` policy's `USING` clause (migration not yet pushed — migration ledger confirmed 0/2 Phase 6 migrations applied as of 06-12-SUMMARY.md, so editing the migration file in place was safe). Added pgTAP Group 12 (7 new assertions, `plan(74)` → `plan(81)`) exercising vet A1 archiving a dose, restoring it, and editing its name while archived, so a regression of this exact bug fails the suite going forward.
+**Files modified:** `lib/features/sanitario/presentation/dose_form_dialog.dart`
+**Commit:** `5cff3d6`
+**Applied fix:** Added a `validator` to the `_costCtrl` `TextFormField` mirroring the dosage field's
+pattern — blank input is accepted (optional field), but a non-empty value that fails
+`_parseDouble` now returns `'Custo (R$/kg) inválido'` instead of silently being saved as `null`.
 
-### CR-02: Reversal rows show raw negative totals in the UI
+### WR-01: AplicacaoDetailScreen checks the wrong property's role for the estorno action
 
-**Files modified:** `lib/features/sanitario/presentation/aplicacao_detail_screen.dart`, `lib/features/sanitario/presentation/sanitario_screen.dart`, `lib/features/sanitario/presentation/sanitary_history_section.dart`
-**Commit:** `701a067`
-**Applied fix:** Applied `.abs()` to `animalCount`, `totalUa`, `totalVolume`, and `totalCost` at all three render call sites (`_AplicacaoHeaderCard`, `_AplicacaoCard`, `_buildLoteRow`) per the review's suggested fix, applied verbatim since the cited line ranges matched current source exactly.
+**Files modified:** `lib/features/sanitario/presentation/aplicacao_detail_screen.dart`
+**Commit:** `2cb0031`
+**Applied fix:** `_canEdit` now takes `app.propertyId` (the frozen application's own property)
+instead of the currently active property. Removed the now-unused `currentPropertyProvider` read
+and its import from this file — `memberPropertiesProvider`/`PropertyMembership` (same import) are
+still used and were kept.
 
-### WR-01: "Ver todas" query-param seeding only fires once per SanitarioScreen lifetime
+### WR-02: Dose dosage field accepts 0, which the database rejects
 
-**Files modified:** `lib/features/sanitario/presentation/sanitario_screen.dart`
-**Commit:** `fd69741`
-**Applied fix:** Replaced the one-shot `bool _filtersSeeded` guard with a `String? _lastSeededQuery` that tracks the last-seeded raw query string and reseeds whenever `GoRouterState.of(context).uri.query` changes — adapted from the review's suggested fix but kept direct field mutation (not `setState`) to match this method's existing in-build-mutation pattern instead of introducing an extra rebuild. Removed the now-stale field doc comment referencing the old one-shot behavior.
+**Files modified:** `lib/features/sanitario/presentation/dose_form_dialog.dart`
+**Commit:** `6f140c7`
+**Applied fix:** Dosage validator now rejects values `<= 0` with `'Dosagem (mL/kg) deve ser maior
+que zero'`, mirroring the DB's `CHECK (dosage_per_kg > 0)` constraint. Left the existing
+blank/unparsable message text untouched (that wording issue is IN-02, out of scope for this
+fix_scope).
 
-### WR-02: "Ver estorno" recovery link reads a stale cached provider in the exact race it exists to handle
+### WR-03: SanitaryAnimalSelectionScreen._reload() has no error handling or busy guard
 
-**Files modified:** `lib/features/sanitario/presentation/estornar_aplicacao_dialog.dart`
-**Commit:** `96536e8`
-**Applied fix:** Added `ref.invalidate(sanitaryApplicationsByLotProvider(widget.lotId))` in `_submit`'s catch block when `exception.reason == SanitaryApplicationErrorReason.alreadyReversed`, before `_error` is set — forces `_ErrorSlot`'s `ref.watch` of the same provider to refetch and find the sibling reversal row the other user just created.
+**Files modified:** `lib/features/sanitario/presentation/sanitary_animal_selection_screen.dart`
+**Commit:** `f9471d3`
+**Applied fix:** Wrapped `_reload()` in try/catch/finally with a user-visible SnackBar on failure,
+and added a `_reloading` flag that disables the "Continuar" button while a reload is in flight —
+preventing a second concurrent `ResumoAplicacaoDialog`/reload from firing on re-tap.
+
+### WR-04: DoseRepository.archiveDose/restoreDose don't verify the update actually matched a row
+
+**Files modified:** `lib/features/sanitario/data/dose_repository.dart`
+**Commit:** `bbe0981`
+**Applied fix:** Both `archiveDose` and `restoreDose` now chain `.select().single()`, which throws
+when the UPDATE matches zero rows (RLS silently filtering, a stale id, or a concurrent delete),
+surfacing the failure through `_toggleArchive`'s existing try/catch/SnackBar in
+`sanitario_screen.dart` instead of silently no-op'ing.
+
+### WR-05: `kgPerUa` resolution logic is copy-pasted verbatim in three files
+
+**Files modified:** `lib/features/sanitario/data/kg_per_ua_resolver.dart` (new),
+`lib/features/sanitario/presentation/dose_form_dialog.dart`,
+`lib/features/sanitario/presentation/resumo_aplicacao_dialog.dart`,
+`lib/features/sanitario/presentation/sanitario_screen.dart`
+**Commit:** `ae0f6b1`
+**Applied fix:** Extracted the identical `currentPropertyProvider` + `propertyListProvider` join
+(with its 400 fallback) into a single `double resolveActiveKgPerUa(WidgetRef ref)` function in a
+new file, `kg_per_ua_resolver.dart`. Replaced all three private `_kgPerUa`/`_resolveKgPerUa`
+methods with calls to the shared helper and removed now-unused imports
+(`propriedade_repository.dart` in `sanitario_screen.dart`; `current_property_provider.dart` and
+`propriedade_repository.dart` in `resumo_aplicacao_dialog.dart`, where `currentPropertyProvider`
+had no other use site).
 
 ## Skipped Issues
 
-### WR-03: Existence-leak between error codes in both sanitary RPCs
+None — all in-scope findings were fixed.
 
-**File:** `supabase/migrations/20260811_06_sanitary_rpcs.sql:39-51`, `:149-160`
-**Reason:** The finding itself, and the RPC file's own header comment, both state this guard sequence (resolve row → `is_member_of` → `get_role`) deliberately mirrors the established multi-phase convention used by `register_baixa`/`add_animals_to_atf` in `20260805_05_atf_rpcs.sql`. The review's own fix note downgrades this to "low priority" and calls it "likely an accepted tradeoff rather than newly introduced risk." Folding the membership check into the initial `SELECT` in only this file would make Phase 6's RPCs inconsistent with every prior-phase RPC using the same pattern, without fixing the same characteristic in those other files — that is a codebase-wide convention change, out of scope for a single-finding fix pass. Left for a deliberate follow-up decision (or explicit user instruction) rather than a partial, phase-local deviation.
-**Original issue:** Both RPCs resolve the target row/lot as `SECURITY DEFINER` before checking membership, letting a caller in one property distinguish "id doesn't exist" (`23503`) from "id exists but I'm not a member" (`42501`) for a UUID in a different tenant — a low-risk, low-value existence-enumeration channel given random v4 UUIDs.
+## Notes
+
+- Fix scope was `critical_warning` (default); Info-tier findings IN-01, IN-02, IN-03 from
+  06-REVIEW.md were intentionally left untouched per scope and remain available for a future
+  `fix_scope: all` pass.
+- Verification: each fix was re-read in place (Tier 1) and the sanitary module was analyzed with
+  `dart analyze` after `flutter pub get` (Tier 2, informal — Dart isn't in the strict
+  verification-strategy table). The only errors surfaced were pre-existing "undefined getter" on
+  freezed model fields (`Dose`, `Animal`, `SanitaryApplication`), caused by this worktree never
+  having run `build_runner` to generate `.freezed.dart`/`.g.dart` files — an environment gap
+  present uniformly across the whole module, not introduced by any of these fixes.
 
 ---
 
-_Fixed: 2026-08-07T00:00:00Z_
+_Fixed: 2026-08-07T19:46:50Z_
 _Fixer: Claude (gsd-code-fixer)_
 _Iteration: 1_
