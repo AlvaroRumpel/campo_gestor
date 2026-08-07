@@ -210,7 +210,7 @@ Plans:
   4. Usuário visualiza histórico sanitário do lote ordenado por data com lista de aplicações
   5. Usuário visualiza histórico sanitário de um animal específico via lookup nos snapshots, mesmo que o animal já tenha sido movido para outro lote
 
-**Plans:** 4/12 plans executed
+**Plans:** 7/12 plans executed
 Plans:
 **Wave 1**
 
@@ -224,9 +224,9 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 06-05-PLAN.md — /aplicacoes/:id route + EstornarAplicacaoDialog + AplicacaoDetailScreen
-- [ ] 06-06-PLAN.md — DoseFormDialog with live computed per-UA fields (SANI-01)
-- [ ] 06-07-PLAN.md — ResumoAplicacaoDialog: totals, permanence warning, duplicate gate, the RPC write
+- [x] 06-05-PLAN.md — /aplicacoes/:id route + EstornarAplicacaoDialog + AplicacaoDetailScreen
+- [x] 06-06-PLAN.md — DoseFormDialog with live computed per-UA fields (SANI-01)
+- [x] 06-07-PLAN.md — ResumoAplicacaoDialog: totals, permanence warning, duplicate gate, the RPC write
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -287,7 +287,7 @@ Plans:
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
-| 6. Sanitary Module | 4/12 | In Progress|  |
+| 6. Sanitary Module | 7/12 | In Progress|  |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
