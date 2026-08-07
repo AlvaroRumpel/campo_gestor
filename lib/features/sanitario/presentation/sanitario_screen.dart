@@ -469,16 +469,16 @@ class _AplicacaoCard extends StatelessWidget {
       _dateFmt.format(app.appliedAt),
       app.lotName,
       Intl.plural(
-        app.animalCount,
+        app.animalCount.abs(),
         one: '1 animal',
-        other: '${app.animalCount} animais',
+        other: '${app.animalCount.abs()} animais',
         locale: 'pt_BR',
       ),
-      '${formatUa(app.totalUa)} UA',
+      '${formatUa(app.totalUa.abs())} UA',
     ];
     var subtitle = parts.join(' · ');
     if (app.totalCost != null) {
-      subtitle = '$subtitle · ${formatCurrencyBrl(app.totalCost!)}';
+      subtitle = '$subtitle · ${formatCurrencyBrl(app.totalCost!.abs())}';
     }
 
     Widget? badge;

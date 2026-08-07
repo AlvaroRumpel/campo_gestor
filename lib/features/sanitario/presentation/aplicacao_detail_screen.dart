@@ -173,13 +173,13 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
 
     final totalsParts = <String>[
       Intl.plural(
-        app.animalCount,
+        app.animalCount.abs(),
         one: '1 animal',
-        other: '${app.animalCount} animais',
+        other: '${app.animalCount.abs()} animais',
       ),
-      '${formatUa(app.totalUa)} UA',
-      formatVolumeMl(app.totalVolume),
-      if (app.totalCost != null) formatCurrencyBrl(app.totalCost!),
+      '${formatUa(app.totalUa.abs())} UA',
+      formatVolumeMl(app.totalVolume.abs()),
+      if (app.totalCost != null) formatCurrencyBrl(app.totalCost!.abs()),
     ];
 
     return Card(

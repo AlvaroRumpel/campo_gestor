@@ -203,14 +203,14 @@ Widget _buildLoteRow(
     _dateFmt.format(app.appliedAt),
     app.doseName,
     Intl.plural(
-      app.animalCount,
+      app.animalCount.abs(),
       one: '1 animal',
-      other: '${app.animalCount} animais',
+      other: '${app.animalCount.abs()} animais',
     ),
   ];
   var line = parts.join(' · ');
   if (app.totalCost != null) {
-    line = '$line · ${formatCurrencyBrl(app.totalCost!)}';
+    line = '$line · ${formatCurrencyBrl(app.totalCost!.abs())}';
   }
   final title = Text(
     line,
