@@ -18,6 +18,10 @@ sealed class Property with _$Property {
     String? owner,
     required DateTime createdAt,
     DateTime? deletedAt,
+    // D-12: property-scoped UA/kg factor. No UI edits this field this phase —
+    // it exists so DoseFormDialog (06-06) can compute a live valor/UA
+    // preview client-side; the RPC re-reads the same column server-side.
+    @Default(400) double kgPerUa,
   }) = _Property;
 
   factory Property.fromJson(Map<String, dynamic> json) =>
