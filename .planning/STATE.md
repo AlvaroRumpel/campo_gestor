@@ -5,13 +5,13 @@ milestone_name: milestone
 current_phase: 6 — Sanitary Module (Snapshot)
 current_plan: Not started
 status: in-progress
-stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-08-06T21:10:55.770Z"
+stopped_at: Phase 6 planned — 12 plans in 6 waves, ready to execute
+last_updated: "2026-08-06T22:28:25.311Z"
 last_activity: 2026-08-06
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 38
+  total_plans: 50
   completed_plans: 38
 ---
 
@@ -125,11 +125,11 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 6 UI-SPEC approved
-**Resume file:** .planning/phases/06-sanitary-module-snapshot/06-UI-SPEC.md
+**Stopped at:** Phase 6 planned — 12 plans in 6 waves, ready to execute
+**Resume file:** .planning/phases/06-sanitary-module-snapshot/06-01-PLAN.md
 
-**Last session:** 2026-08-06T21:10:55.734Z
-**Next action:** `/gsd-discuss-phase 5` — Phase 5 (Reproductive Module / LoteATF) has no CONTEXT.md yet. Two items carried over, neither blocking Phase 5: (1) the Supabase dashboard for project `wrdwzychjhlpwpivfhhq` still needs Site URL + allowed redirect URLs set to `https://campo-gestor.pages.dev`, otherwise signup confirmation emails stay on localhost; (2) the 4 fixes from quick task 260804-fpk are green on 103/103 tests but were never confirmed live in the browser.
+**Last session:** 2026-08-06T22:28:25.283Z
+**Next action:** `/gsd-execute-phase 6` — Phase 6 is planned: 12 plans in 6 waves (RESEARCH, PATTERNS, UI-SPEC, VALIDATION all in place; 5/5 REQs and 42/42 CONTEXT decisions covered). Wave 6 (`06-12`) is `autonomous: false` — it applies both migrations via MCP `apply_migration` against live project `wrdwzychjhlpwpivfhhq` (Supabase CLI is not linked here) and then runs human UAT. Two items still carried over, neither blocking Phase 6: (1) the Supabase dashboard for `wrdwzychjhlpwpivfhhq` still needs Site URL + allowed redirect URLs set to `https://campo-gestor.pages.dev`, otherwise signup confirmation emails stay on localhost; (2) the 4 fixes from quick task 260804-fpk are green on 103/103 tests but were never confirmed live in the browser.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
