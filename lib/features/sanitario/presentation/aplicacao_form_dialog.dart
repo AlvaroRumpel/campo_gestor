@@ -33,9 +33,19 @@ final _lotsWithActiveAnimalsProvider =
 /// client-side navigation to [SanitaryAnimalSelectionScreen], so there is no
 /// saving flag and no spinner state.
 class AplicacaoFormDialog extends ConsumerStatefulWidget {
-  const AplicacaoFormDialog({super.key, this.lotId});
+  const AplicacaoFormDialog({super.key, this.lotId, this.onRegistered});
 
   final String? lotId;
+
+  /// Fires with the registered animal count once the downstream flow
+  /// (`SanitaryAnimalSelectionScreen` -> `ResumoAplicacaoDialog`) completes
+  /// successfully. This dialog itself has already closed by the time it
+  /// fires — `Continuar` pops the dialog immediately and pushes the
+  /// selection screen on the same navigator (06-08), so the dialog's own
+  /// `showDialog` future resolves to null before the flow even starts.
+  /// Callers that need the eventual outcome (invalidate providers, show the
+  /// D-24 success snackbar) hook this instead of awaiting `showDialog`.
+  final ValueChanged<int>? onRegistered;
 
   @override
   ConsumerState<AplicacaoFormDialog> createState() =>
@@ -81,8 +91,9 @@ class _AplicacaoFormDialogState extends ConsumerState<AplicacaoFormDialog> {
 
   void _continue(String lotName, Dose dose) {
     final navigator = Navigator.of(context);
+    final onRegistered = widget.onRegistered;
     navigator.pop();
-    navigator.push(
+    final pushed = navigator.push<int>(
       MaterialPageRoute(
         builder: (_) => SanitaryAnimalSelectionScreen(
           lotId: _selectedLotId!,
@@ -92,6 +103,9 @@ class _AplicacaoFormDialogState extends ConsumerState<AplicacaoFormDialog> {
         ),
       ),
     );
+    pushed.then((count) {
+      if (count != null) onRegistered?.call(count);
+    });
   }
 
   @override
