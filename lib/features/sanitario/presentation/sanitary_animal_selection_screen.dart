@@ -54,6 +54,11 @@ class _SanitaryAnimalSelectionScreenState
   /// user has actually deselected something").
   bool _hasDeselected = false;
 
+  /// True while [_reload] is in flight — disables "Continuar" so a second
+  /// tap cannot fire a second reload (and a second `ResumoAplicacaoDialog`)
+  /// concurrently with the first.
+  bool _reloading = false;
+
   Future<void> _onClosePressed() async {
     if (!_hasDeselected) {
       Navigator.pop(context);
@@ -96,20 +101,34 @@ class _SanitaryAnimalSelectionScreenState
   /// the user left them in, and animals that newly appeared arrive
   /// pre-checked (set union) — this is never a full reselect-everything.
   Future<void> _reload() async {
-    ref.invalidate(animalListByLotProvider(widget.lotId));
-    final fresh =
-        await ref.read(animalListByLotProvider(widget.lotId).future);
-    final freshActiveIds =
-        fresh.where((a) => a.deletedAt == null).map((a) => a.id).toSet();
-    final preserved = _selectedIds.intersection(freshActiveIds);
-    final newlyArrived = freshActiveIds.difference(_selectedIds);
-    if (!mounted) return;
-    setState(() {
-      _selectedIds
-        ..clear()
-        ..addAll(preserved)
-        ..addAll(newlyArrived);
-    });
+    setState(() => _reloading = true);
+    try {
+      ref.invalidate(animalListByLotProvider(widget.lotId));
+      final fresh =
+          await ref.read(animalListByLotProvider(widget.lotId).future);
+      final freshActiveIds =
+          fresh.where((a) => a.deletedAt == null).map((a) => a.id).toSet();
+      final preserved = _selectedIds.intersection(freshActiveIds);
+      final newlyArrived = freshActiveIds.difference(_selectedIds);
+      if (!mounted) return;
+      setState(() {
+        _selectedIds
+          ..clear()
+          ..addAll(preserved)
+          ..addAll(newlyArrived);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Erro ao atualizar a lista de animais. Tente novamente.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _reloading = false);
+    }
   }
 
   Future<void> _continue(List<Animal> animals) async {
@@ -236,7 +255,9 @@ class _SanitaryAnimalSelectionScreenState
               ),
             ),
             FilledButton(
-              onPressed: count == 0 ? null : () => _continue(animals),
+              onPressed: (count == 0 || _reloading)
+                  ? null
+                  : () => _continue(animals),
               child: const Text('Continuar'),
             ),
           ],
