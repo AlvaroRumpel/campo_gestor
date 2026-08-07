@@ -25,7 +25,7 @@
 
 BEGIN;
 
-SELECT plan(74);
+SELECT plan(81);
 
 -- ============================================================
 -- Fixtures: two properties, one veterinarian + one reader member per property, one
@@ -540,6 +540,45 @@ SELECT is(
        AND reverses_application_id IS NULL),
   'Lot A1',
   'the containment-matched application keeps the frozen lot_name, not the animal''s new lot (D-38)'
+);
+
+-- ============================================================
+-- Group 12 — Archived dose editability regression (CR-01). The UPDATE policy's USING
+-- clause must NOT require deleted_at IS NULL on the pre-update row, or restoring/editing
+-- an already-archived dose silently affects 0 rows instead of erroring or succeeding.
+-- Still authenticated as vet A1 (property A) from Group 6/11 above.
+-- ============================================================
+
+PREPARE archive_dose_1 AS
+  UPDATE doses SET deleted_at = now() WHERE id = 'a0000000-0006-0006-0006-000000000030';
+SELECT lives_ok('EXECUTE archive_dose_1', 'vet A1 archives the fixture dose');
+
+SELECT ok(
+  (SELECT deleted_at IS NOT NULL FROM doses WHERE id = 'a0000000-0006-0006-0006-000000000030'),
+  'the dose is archived (deleted_at IS NOT NULL) after the archive UPDATE'
+);
+
+PREPARE restore_archived_dose AS
+  UPDATE doses SET deleted_at = NULL WHERE id = 'a0000000-0006-0006-0006-000000000030';
+SELECT lives_ok('EXECUTE restore_archived_dose', 'vet A1 restores the archived dose');
+
+SELECT ok(
+  (SELECT deleted_at IS NULL FROM doses WHERE id = 'a0000000-0006-0006-0006-000000000030'),
+  'the dose is actually restored (deleted_at IS NULL) — regression check for CR-01: the UPDATE USING clause must not exclude already-archived rows'
+);
+
+PREPARE archive_dose_2 AS
+  UPDATE doses SET deleted_at = now() WHERE id = 'a0000000-0006-0006-0006-000000000030';
+SELECT lives_ok('EXECUTE archive_dose_2', 'vet A1 re-archives the dose to set up the edit-while-archived case');
+
+PREPARE edit_archived_dose AS
+  UPDATE doses SET name = 'Dose A (renamed while archived)' WHERE id = 'a0000000-0006-0006-0006-000000000030';
+SELECT lives_ok('EXECUTE edit_archived_dose', 'vet A1 edits an archived dose (dose_form_dialog.dart allows this under "Mostrar arquivadas")');
+
+SELECT is(
+  (SELECT name FROM doses WHERE id = 'a0000000-0006-0006-0006-000000000030'),
+  'Dose A (renamed while archived)',
+  'the archived dose''s name actually changed — regression check for CR-01'
 );
 
 SELECT * FROM finish();

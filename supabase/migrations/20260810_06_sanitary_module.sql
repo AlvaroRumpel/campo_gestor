@@ -45,11 +45,7 @@ CREATE POLICY "veterinarian_can_insert_dose" ON doses FOR INSERT TO authenticate
   WITH CHECK (is_member_of(property_id) AND get_role(property_id) = 'veterinarian'::role_enum);
 
 CREATE POLICY "veterinarian_can_update_active_dose" ON doses FOR UPDATE TO authenticated
-  USING (
-    is_member_of(property_id)
-    AND get_role(property_id) = 'veterinarian'::role_enum
-    AND deleted_at IS NULL
-  )
+  USING (is_member_of(property_id) AND get_role(property_id) = 'veterinarian'::role_enum)
   WITH CHECK (is_member_of(property_id) AND get_role(property_id) = 'veterinarian'::role_enum);
 
 -- No DELETE policy — archival is a deleted_at update, same as lots/paddocks/atf_batches (D-15).
