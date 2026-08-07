@@ -10,6 +10,8 @@ import '../../../features/animais/data/animal_repository.dart';
 import '../../../features/animais/presentation/animal_form_dialog.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../../../features/piquetes/data/piquete_repository.dart';
+import '../../sanitario/data/sanitary_application_repository.dart';
+import '../../sanitario/presentation/aplicacao_form_dialog.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
 import 'mover_lote_dialog.dart';
@@ -85,6 +87,25 @@ class LoteDetailScreen extends ConsumerWidget {
                     );
                   }
                 },
+                onRegistrar: () async {
+                  await showDialog<void>(
+                    context: context,
+                    builder: (_) => AplicacaoFormDialog(
+                      lotId: loteId,
+                      onRegistered: (count) {
+                        if (!context.mounted) return;
+                        ref.invalidate(animalListByLotProvider(loteId));
+                        ref.invalidate(sanitaryApplicationsByLotProvider(loteId));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Aplicação registrada — $count animais'),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
               Padding(
@@ -143,11 +164,13 @@ class _LoteHeaderCard extends ConsumerWidget {
     required this.animalsAsync,
     required this.canEdit,
     required this.onMover,
+    required this.onRegistrar,
   });
   final Lot lot;
   final AsyncValue<List<Animal>> animalsAsync;
   final bool canEdit;
   final VoidCallback onMover;
+  final VoidCallback onRegistrar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -224,7 +247,8 @@ class _LoteHeaderCard extends ConsumerWidget {
                 );
               },
             ),
-            // MOV-02: footer button — gated by canEdit + lot active + at least 1 active animal
+            // MOV-02/SANI-02: footer buttons — gated by canEdit + lot active +
+            // at least 1 active animal (D-18: exact mirror of the move gate)
             Builder(
               builder: (context) {
                 final activeCount = animalsAsync.asData?.value
@@ -236,13 +260,22 @@ class _LoteHeaderCard extends ConsumerWidget {
                 if (!showButton) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(
-                      onPressed: onMover,
-                      icon: const Icon(Icons.swap_horiz),
-                      label: const Text('Mover para piquete'),
-                    ),
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: onMover,
+                        icon: const Icon(Icons.swap_horiz),
+                        label: const Text('Mover para piquete'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: onRegistrar,
+                        icon: const Icon(Icons.medical_services_outlined),
+                        label: const Text('Registrar aplicação'),
+                      ),
+                    ],
                   ),
                 );
               },
