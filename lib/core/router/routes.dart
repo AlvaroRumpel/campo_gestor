@@ -34,6 +34,12 @@ abstract final class AppRoutes {
   static const atfById = '/atf/:atfId'; // template — used by GoRoute path
   static String atfDetail(String id) => '/atf/$id';
 
+  // Phase 6 detail route — root-level (outside shell, D-19): reachable from
+  // three list origins (global aplicações list, lote history section, animal
+  // ficha), so it cannot live inside any single shell branch.
+  static const aplicacaoById = '/aplicacoes/:id'; // template — used by GoRoute path
+  static String aplicacaoDetail(String id) => '/aplicacoes/$id';
+
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';
   static const piquetes = '/piquetes';
