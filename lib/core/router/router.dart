@@ -20,6 +20,7 @@ import '../../features/lotes/presentation/lote_detail_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/reproducao/presentation/atf_detail_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
+import '../../features/sanitario/presentation/aplicacao_detail_screen.dart';
 import '../../features/sanitario/presentation/sanitario_screen.dart';
 import '../providers/current_property_provider.dart';
 import '../widgets/app_shell.dart';
@@ -110,10 +111,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // Auth routes (root-level, outside the AppShell)
-      GoRoute(
-        path: AppRoutes.login,
-        builder: (ctx, _) => const LoginScreen(),
-      ),
+      GoRoute(path: AppRoutes.login, builder: (ctx, _) => const LoginScreen()),
       GoRoute(
         path: AppRoutes.signup,
         builder: (ctx, _) => const SignupScreen(),
@@ -134,18 +132,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Phase 3 detail routes — root-level, outside any shell branch (D-03)
       GoRoute(
         path: AppRoutes.loteById,
-        builder: (ctx, state) => LoteDetailScreen(
-          loteId: state.pathParameters['loteId']!,
-        ),
+        builder: (ctx, state) =>
+            LoteDetailScreen(loteId: state.pathParameters['loteId']!),
       ),
       // Phase 5 detail route — root-level, outside any shell branch (D-02):
       // reproductive-history rows on the animal ficha (D-14) link directly
       // to an ATF, mirroring loteById above.
       GoRoute(
         path: AppRoutes.atfById,
-        builder: (ctx, state) => AtfDetailScreen(
-          atfId: state.pathParameters['atfId']!,
-        ),
+        builder: (ctx, state) =>
+            AtfDetailScreen(atfId: state.pathParameters['atfId']!),
+      ),
+      // Phase 6 detail route — root-level, outside any shell branch (D-19):
+      // reachable from three list origins (global aplicações list, lote
+      // history section, animal ficha), mirroring loteById/atfById above.
+      GoRoute(
+        path: AppRoutes.aplicacaoById,
+        builder: (ctx, state) =>
+            AplicacaoDetailScreen(applicationId: state.pathParameters['id']!),
       ),
       // Shell routes (Phase 0)
       StatefulShellRoute.indexedStack(
@@ -232,9 +236,9 @@ class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Stream<dynamic> authStream, Ref ref) {
     notifyListeners();
     _authSub = authStream.asBroadcastStream().listen(
-          (_) => notifyListeners(),
-          onError: (_) {},
-        );
+      (_) => notifyListeners(),
+      onError: (_) {},
+    );
     ref.listen<AsyncValue<List<PropertyMembership>>>(
       memberPropertiesProvider,
       (_, _) => notifyListeners(),
