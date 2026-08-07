@@ -250,6 +250,13 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                   ],
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    if (_parseDouble(v) == null) {
+                      return 'Custo (R\$/kg) inválido';
+                    }
+                    return null;
+                  },
                 ),
                 if (costUa != null) ...[
                   const SizedBox(height: 16),
