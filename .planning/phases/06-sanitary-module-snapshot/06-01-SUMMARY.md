@@ -134,3 +134,7 @@ None - no external service configuration required.
 ---
 *Phase: 06-sanitary-module-snapshot*
 *Completed: 2026-08-06*
+
+## Self-Check: PASSED
+
+All created files verified present on disk (`sanitary_calculations.dart`, `dose_calculations_test.dart`, `sanitary_calculations_test.dart`, `06_sanitary_test.sql`, this SUMMARY). All four commit hashes (`4b6d89c`, `71ca0e1`, `63452fe`, `8e8224d`) verified present in `git log --oneline --all`.
