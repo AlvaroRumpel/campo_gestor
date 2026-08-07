@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../propriedades/data/propriedade_repository.dart';
 import '../data/dose_model.dart';
+import '../data/dose_repository.dart';
+import '../data/sanitary_application_exception.dart';
 import '../data/sanitary_calculations.dart';
 
 /// Dialog for creating or editing a dose (SANI-01). [existing] present means
@@ -34,6 +36,8 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
   late final TextEditingController _costCtrl;
   final _dosageUaCtrl = TextEditingController();
   final _costUaCtrl = TextEditingController();
+  bool _saving = false;
+  String? _errorMessage;
 
   bool get _isEditing => widget.existing != null;
 
@@ -96,6 +100,64 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
     return match.isNotEmpty ? match.first.kgPerUa : 400;
   }
 
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final property = await ref.read(currentPropertyProvider.future);
+      if (property == null) {
+        throw StateError('Nenhuma propriedade ativa');
+      }
+
+      final repo = ref.read(doseRepositoryProvider);
+      final name = _nameCtrl.text.trim();
+      final ingredientText = _ingredientCtrl.text.trim();
+      final activeIngredient = ingredientText.isEmpty ? null : ingredientText;
+      final dosage = _parseDouble(_dosageCtrl.text)!;
+      final cost = _parseDouble(_costCtrl.text);
+
+      if (_isEditing) {
+        await repo.updateDose(
+          id: widget.existing!.id,
+          name: name,
+          activeIngredient: activeIngredient,
+          dosagePerKg: dosage,
+          costPerKg: cost,
+        );
+      } else {
+        await repo.createDose(
+          propertyId: property.id,
+          name: name,
+          activeIngredient: activeIngredient,
+          dosagePerKg: dosage,
+          costPerKg: cost,
+        );
+      }
+
+      // Both providers invalidated — an edit can touch an archived dose
+      // (edit icon stays visible under "Mostrar arquivadas"), so either
+      // list may hold this row.
+      ref.invalidate(doseListByPropertyProvider);
+      ref.invalidate(archivedDoseListByPropertyProvider);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      final mapped = asSanitaryException(
+        e,
+        fallbackMessage:
+            'Não foi possível salvar a dose. Verifique os dados e tente novamente.',
+      );
+      setState(() => _errorMessage = mapped.message);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -111,7 +173,9 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
         ?.copyWith(color: theme.colorScheme.primary);
 
     return AlertDialog(
-      title: Text(_isEditing ? 'Editar dose' : 'Nova dose'),
+      title: _saving
+          ? const LinearProgressIndicator()
+          : Text(_isEditing ? 'Editar dose' : 'Nova dose'),
       content: SizedBox(
         width: 480,
         child: Form(
@@ -204,6 +268,27 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
           ),
         ),
       ),
+      actions: [
+        if (_errorMessage != null)
+          Text(
+            _errorMessage!,
+            style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
+          ),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _submit,
+          child: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Salvar dose'),
+        ),
+      ],
     );
   }
 }
