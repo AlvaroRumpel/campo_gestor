@@ -77,10 +77,9 @@ class AplicacaoDetailScreen extends ConsumerWidget {
             ? siblings.firstWhere((s) => s.reversesApplicationId == app.id)
             : null;
 
-        final currentPropAsync = ref.watch(currentPropertyProvider);
         final membersAsync = ref.watch(memberPropertiesProvider);
         final canEdit = _canEdit(
-          currentPropAsync.asData?.value,
+          app.propertyId,
           membersAsync.asData?.value,
         );
 
@@ -122,10 +121,10 @@ class AplicacaoDetailScreen extends ConsumerWidget {
     );
   }
 
-  bool _canEdit(SelectedProperty? current, List<PropertyMembership>? members) {
-    if (current == null || members == null) return false;
+  bool _canEdit(String appPropertyId, List<PropertyMembership>? members) {
+    if (members == null) return false;
     final role = members
-        .where((m) => m.property.id == current.id)
+        .where((m) => m.property.id == appPropertyId)
         .map((m) => m.role)
         .firstOrNull;
     return role == 'veterinarian';
