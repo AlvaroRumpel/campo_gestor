@@ -221,8 +221,12 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                     if (v == null || v.trim().isEmpty) {
                       return 'Dosagem (mL/kg) é obrigatória';
                     }
-                    if (_parseDouble(v) == null) {
+                    final parsed = _parseDouble(v);
+                    if (parsed == null) {
                       return 'Dosagem (mL/kg) é obrigatória';
+                    }
+                    if (parsed <= 0) {
+                      return 'Dosagem (mL/kg) deve ser maior que zero';
                     }
                     return null;
                   },
