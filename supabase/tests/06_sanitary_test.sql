@@ -16,7 +16,12 @@
 -- name, no description) — the three-argument overload is ambiguous in this
 -- Postgres/pgTAP combination and produced the single false failure recorded for
 -- 05_reproductive_test.sql. The partial-index predicate and GIN operator class are
--- instead asserted by reading pg_indexes.indexdef with like().
+-- instead asserted by reading pg_indexes.indexdef with alike().
+--
+-- alike(), NOT like(): pgTAP names its pattern-match assertions alike()/unalike().
+-- pg_catalog only carries like(text,text) as the 2-arg operator function, so a
+-- 3-arg like(...) is a hard 42883 that aborts the whole run rather than a failed
+-- assertion. Confirmed against pg_proc on this project (pgtap 1.3.3).
 
 BEGIN;
 
@@ -204,13 +209,13 @@ SELECT is(
 SELECT has_index('sanitary_applications', 'sanitary_applications_reversal_idx');
 SELECT has_index('sanitary_applications', 'sanitary_applications_composition_gin_idx');
 
-SELECT like(
+SELECT alike(
   (SELECT indexdef FROM pg_indexes WHERE indexname = 'sanitary_applications_reversal_idx'),
   '%WHERE (reverses_application_id IS NOT NULL)%',
   'sanitary_applications_reversal_idx is a partial index on reverses_application_id IS NOT NULL (D-31)'
 );
 
-SELECT like(
+SELECT alike(
   (SELECT indexdef FROM pg_indexes WHERE indexname = 'sanitary_applications_composition_gin_idx'),
   '%jsonb_path_ops%',
   'sanitary_applications_composition_gin_idx uses the jsonb_path_ops operator class (D-38)'
