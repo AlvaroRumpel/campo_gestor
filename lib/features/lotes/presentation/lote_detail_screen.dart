@@ -12,6 +12,7 @@ import '../../../features/auth/data/property_repository.dart';
 import '../../../features/piquetes/data/piquete_repository.dart';
 import '../../sanitario/data/sanitary_application_repository.dart';
 import '../../sanitario/presentation/aplicacao_form_dialog.dart';
+import '../../sanitario/presentation/sanitary_history_section.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
 import 'mover_lote_dialog.dart';
@@ -117,6 +118,8 @@ class LoteDetailScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               _AnimalList(animalsAsync: animalsAsync),
+              const SizedBox(height: 16),
+              LoteSanitaryHistorySection(lotId: loteId),
             ],
           );
         },
