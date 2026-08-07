@@ -11,6 +11,7 @@ import '../../piquetes/data/piquete_repository.dart';
 import '../../reproducao/data/atf_model.dart';
 import '../../reproducao/data/atf_repository.dart';
 import '../../reproducao/data/dg_record_model.dart';
+import '../../sanitario/presentation/sanitary_history_section.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
@@ -20,9 +21,10 @@ import 'mover_animal_dialog.dart';
 
 /// Full animal record screen (Plan 06). Replaces the Plan 04 stub.
 ///
-/// AppBar: '#N — Categoria'. Body: AnimalInfoCard + 2 placeholder sections
-/// (Histórico Reprodutivo, Histórico Sanitário). Veterinarian-only edit/baixa
-/// actions inside the card footer (T-3-21, T-3-22).
+/// AppBar: '#N — Categoria'. Body: AnimalInfoCard + Histórico Reprodutivo +
+/// Histórico Sanitário (SANI-05, D-25 — real section, no longer a Phase 6
+/// placeholder). Veterinarian-only edit/baixa actions inside the card footer
+/// (T-3-21, T-3-22).
 class AnimalDetailScreen extends ConsumerWidget {
   const AnimalDetailScreen({super.key, required this.animalId});
   final String animalId;
@@ -103,10 +105,7 @@ class AnimalDetailScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               _ReproductiveHistorySection(animalId: animal.id),
               const SizedBox(height: 16),
-              const _PlaceholderSection(
-                title: 'Histórico Sanitário',
-                body: 'Disponível na Fase 6.',
-              ),
+              AnimalSanitaryHistorySection(animalId: animal.id),
             ],
           ),
         );
@@ -372,9 +371,9 @@ class _KvRow extends StatelessWidget {
 /// One row per ATF the animal participated in — active or closed alike —
 /// ordered by insemination date descending, each showing that ATF's most
 /// recent DG result. D-13 makes this block strictly read-only: no mutation
-/// call, no interactive control, for any role. Reuses the outlined-card
-/// shell [_PlaceholderSection] builds (rounded 12, outline 38%,
-/// colorScheme.surface).
+/// call, no interactive control, for any role. Same outlined-card shell
+/// (rounded 12, outline 38%, colorScheme.surface) as the sanitary history
+/// section below it.
 class _ReproductiveHistorySection extends ConsumerWidget {
   const _ReproductiveHistorySection({required this.animalId});
 
@@ -519,42 +518,3 @@ class _ReproductiveHistoryRow extends StatelessWidget {
   }
 }
 
-/// Placeholder section card for future features.
-///
-/// Shows a card with title (titleMedium) + body text (bodyMedium).
-class _PlaceholderSection extends StatelessWidget {
-  const _PlaceholderSection({required this.title, required this.body});
-
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outline.withValues(alpha: 0.38),
-        ),
-      ),
-      color: theme.colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              body,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
