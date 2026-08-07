@@ -99,8 +99,7 @@ class LoteDetailScreen extends ConsumerWidget {
                         ref.invalidate(sanitaryApplicationsByLotProvider(loteId));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content:
-                                Text('Aplicação registrada — $count animais'),
+                            content: Text(sanitaryRegisteredMessage(count)),
                           ),
                         );
                       },

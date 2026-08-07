@@ -22,6 +22,13 @@ final _lotsWithActiveAnimalsProvider =
   return repo.fetchLotsWithCountByProperty(property.id);
 });
 
+/// D-24's success SnackBar copy, pluralised per the UI-SPEC contract
+/// (`Intl.plural`, never the "animal(is)" parenthetical). Shared by both
+/// entry points so the two call sites cannot drift apart.
+String sanitaryRegisteredMessage(int count) =>
+    'Aplicação registrada — '
+    '${Intl.plural(count, one: '1 animal', other: '$count animais', locale: 'pt_BR')}';
+
 /// Header dialog collecting lote, dose and date before the full-screen
 /// animal checklist (SANI-02/03, D-17). Serves both entry points: opened
 /// with [lotId] from `LoteDetailScreen`'s "Registrar aplicação" button

@@ -121,14 +121,21 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
   }
 
   Future<void> _openApplicationDialog() async {
-    final count = await showDialog<int>(
+    // The dialog pops itself before pushing the selection screen, so its own
+    // future always completes with null — the count arrives through
+    // onRegistered instead (06-11). Awaiting showDialog here would silently
+    // drop the D-24 SnackBar.
+    await showDialog<void>(
       context: context,
-      builder: (_) => const AplicacaoFormDialog(),
-    );
-    if (count == null || !mounted) return;
-    ref.invalidate(sanitaryApplicationListByPropertyProvider);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Aplicação registrada — $count animais')),
+      builder: (_) => AplicacaoFormDialog(
+        onRegistered: (count) {
+          if (!mounted) return;
+          ref.invalidate(sanitaryApplicationListByPropertyProvider);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(sanitaryRegisteredMessage(count))),
+          );
+        },
+      ),
     );
   }
 
