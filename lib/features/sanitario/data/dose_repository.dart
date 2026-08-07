@@ -99,11 +99,18 @@ class DoseRepository {
 
   /// Soft-delete: set deleted_at = now(). No DELETE policy exists — a hard
   /// delete would fail at the database anyway (D-15).
+  ///
+  /// `.select().single()` forces a thrown error when RLS or a stale/wrong id
+  /// silently matches zero rows — PostgREST otherwise answers 2xx on a 0-row
+  /// UPDATE, the exact silent no-op class fixed server-side for the dose
+  /// UPDATE policy in `20260812_06_fix_dose_update_policy.sql` (G-06-2).
   Future<void> archiveDose(String id) async {
     await _service.client
         .from('doses')
         .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
   }
 
   /// Restore an archived dose: set deleted_at = null.
@@ -111,7 +118,9 @@ class DoseRepository {
     await _service.client
         .from('doses')
         .update({'deleted_at': null})
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
   }
 }
 
