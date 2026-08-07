@@ -210,12 +210,12 @@ Plans:
   4. Usuário visualiza histórico sanitário do lote ordenado por data com lista de aplicações
   5. Usuário visualiza histórico sanitário de um animal específico via lookup nos snapshots, mesmo que o animal já tenha sido movido para outro lote
 
-**Plans:** 12 plans
+**Plans:** 2/12 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 06-01-PLAN.md — Wave 0 validation: pgTAP suite + pure calculation module + its two Dart test files
-- [ ] 06-02-PLAN.md — Both migrations authored: doses, sanitary_applications header, kg_per_ua, indexes, policies, isolation trigger, both RPCs
+- [x] 06-01-PLAN.md — Wave 0 validation: pgTAP suite + pure calculation module + its two Dart test files
+- [x] 06-02-PLAN.md — Both migrations authored: doses, sanitary_applications header, kg_per_ua, indexes, policies, isolation trigger, both RPCs
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -287,7 +287,7 @@ Plans:
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
-| 6. Sanitary Module | 0/12 | Planned | - |
+| 6. Sanitary Module | 2/12 | In Progress|  |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
