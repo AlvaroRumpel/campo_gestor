@@ -9,7 +9,7 @@ requires:
   - phase: 06-sanitary-module-snapshot
     provides: doses table, veterinarian_can_update_active_dose RLS policy (20260810_06_sanitary_module.sql), 81-assertion pgTAP suite (06_sanitary_test.sql)
 provides:
-  - supabase/migrations/20260812_06_fix_dose_update_policy.sql (authored + committed, NOT yet applied to live PROD)
+  - supabase/migrations/20260812_06_fix_dose_update_policy.sql (authored, committed, APPLIED to live PROD by orchestrator — ledger 17)
 affects: [06-sanitary-module-snapshot, orchestrator STATE.md ledger]
 
 # Tech tracking
@@ -29,7 +29,7 @@ key-decisions:
 
 patterns-established: []
 
-requirements-completed: []  # SANI-01 NOT marked complete — live apply and pgTAP replay (the actual proof of correctness) are still pending, executed by this agent only on-disk
+requirements-completed: [SANI-01]  # live apply + catalog read + RLS round-trip + pgTAP replay all performed by orchestrator 2026-08-07
 
 coverage:
   - id: D1
@@ -43,19 +43,28 @@ coverage:
   - id: D2
     description: "Migration applied to live PROD project wrdwzychjhlpwpivfhhq and proven correct by a pg_policies catalog read"
     requirement: "SANI-01"
-    verification: []
-    human_judgment: true
-    rationale: "This executor agent has no mcp__supabase__apply_migration or execute_sql tool available (restricted tools frontmatter strips MCP surface per anthropics/claude-code#13898, same constraint hit in 06-12). The apply step could not be attempted, faked, or simulated — it did not happen. Orchestrator must run it."
+    verification:
+      - kind: other
+        ref: "orchestrator MCP apply_migration 20260812_06_fix_dose_update_policy (ledger 16→17) + pg_policies read: 3 policies on doses (no DELETE), UPDATE qual/with_check = membership + veterinarian only, no deleted_at predicate"
+        status: pass
+      - kind: other
+        ref: "rolled-back RLS round-trip as role authenticated impersonating the real veterinarian: UPDATE clearing deleted_at on the real archived UAT dose affected 1 row (pre-fix: 0)"
+        status: pass
+    human_judgment: false
+    source: automated
   - id: D3
     description: "81-assertion pgTAP suite (supabase/tests/06_sanitary_test.sql, Group 12 included) replayed against live PROD inside a rolled-back transaction, all passing, row counts unchanged"
-    verification: []
-    human_judgment: true
-    rationale: "Same MCP-unavailability constraint as D2 — the replay requires execute_sql against the live project. Cannot be attempted from this agent."
+    verification:
+      - kind: other
+        ref: "orchestrator MCP execute_sql replay: 81 ran, 80 passed, 1 environmental false positive — Group 8's global 'count(*) FROM sanitary_applications = 2' assumes an empty table, but PROD now holds 2 real UAT rows (created during 06 UAT after 06-12's clean-DB replay), so in-transaction count is 4; it is the suite's only non-fixture-scoped assertion. Group 12's 6 restore-regression assertions all green. Row counts unchanged after rollback (doses=2, sanitary_applications=2)."
+        status: pass
+    human_judgment: false
+    source: automated
 
 # Metrics
 duration: 15min
 completed: 2026-08-07
-status: gaps_found
+status: complete
 ---
 
 # Phase 6 Plan 13: Corrective doses UPDATE Policy Migration (G-06-2) Summary
@@ -109,7 +118,21 @@ This condition was hit. No simulation, no fabricated catalog read, no edit to `2
 
 **STATE.md is intentionally NOT touched by this agent** per this plan's dispatch instructions (worktree isolation — the orchestrator owns STATE.md/ROADMAP.md writes after all wave agents complete). This is independent of the MCP blocker: even had the apply succeeded, this agent would not have written STATE.md directly.
 
-## Steps Remaining (owned by orchestrator)
+## Orchestrator Completion (2026-08-07, post-merge)
+
+All steps below were executed by the orchestrator (which holds the MCP Supabase tools), same protocol as 06-12:
+
+1. ✓ Preflight catalog read confirmed the live policy still carried `AND (deleted_at IS NULL)` in USING; ledger at 16 with no fix migration.
+2. ✓ Applied `20260812_06_fix_dose_update_policy` via MCP `apply_migration` — ledger 16 → 17.
+3. ✓ Catalog read post-apply: 3 policies on `doses` (SELECT/INSERT/UPDATE, no DELETE); UPDATE `qual` and `with_check` are membership + veterinarian only — no soft-delete predicate.
+4. ✓ RLS round-trip in a rolled-back transaction as `SET LOCAL ROLE authenticated` impersonating the real veterinarian (`request.jwt.claim.sub`): `UPDATE doses SET deleted_at = NULL` on the real archived UAT dose (`b42ab5b5…`) affected **1 row** (pre-fix behavior: 0 rows). This exercises RLS for real — the pgTAP Group 12 UPDATEs run as table owner and bypass RLS, so this round-trip is the authoritative end-to-end proof.
+5. ✓ pgTAP replay (rolled back, count-surfacing tail per 06-12 protocol): **81 ran, 80 passed, 1 environmental false positive** — Group 8's `count(*) FROM sanitary_applications = 2` assumes an empty database; PROD now holds 2 real UAT rows, so the in-transaction count is 4. It is the suite's only assertion scoped to global table state rather than fixture ids; all other 80 assertions (including all 6 Group 12 restore-regression assertions) are green. Not a schema defect; noted for a future suite hardening (scope the count to fixture property).
+6. ✓ Row counts before/after replay unchanged: `doses` = 2, `sanitary_applications` = 2 (transaction rolled back; no fixture leakage).
+7. ✓ STATE.md ledger/test-record updated by orchestrator (see tracking commit).
+
+**G-06-2 is closed in the live database.** The dose restore/edit-archived path now matches 1 row under RLS.
+
+## Steps Remaining (original executor handoff — all completed above)
 
 1. Apply `supabase/migrations/20260812_06_fix_dose_update_policy.sql` to live PROD project `wrdwzychjhlpwpivfhhq` via MCP `apply_migration`, using the file's own name as the migration name. Migration ledger goes from 16 to 17.
 2. Verify by catalog read: `SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename = 'doses' ORDER BY policyname;` — expect exactly 3 rows (SELECT, INSERT, UPDATE, no DELETE), and the UPDATE row's `qual`/`with_check` referencing membership + veterinarian role only, no soft-delete predicate.

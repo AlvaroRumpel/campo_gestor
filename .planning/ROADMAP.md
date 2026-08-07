@@ -210,7 +210,7 @@ Plans:
   4. Usuário visualiza histórico sanitário do lote ordenado por data com lista de aplicações
   5. Usuário visualiza histórico sanitário de um animal específico via lookup nos snapshots, mesmo que o animal já tenha sido movido para outro lote
 
-**Plans:** 14 plans (12 executed + 2 gap closure from UAT)
+**Plans:** 14/14 plans executed
 Plans:
 **Wave 1**
 
@@ -244,8 +244,8 @@ Plans:
 
 **Gap closure** *(from UAT 2026-08-07 — both plans independent, run in parallel)*
 
-- [ ] 06-13-PLAN.md — G-06-2: forward-only migration replacing the stale live doses UPDATE policy + replay pgTAP at 81
-- [ ] 06-14-PLAN.md — G-06-9: JSON-encode the per-animal containment filter (22P02) + app-wide retry policy
+- [x] 06-13-PLAN.md — G-06-2: forward-only migration replacing the stale live doses UPDATE policy + replay pgTAP at 81
+- [x] 06-14-PLAN.md — G-06-9: JSON-encode the per-animal containment filter (22P02) + app-wide retry policy
 
 **UI hint:** yes
 
@@ -292,7 +292,7 @@ Plans:
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
-| 6. Sanitary Module | 12/12 | In Progress|  |
+| 6. Sanitary Module | 14/14 | In Progress|  |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
