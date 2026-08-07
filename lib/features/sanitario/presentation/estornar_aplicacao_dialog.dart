@@ -71,6 +71,12 @@ class _EstornarAplicacaoDialogState
             'Não foi possível estornar a aplicação. Tente novamente.',
       );
       if (!mounted) return;
+      if (exception.reason == SanitaryApplicationErrorReason.alreadyReversed) {
+        // The cached by-lot list predates this race — invalidate it so
+        // `_ErrorSlot` resolves the sibling reversal row the other user
+        // just created, instead of the stale (pre-race) snapshot (WR-02).
+        ref.invalidate(sanitaryApplicationsByLotProvider(widget.lotId));
+      }
       setState(() => _error = exception);
     } finally {
       if (mounted) setState(() => _saving = false);
