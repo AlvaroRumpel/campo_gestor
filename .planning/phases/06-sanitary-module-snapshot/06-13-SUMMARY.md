@@ -128,3 +128,9 @@ This condition was hit. No simulation, no fabricated catalog read, no edit to `2
 ---
 *Phase: 06-sanitary-module-snapshot*
 *Completed: 2026-08-07 (partial — see Steps Remaining)*
+
+## Self-Check: PASSED
+
+- FOUND: supabase/migrations/20260812_06_fix_dose_update_policy.sql
+- FOUND: commit 938196e (migration file)
+- FOUND: commit 253c279 (this SUMMARY.md)
