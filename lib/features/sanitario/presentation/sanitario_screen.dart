@@ -9,9 +9,9 @@ import '../../animais/data/animal_repository.dart';
 import '../../auth/data/property_repository.dart';
 import '../../lotes/data/lote_model.dart';
 import '../../lotes/data/lote_repository.dart';
-import '../../propriedades/data/propriedade_repository.dart';
 import '../data/dose_model.dart';
 import '../data/dose_repository.dart';
+import '../data/kg_per_ua_resolver.dart';
 import '../data/sanitary_application_model.dart';
 import '../data/sanitary_application_repository.dart';
 import '../data/sanitary_calculations.dart';
@@ -110,18 +110,6 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
         if (mounted) _tabController.animateTo(0);
       });
     }
-  }
-
-  /// The active property's kg/UA factor (D-12) for the doses tab's computed
-  /// per-UA figures — same join `DoseFormDialog`/`ResumoAplicacaoDialog` use
-  /// (`currentPropertyProvider` only carries id+name).
-  double _kgPerUa() {
-    final selected = ref.watch(currentPropertyProvider).asData?.value;
-    if (selected == null) return 400;
-    final properties =
-        ref.watch(propertyListProvider).asData?.value ?? const [];
-    final match = properties.where((p) => p.id == selected.id);
-    return match.isNotEmpty ? match.first.kgPerUa : 400;
   }
 
   Future<void> _openApplicationDialog() async {
@@ -396,7 +384,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
     final dosesAsync = _showArchived
         ? ref.watch(archivedDoseListByPropertyProvider)
         : ref.watch(doseListByPropertyProvider);
-    final kgPerUa = _kgPerUa();
+    final kgPerUa = resolveActiveKgPerUa(ref);
 
     return Column(
       children: [

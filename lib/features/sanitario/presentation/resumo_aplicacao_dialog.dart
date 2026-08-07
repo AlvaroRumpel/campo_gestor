@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/providers/current_property_provider.dart';
 import '../../animais/data/animal_model.dart';
-import '../../propriedades/data/propriedade_repository.dart';
 import '../data/dose_model.dart';
+import '../data/kg_per_ua_resolver.dart';
 import '../data/sanitary_application_exception.dart';
 import '../data/sanitary_application_repository.dart';
 import '../data/sanitary_calculations.dart';
@@ -99,20 +98,6 @@ class _ResumoAplicacaoDialogState extends ConsumerState<ResumoAplicacaoDialog> {
     if (mounted) setState(() => _duplicateApplicationId = id);
   }
 
-  /// D-12: the active property's UA factor, defaulting to 400 while the
-  /// property list is still loading or the active property can't be
-  /// resolved yet — this is a display-only preview, never a value sent to
-  /// the server.
-  double _resolveKgPerUa() {
-    final currentId = ref.watch(currentPropertyProvider).asData?.value?.id;
-    final properties = ref.watch(propertyListProvider).asData?.value;
-    if (currentId == null || properties == null) return 400;
-    for (final property in properties) {
-      if (property.id == currentId) return property.kgPerUa;
-    }
-    return 400;
-  }
-
   void _handleReload() {
     Navigator.pop(
       context,
@@ -172,7 +157,7 @@ class _ResumoAplicacaoDialogState extends ConsumerState<ResumoAplicacaoDialog> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    final kgPerUa = _resolveKgPerUa();
+    final kgPerUa = resolveActiveKgPerUa(ref);
     final totalUa = totalUaForCategories(
       widget.selectedAnimals.map((a) => a.category),
     );

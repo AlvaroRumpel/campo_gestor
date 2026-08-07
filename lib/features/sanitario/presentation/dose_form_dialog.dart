@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/current_property_provider.dart';
-import '../../propriedades/data/propriedade_repository.dart';
 import '../data/dose_model.dart';
 import '../data/dose_repository.dart';
+import '../data/kg_per_ua_resolver.dart';
 import '../data/sanitary_application_exception.dart';
 import '../data/sanitary_calculations.dart';
 
@@ -87,19 +87,6 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
     return double.tryParse(normalized);
   }
 
-  /// The active property's kg/UA factor (D-12), falling back to 400 while
-  /// the property or its full row has not resolved. `currentPropertyProvider`
-  /// only carries id+name (`SelectedProperty`); the full `Property.kgPerUa`
-  /// lives in `propertyListProvider` — no new provider needed to join them.
-  double _kgPerUa() {
-    final selected = ref.watch(currentPropertyProvider).asData?.value;
-    if (selected == null) return 400;
-    final properties =
-        ref.watch(propertyListProvider).asData?.value ?? const [];
-    final match = properties.where((p) => p.id == selected.id);
-    return match.isNotEmpty ? match.first.kgPerUa : 400;
-  }
-
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -161,7 +148,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final kgPerUa = _kgPerUa();
+    final kgPerUa = resolveActiveKgPerUa(ref);
     final dosage = _parseDouble(_dosageCtrl.text);
     final cost = _parseDouble(_costCtrl.text);
     final dosageUa = dosage != null ? dosagePerUa(dosage, kgPerUa) : null;
