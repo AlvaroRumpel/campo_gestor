@@ -210,7 +210,7 @@ Plans:
   4. Usuário visualiza histórico sanitário do lote ordenado por data com lista de aplicações
   5. Usuário visualiza histórico sanitário de um animal específico via lookup nos snapshots, mesmo que o animal já tenha sido movido para outro lote
 
-**Plans:** 12/12 plans executed
+**Plans:** 14 plans (12 executed + 2 gap closure from UAT)
 Plans:
 **Wave 1**
 
@@ -241,6 +241,11 @@ Plans:
 **Wave 6** *(blocked on Wave 5)*
 
 - [x] 06-12-PLAN.md — [BLOCKING] apply both migrations + replay 06_sanitary_test.sql and 04_movements_test.sql + human UAT
+
+**Gap closure** *(from UAT 2026-08-07 — both plans independent, run in parallel)*
+
+- [ ] 06-13-PLAN.md — G-06-2: forward-only migration replacing the stale live doses UPDATE policy + replay pgTAP at 81
+- [ ] 06-14-PLAN.md — G-06-9: JSON-encode the per-animal containment filter (22P02) + app-wide retry policy
 
 **UI hint:** yes
 
