@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-sanitary-module-snapshot
 source: 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md, 06-04-SUMMARY.md, 06-05-SUMMARY.md, 06-06-SUMMARY.md, 06-07-SUMMARY.md, 06-08-SUMMARY.md, 06-09-SUMMARY.md, 06-10-SUMMARY.md, 06-11-SUMMARY.md, 06-12-SUMMARY.md
 started: 2026-08-07T17:31:38Z
@@ -117,8 +117,14 @@ blocked: 0
   reason: "User reported: eu clico em desarquivar e não desarquiva"
   severity: major
   test: 2
-  artifacts: []
-  missing: []
+  root_cause: "Live PROD still runs the original veterinarian_can_update_active_dose RLS policy with 'AND deleted_at IS NULL' in USING. Migration 20260810_06 was applied during 06-12 (~01:27) 13h BEFORE fix ae08dba (14:14) edited the already-applied migration file in place; no follow-up migration re-applied the corrected policy. RLS USING evaluates the pre-update row, so UPDATE on an archived dose matches 0 rows — 2xx success, silent no-op. Dart code (repository + invalidation) is correct."
+  artifacts:
+    - path: "supabase/migrations/20260810_06_sanitary_module.sql"
+      issue: "lines 47-49 fixed on disk but never applied to PROD (applied migrations don't re-run)"
+  missing:
+    - "New migration (e.g. 20260812_06_fix_dose_update_policy.sql) with DROP POLICY + CREATE POLICY using corrected USING clause"
+    - "Apply to PROD and replay updated pgTAP suite (81 assertions incl. Group 12 restore regression)"
+  debug_session: ".planning/debug/dose-restore-noop.md"
 
 - gap_id: G-06-9
   truth: "Animal ficha's Histórico Sanitário section loads real application rows via the per-animal containment lookup (composition_snapshot @> filter over GIN index)"
@@ -126,5 +132,11 @@ blocked: 0
   reason: "User reported: per-animal sanitary_applications requests fail with PostgREST 22P02 'invalid input syntax for type json — Expected \":\", but found \"}\"' — the containment filter JSON sent by the repository is malformed; section spins forever"
   severity: blocker
   test: 9
-  artifacts: []
-  missing: []
+  root_cause: "fetchSanitaryHistoryByAnimal calls .contains('composition_snapshot', [{'animal_id': animalId}]) with a Dart List. postgrest-dart 2.7.0 encodes List as a Postgres array literal via _cleanFilterArray (Map.toString, unquoted keys) — request carries cs.{\"{animal_id: <uuid>}\"} which Postgres rejects as invalid json (22P02). Only a String value bypasses the array encoding. Secondary: Riverpod 3.3.1 default auto-retry (~10 attempts) re-issues the deterministic failure, keeping the section on a spinner instead of showing the error."
+  artifacts:
+    - path: "lib/features/sanitario/data/sanitary_application_repository.dart"
+      issue: "lines 88-95 — containment value passed as List, must be pre-encoded JSON string"
+  missing:
+    - "Change to .contains('composition_snapshot', jsonEncode([{'animal_id': animalId}])) so postgrest forwards cs.[{\"animal_id\":\"<uuid>\"}] verbatim"
+    - "Optionally limit provider retry for non-transient PostgrestExceptions so the error state renders"
+  debug_session: ".planning/debug/animal-history-22p02.md"
