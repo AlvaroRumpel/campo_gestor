@@ -135,3 +135,7 @@ None - no external service configuration required. This plan only adds Dart clie
 ---
 *Phase: 06-sanitary-module-snapshot*
 *Completed: 2026-08-07*
+
+## Self-Check: PASSED
+
+All created/modified files verified present on disk (`dose_model.dart`, `dose_repository.dart`, `propriedade_model.dart`, this SUMMARY). Both task commit hashes (`e9fcd67`, `f02c784`) verified present in `git log --oneline -5`.
