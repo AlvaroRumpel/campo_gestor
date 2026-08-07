@@ -210,7 +210,7 @@ Plans:
   4. Usuário visualiza histórico sanitário do lote ordenado por data com lista de aplicações
   5. Usuário visualiza histórico sanitário de um animal específico via lookup nos snapshots, mesmo que o animal já tenha sido movido para outro lote
 
-**Plans:** 9/12 plans executed
+**Plans:** 11/12 plans executed
 Plans:
 **Wave 1**
 
@@ -235,8 +235,8 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 06-10-PLAN.md — SanitarioScreen: two tabs, filters, both toggles, cards (SANI-01, SANI-04)
-- [ ] 06-11-PLAN.md — LoteDetailScreen: registration button + sanitary history section (SANI-04)
+- [x] 06-10-PLAN.md — SanitarioScreen: two tabs, filters, both toggles, cards (SANI-01, SANI-04)
+- [x] 06-11-PLAN.md — LoteDetailScreen: registration button + sanitary history section (SANI-04)
 
 **Wave 6** *(blocked on Wave 5)*
 
@@ -287,7 +287,7 @@ Plans:
 | 3. Lots & Animals | 0/6 | Not started | - |
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
-| 6. Sanitary Module | 9/12 | In Progress|  |
+| 6. Sanitary Module | 11/12 | In Progress|  |
 | 7. Expenses by Paddock | 0/0 | Not started | - |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
