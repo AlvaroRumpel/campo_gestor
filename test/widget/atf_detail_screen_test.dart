@@ -16,6 +16,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 // ---------------------------------------------------------------------------
 // Fake repository (05-06 — composition remove flow)
@@ -650,7 +651,11 @@ void main() {
         'exam_date defaults to the session date, and a per-animal override lands only in that entry',
         (tester) async {
       final repo = _FakeAtfRepo();
-      final today = DateTime.now().toUtc().toIso8601String().substring(0, 10);
+      // Local date, no `.toUtc()` — must mirror AtfRepository's `_dateOnlyFmt`
+      // (WR-03). Converting to UTC first shifts the calendar day for any
+      // UTC-behind offset, so this assertion used to fail after 21:00 in
+      // America/Sao_Paulo while the app was behaving correctly.
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       await tester.pumpWidget(
         _buildScreen(
           atf: AsyncValue.data(_atf()),
