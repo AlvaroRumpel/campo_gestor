@@ -35,7 +35,7 @@ See: .planning/PROJECT.md
 | 0 | Foundation | complete (6/6 plans) |
 | 1 | Auth & Multi-tenancy Core | complete (UAT 4/4 — 2026-05-07) |
 | 2 | Property & Paddock Structure | complete (UAT 9/10 — 2026-05-08) |
-| 3 | Lots & Animals (Operational Core) | complete |
+| 3 | Lots & Animals (Operational Core) | complete (UAT 5/5 — 2026-08-10) |
 | 4 | Movements | complete (7/7 plans, UAT 8/8 — 2026-08-04) |
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | executed (12/12 plans, migrations live) — awaiting UAT |

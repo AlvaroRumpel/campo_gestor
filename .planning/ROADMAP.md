@@ -12,7 +12,7 @@
 - [x] **Phase 0: Foundation** — Flutter scaffold, Supabase init, AppShell, currentPropertyProvider; sem features de domínio
 - [ ] **Phase 1: Auth & Multi-tenancy Core** — Login email/senha, perfis, vínculo veterinário↔propriedade, propriedade ativa, RLS completo
 - [ ] **Phase 2: Property & Paddock Structure** — CRUD de propriedade e piquete; protótipos de risco (numeração RPC, snapshot JSONB, ATF partial unique index)
-- [ ] **Phase 3: Lots & Animals (Operational Core)** — Lote operacional CRUD, criação em batch de animais via RPC, edição e ficha do animal, busca/filtro, baixa
+- [x] **Phase 3: Lots & Animals (Operational Core)** — Lote operacional CRUD, criação em batch de animais via RPC, edição e ficha do animal, busca/filtro, baixa (completed 2026-08-10)
 - [x] **Phase 4: Movements** — Mover animal entre lotes, mover lote inteiro entre piquetes (atômico via RPC) (completed 2026-08-04)
 - [x] **Phase 5: Reproductive Module (LoteATF)** — CRUD LoteATF, validação 1 ATF ativo/animal, DG, % prenhez, histórico reprodutivo na ficha (completed 2026-08-06)
 - [ ] **Phase 6: Sanitary Module (Snapshot)** — Doses, aplicação sanitária com snapshot congelado, desmarcar individuais, histórico por lote e por animal
