@@ -14,6 +14,18 @@
       ]
     },
     {
+      // Não é para F5 — é a fonte de variáveis do `dart run tool/deploy.dart`.
+      "name": "Flutter (Web, prod)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "edge",
+      "args": [
+        "--dart-define=SUPABASE_URL=https://PROJECT_REF.supabase.co",
+        "--dart-define=SUPABASE_ANON_KEY=PASTE_CLOUD_PUBLISHABLE_KEY_HERE",
+        "--dart-define=APP_ORIGIN=https://campo-gestor.pages.dev"
+      ]
+    },
+    {
       "name": "Flutter (Edge, profile)",
       "request": "launch",
       "type": "dart",
