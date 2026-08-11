@@ -1,7 +1,7 @@
 ---
 phase: 7
 slug: expenses-by-paddock
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-11
@@ -108,40 +108,70 @@ Accent reserved for: FAB background icon, the R$/count total figure at the top o
 > Empty-state and error-state COPY live in `## Copywriting Contract` above — this section covers
 > state coverage and REFERENCES those rows rather than restating the copy (de-dup).
 
-Elements classified:
-- **E1** Expense list `/gastos/:paddockId` — `list-collection` (unified: manual expenses + read-only sanitary rows, D-32)
-- **E2** Expense form dialog (create/edit) — `form`
-- **E3** Period/category filter row — `interactive-control`
-- **E4** Total summary header (R$ + count) — `static-content`
-- **E5** Paddock-detail expense summary card — `interactive-control` (tap navigates, D-09)
-- **E6** Delete-confirmation `AlertDialog` — `interactive-control`
+Elements classified (engine-detected kinds, user-confirmed — E5 gained `interactive-control` at the
+propose-then-confirm step because the prose cue matched only `list-collection` while the card is a
+tappable navigation affordance, D-09):
 
-Applicable state considerations resolved: 14 covered, 1 backstop, 1 unresolved
+| Element | Surface | Element kinds |
+|---------|---------|---------------|
+| **E1** | Expense list `/gastos/:paddockId` (unified: manual expenses + read-only sanitary rows, D-32) | `list-collection`, `media`, `static-content` |
+| **E2** | Expense form dialog (create/edit) | `form`, `interactive-control`, `static-content` |
+| **E3** | Period/category filter row + "Mostrar excluídos" toggle | `list-collection`, `interactive-control` |
+| **E4** | Total summary header (R$ + count) | `list-collection`, `static-content` |
+| **E5** | Paddock-detail expense summary card | `list-collection`, `interactive-control` *(confirmed addition)* |
+| **E6** | Delete-confirmation `AlertDialog` | `interactive-control`, `static-content` |
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | E1 list-collection | ✅ covered | See Copywriting Contract "Empty state — never had expenses" / "— filtered to zero" rows (D-13) |
-| empty | E2 form | ✅ covered | All fields start blank except paddock (pre-resolved by the route, D-10); category dropdown starts empty and required (D-06) |
-| loading | E1 list-collection | ✅ covered | Centered `CircularProgressIndicator`, identical to `SanitarioScreen`/`PiquetesScreen` |
-| loading | E2 form | ✅ covered | `AlertDialog` title slot swaps to `LinearProgressIndicator` while `_saving`, identical to `DoseFormDialog`/`EstornarAplicacaoDialog` |
-| loading | E5 interactive-control | ✅ covered | Card renders once its `FutureProvider.family` resolves; until then, reuse the same small `CircularProgressIndicator` treatment (no skeleton pattern exists in this codebase — do not introduce one) |
-| error | E1 list-collection | ✅ covered | Exact reused copy, see Copywriting Contract "Error state" row |
-| error | E2 form | ✅ covered | Inline error text in `colorScheme.error` below the fields, mirrors `DoseFormDialog._errorMessage` |
-| error | E5 interactive-control | ⚠ unresolved | No established pattern for a *small embedded summary card* failing to load — every prior error state is full-screen. Planner must pick a concrete inline fallback (e.g., card shows "—" for the total with a retry icon, vs. hides itself) and document it; do not silently drop the total to `R$ 0,00` (that reads as "no expenses," not "load failed"). |
-| populated | E1 list-collection | ✅ covered | D-32: manual expenses + read-only sanitary application rows in one date-desc list; sanitary rows carry the sanitary icon, currency (or "—"), and the "Sanitário" badge; tap → `/aplicacoes/:id` |
-| partial | E2 form | ✅ covered | D-04: `description` is the only optional field; category/valor/data are required and validated |
-| partial | E1 list-collection (sanitary row, cost NULL) | 🧪 backstop | Claude's Discretion resolution (CONTEXT.md): row renders "—" instead of a value, contributes `0` to the total, still counts in the item count. No visual truth alone proves the total math — needs an explicit Dart test asserting the 0-contribution + count-inclusion (feeds `07_expenses` total-calculation test per D-36), not just a rendered "—". |
-| overflow | E1 list-collection | ✅ covered | `ListView.builder`, scrolls; documented client-side-sum ceiling (D-18) — pagination is explicitly out of scope this phase, comment left in code per D-18 |
-| overflow | E3 interactive-control | ✅ covered | Horizontal `SingleChildScrollView` filter row, identical to `SanitarioScreen._buildFilterRow` |
-| zero-one-many | E1 list-collection | ✅ covered | Total header pluralizes via `Intl.plural` pt-BR ("1 lançamento" / "N lançamentos"), same idiom as `_AplicacaoCard`'s animal-count string |
-| long-text | E2 form (description field) | ✅ covered | Multi-line `TextFormField` (`maxLines: 3`), mirrors `EstornarAplicacaoDialog`'s motivo field |
-| long-text | E1 list-collection (category label / paddock name / dose name) | ✅ covered | `maxLines: 1` + `TextOverflow.ellipsis`, the established pattern on every card title in this codebase (`_AplicacaoCard`, `_DoseCard`, `_PaddockCard`) |
+**Applicable state considerations: 40 — 32 covered, 3 backstop, 5 dismissed, 0 unresolved.**
+
+| Category | Element | Status | Resolution / Reason |
+|----------|---------|--------|---------------------|
+| empty | E1 | ✅ covered | Two distinct states — see Copywriting Contract "Empty state — never had expenses" / "— filtered to zero" rows (D-13) |
+| loading | E1 | ✅ covered | Centered `CircularProgressIndicator`, identical to `SanitarioScreen`/`PiquetesScreen` |
+| error | E1 | ✅ covered | Exact reused copy, see Copywriting Contract "Error state" row |
+| populated | E1 | ✅ covered | D-32: manual expenses + read-only sanitary application rows in one date-desc list; sanitary rows carry the sanitary icon, currency (or "—"), and the "Sanitário" badge; tap → `/aplicacoes/:id` |
+| partial | E1 (sanitary row, cost NULL) | 🧪 backstop | Row renders "—" instead of a value, contributes `0` to the total, and still counts toward the item count. No visual truth proves the total math — requires an explicit Dart test asserting the 0-contribution **and** the count-inclusion (feeds the `07_expenses` total-calculation test, D-36). |
+| overflow | E1 | ✅ covered | `ListView.builder`, scrolls; documented client-side-sum ceiling (D-18) — pagination is explicitly out of scope this phase, comment left in code per D-18 |
+| zero-one-many | E1 | ✅ covered | Total header pluralizes via `Intl.plural` pt-BR ("1 lançamento" / "N lançamentos"), same idiom as `_AplicacaoCard`'s animal-count string |
+| long-text | E1 (category label / paddock name / dose name) | ✅ covered | `maxLines: 1` + `TextOverflow.ellipsis`, the established pattern on every card title in this codebase (`_AplicacaoCard`, `_DoseCard`, `_PaddockCard`) |
+| empty | E2 | ✅ covered | All fields start blank except paddock (pre-resolved by the route, D-10); category dropdown starts empty and required (D-06) |
+| loading | E2 | ✅ covered | `AlertDialog` title slot swaps to `LinearProgressIndicator` while `_saving`, identical to `DoseFormDialog`/`EstornarAplicacaoDialog` |
+| error | E2 | ✅ covered | Inline error text in `colorScheme.error` below the fields, mirrors `DoseFormDialog._errorMessage` |
+| partial | E2 | ✅ covered | D-04: `description` is the only optional field; categoria/valor/data are required and validated before submit |
+| overflow | E2 | ✅ covered | Dialog `content` wrapped in `SingleChildScrollView`, action buttons stay fixed — the established pattern in `dose_form_dialog.dart:170`, `aplicacao_form_dialog.dart:218`, `estornar_aplicacao_dialog.dart:101`. No full-screen-dialog breakpoint is introduced. |
+| long-text | E2 (description field) | ✅ covered | Multi-line `TextFormField` (`maxLines: 3`), mirrors `EstornarAplicacaoDialog`'s motivo field |
+| empty | E3 | ⊘ dismissed | The preset chip set is a hardcoded constant list (D-16) — it can never render zero chips. |
+| loading | E3 | ⊘ dismissed | Chips are compile-time constants; the filter row performs no I/O of its own. |
+| error | E3 | ⊘ dismissed | The filter row issues no request — a failed fetch surfaces on E1, which owns the `AsyncValue`. |
+| populated | E3 | ✅ covered | Five preset chips ("Mês atual" / "Mês passado" / "Últimos 3 meses" / "Ano" / "Personalizado") plus the "Mostrar excluídos" toggle; exactly one preset selected at a time, filled in `colorScheme.primary` |
+| partial | E3 | ✅ covered | Tapping "Personalizado" and cancelling `showDateRangePicker` without choosing a range is a no-op: the previously selected preset stays selected and the list does not re-filter. Never leaves "Personalizado" selected with no range. |
+| overflow | E3 | ✅ covered | Horizontal `SingleChildScrollView` filter row, identical to `SanitarioScreen._buildFilterRow` |
+| zero-one-many | E3 | ⊘ dismissed | Fixed cardinality — always five presets plus one toggle; there is no zero/one/many axis. |
+| long-text | E3 | ✅ covered | The "Personalizado" chip with a selected range renders its date label at `maxLines: 1` + `TextOverflow.ellipsis`; the row scrolls horizontally rather than wrapping |
+| empty | E4 | ✅ covered | Header stays visible at zero items showing "R$ 0,00" + "0 lançamentos" — consistent with D-13's filtered-empty rule and avoiding a layout jump when a filter drops N items to 0 |
+| loading | E4 | ✅ covered | The header lives inside E1's single `AsyncValue`; it does not render independently — E1's centered `CircularProgressIndicator` replaces header and list together |
+| error | E4 | ✅ covered | Same shared `AsyncValue` — E1's full-screen error copy replaces header and list together; the header never shows a stale or partial total |
+| populated | E4 | ✅ covered | "{R$ total}" in `colorScheme.primary` + "{N} lançamento{s}" computed count, per the Copywriting Contract "Total header (list)" row (D-17) |
+| partial | E4 | 🧪 backstop | The displayed total is the same client-side sum as E1's `partial` row — sanitary rows with NULL cost contribute `0` while still counting. Covered by the same explicit Dart test; a rendered figure alone does not prove the arithmetic. |
+| overflow | E4 | ✅ covered | `maxLines: 1` + `TextOverflow.ellipsis` on the total and count text — the same idiom as every card title in the codebase. No `FittedBox` (it would break the declared 2-size type scale) and no forced line wrap. |
+| zero-one-many | E4 | ✅ covered | `Intl.plural` pt-BR — "0 lançamentos" / "1 lançamento" / "N lançamentos" |
+| long-text | E4 | ✅ covered | Same `maxLines: 1` + ellipsis treatment as the `overflow` row; the exact figure remains readable in the list below |
+| empty | E5 | ✅ covered | Card always renders with "R$ 0,00 este mês" when the paddock has no expenses in the current month — same shape as the loaded state (no layout jump), and it stays the navigation entry point for logging the first expense |
+| loading | E5 | ✅ covered | Card renders once its `FutureProvider.family` resolves; until then a small `CircularProgressIndicator` in the subtitle slot (no skeleton pattern exists in this codebase — do not introduce one) |
+| error | E5 | ✅ covered | Card keeps its "Gastos" title, the subtitle becomes "—", and an `IconButton(Icons.refresh)` invalidates the provider. It must **not** fall back to "R$ 0,00" (that reads as "no expenses", not "load failed"). This resolves the previously unresolved small-embedded-card error gap. |
+| populated | E5 | ✅ covered | Title "Gastos", subtitle "{R$ total} este mês", whole card tappable → `/gastos/:paddockId` (D-09) |
+| partial | E5 | 🧪 backstop | The month total aggregates the same NULL-cost sanitary rows as `0`. Same explicit Dart test as E1/E4 `partial`; the card's rendered figure alone proves nothing. |
+| overflow | E5 | ✅ covered | `maxLines: 1` + `TextOverflow.ellipsis` on the subtitle total — the card height stays fixed regardless of magnitude |
+| zero-one-many | E5 | ⊘ dismissed | The card displays only an aggregate figure, never a per-item list — there is no item-count axis to read at zero/one/many. |
+| long-text | E5 | ✅ covered | Same `maxLines: 1` + ellipsis treatment as the `overflow` row |
+| overflow | E6 | ✅ covered | The `AlertDialog` title wraps to multiple lines rather than truncating — a destructive confirmation must show the exact value and date (D-28). Material 3 default behaviour, no extra code. |
+| long-text | E6 | ✅ covered | Same multi-line title. The title keeps the inline "{valor}" and "{dd/MM}" per D-28 — do not shorten it to "Excluir gasto?" and move the values into the dialog body. |
 
 <!-- Status vocabulary (locked by probe-core projectTruths):
      ✅ covered   → a plain truth string lifted into must_haves.truths
      🧪 backstop  → a flat scalar { statement, verification: backstop }; at verify time, no explicit
                     evidence → insufficient_spec → human_needed (never a silent pass, #1154)
-     ⚠ unresolved → an explicit planner assumption (surfaced, never silently dropped)
+     ⊘ dismissed  → explicitly not applicable to this element, reason recorded (never a silent drop)
+     ⚠ unresolved → an explicit planner assumption (surfaced, never silently dropped) — none remain
      Rows are REPLACED (not appended) on a probe re-run — idempotent. -->
 
 ---
@@ -159,11 +189,11 @@ Not applicable — Flutter/Material 3 project with no component-registry system 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS (not applicable — no registry system in this stack)
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS (not applicable — no registry system in this stack)
 
-**Approval:** pending
+**Approval:** approved — 6/6 dimensions, 0 recommendations. UI-consideration probe run post-verification: 40 applicable, 0 unresolved.
