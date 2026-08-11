@@ -1,5 +1,5 @@
 ---
-status: testing
+status: passed
 phase: 07-expenses-by-paddock
 source: [07-08-PLAN.md task 3]
 started: 2026-08-11
@@ -8,12 +8,12 @@ updated: 2026-08-11
 
 ## Current Test
 
-number: 1
-name: G-07-1 — in-app entry point to /gastos/:paddockId
+number: —
+name: UAT complete
 expected: |
-  Opening a piquete's detail screen shows a "Gastos" card below the piquete
-  info card; tapping it opens /gastos/:paddockId.
-awaiting: user confirmation of build freshness (see Gaps)
+  All 7 checks green. One real gap (G-07-2) found and fixed; G-07-1 was a
+  reporting artifact, not a defect.
+awaiting: nothing
 
 ## Tests
 
@@ -39,7 +39,7 @@ result: passed
 
 ### 6. Card de gastos no piquete + navegação
 expected: "Gastos" card on paddock detail routes into /gastos/:paddockId
-result: issue — reported reachable only by editing the URL (G-07-1)
+result: passed — "abre certinho, como deve abrir" (user, 2026-08-11)
 
 ### 7. Restaurar gasto excluído
 expected: an archived expense can be un-archived from the UI
@@ -48,22 +48,32 @@ result: issue — no restore affordance existed (G-07-2)
 ## Summary
 
 total: 7
-passed: 5
-issues: 2
+passed: 7
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
 
+(1 real gap found and fixed during UAT: G-07-2.)
+
 ## Gaps
 
-### G-07-1 — /gastos/:paddockId reachable only by URL
-status: not-reproduced
-severity: blocking-if-real
+### G-07-1 — "/gastos/:paddockId reachable only by URL"
+status: not-a-defect
+severity: none
 
-**Reported:** no way to reach the gastos screen from the app; only by editing
-the browser URL.
+**Resolution (user, 2026-08-11):** *"ele abre certinho, como deve abrir; o
+problema é que a URL que você passou acessava a mesma tela, mas não tem um
+fluxo específico para chegar naquela URL — não é um problema."* The
+Piquetes → piquete → "Gastos" card flow works as designed. The report was an
+artifact of the UAT script handing over a direct URL, not a missing entry
+point. **No production code was changed for this.**
 
-**Investigation — could not reproduce in code.** Verified in HEAD:
+Recorded here rather than deleted because the investigation produced two
+artifacts worth keeping (below), and because a future reader should not
+re-litigate it.
+
+**Investigation — nothing was wrong.** Verified in HEAD:
 
 - `PaddockExpenseSummaryCard` IS imported and rendered unconditionally in
   `paddock_detail_screen.dart:45`, between `_PaddockInfoCard` and the lots
@@ -83,16 +93,19 @@ real shell nesting and the tap-through assertion **still passed with `push`**.
 The navigation-idiom change was therefore reverted rather than committed as a
 fix for a cause that was not the cause.
 
-**Guard added anyway** (`test/widget/paddock_detail_gastos_entry_test.dart`):
-mounts the real `PaddockDetailScreen` and asserts the card is present in the
-loaded, loading and error states. 07-07's own test mounted the card standalone,
-so it would have passed even if the card had never been added to the detail
-screen — that blind spot is now closed.
+**Two artifacts kept from the investigation** (both stand on their own merits,
+independent of the non-defect):
 
-**Most likely remaining explanation: a stale build.** Flutter web caches
-aggressively; the phase's code landed on master during this session. Pending
-user confirmation that the app was rebuilt (`flutter run -d edge` fresh, or a
-hard reload) after the Phase 7 merges.
+1. `test/widget/paddock_detail_gastos_entry_test.dart` — mounts the real
+   `PaddockDetailScreen` and asserts the card is present in the loaded,
+   loading and error states. 07-07's own test mounted the card **standalone**,
+   so it would have passed even if the card had never been added to the detail
+   screen. That blind spot is real and is now closed.
+2. An explicit `BackButton` on `GastosScreen` with a
+   `canPop()`→`/piquetes/:id` fallback. `/gastos/:paddockId` is a documented
+   deep-link target (D-08); entered that way it has no Navigator history, so
+   Material's automatic back button is absent and the user is stranded. Same
+   idiom as `aplicacao_detail_screen.dart`'s `_backButton`.
 
 ### G-07-2 — archived expenses could not be restored
 status: resolved
