@@ -5,11 +5,11 @@ milestone_name: milestone
 current_phase: 8 — Animal Dossier Consolidation
 current_plan: Not started
 status: phase-complete
-stopped_at: Phase 07 complete — 8/8 plans, migration live, UAT 7/7, verification passed
-last_updated: "2026-08-11T19:14:34.818Z"
+stopped_at: Phase 8 context gathered
+last_updated: "2026-08-11T19:46:41.284Z"
 last_activity: 2026-08-11
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 8
   total_plans: 60
   completed_plans: 60
@@ -135,10 +135,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 07 complete — 8/8 plans, migration live, UAT 7/7, verification passed
-**Resume file:** .planning/phases/07-expenses-by-paddock/07-VERIFICATION.md
+**Stopped at:** Phase 8 context gathered
+**Resume file:** .planning/phases/08-animal-dossier-consolidation/08-CONTEXT.md
 
-**Last session:** 2026-08-11T13:07:39.267Z
+**Last session:** 2026-08-11T19:46:41.248Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 
