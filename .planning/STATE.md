@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08
-current_plan: 4
-status: ready-to-execute
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-08-11T21:47:08.329Z"
+current_phase: 08 (complete)
+current_plan: Not started
+status: phase-complete
+stopped_at: Completed 08-04-PLAN.md (SC-1 4G UAT deferred by user, unverified)
+last_updated: "2026-08-11T22:28:07.169Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 9
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 65
-  completed_plans: 64
+  completed_plans: 65
 ---
 
 # Project State
@@ -22,9 +22,9 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 08
-**Current plan:** 4
-**Progress:** [██████████] 98% (8 of 9 phases complete)
+**Current phase:** 08 (complete)
+**Current plan:** Not started
+**Progress:** [██████████] 100% (9 of 9 phases complete)
 
 ---
 
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
 | 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
-| 8 | Animal Dossier Consolidation | in progress (4/5 plans, 5 waves — 08-04 outstanding) |
+| 8 | Animal Dossier Consolidation | complete (5/5 plans, 5 waves — SC-1 4G UAT deferred, unverified) |
 
 ---
 
@@ -49,10 +49,10 @@ See: .planning/PROJECT.md
 | Metric | Value |
 |---|---|
 | Phases planned | 9 |
-| Phases complete | 8 (0–7, all UAT-verified) |
+| Phases complete | 9 (0–8; Phase 8's SC-1 4G UAT deferred, unverified) |
 | Requirements mapped | 26/26 |
-| Plans complete | 60 of 60 across phases 0–7 |
-| Dart tests | 312 passing |
+| Plans complete | 65 of 65 across phases 0–8 |
+| Dart tests | 349 passing |
 | Migration ledger | 18 |
 | Last activity | 2026-08-11 |
 
@@ -75,6 +75,7 @@ See: .planning/PROJECT.md
 | Phase 08 P02 | 10min | 2 tasks | 2 files |
 | Phase 08 P03 | 15min | 2 tasks | 4 files |
 | Phase 08 P05 | 35min | 3 tasks | 2 files |
+| Phase 08 P04 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -139,11 +140,11 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Completed 08-05-PLAN.md
+**Stopped at:** Completed 08-04-PLAN.md (SC-1 4G UAT deferred by user, unverified)
 **Resume file:** None
 
-**Last session:** 2026-08-11T21:47:08.278Z
-**Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
+**Last session:** 2026-08-11T22:28:07.130Z
+**Next action:** SC-1's 4G timing UAT (Phase 8 plan 04, Task 4) was explicitly deferred by the user — NOT run, not measured. Reproduction steps are recorded verbatim in `08-04-SUMMARY.md` §"Deferred: SC-1 4G UAT". What IS proven: the ficha issues 4 parallel requests instead of 5 (lote+piquete waterfall killed). What is NOT proven: the <1s wall-clock target under Fast-4G throttle — needs a human with DevTools open. Two older, unrelated items still open, neither blocking: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser. Also flagged this session: `sanitary_history_section.dart`'s header row overflows at 360px (pre-existing, D-37-locked, needs its own follow-up quick task — see 08-04-SUMMARY.md §Known Issues). With the milestone at 100%, `/gsd-complete-milestone` is the next workflow step if the user wants to close it out (not run automatically here).
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
@@ -185,3 +186,6 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 08]: 08-05: DG sub-row date uses a separate dd/MM/yyyy formatter distinct from the row's short dd/MM formatter — a sub-row has no other date nearby to imply the year
 - [Phase 08]: 08-05: DgResult.doubtful color-mapping switch extracted once into _dgResultColors, shared by the collapsed-row chip and every DG sub-row chip, to satisfy the plan's no-duplication acceptance criterion
 - [Phase 08]: 08-05: Task 1 and Task 2 edits both landed in the same single file per the plan's own files_modified list; split into two atomic commits by writing, verifying, and committing Task 1's diff, then reapplying and separately verifying/committing Task 2's retry-button hunk
+- [Phase 08]: 08-04: SC-1's 4G timing UAT (Task 4) was explicitly deferred by user decision rather than run — status flipped to complete but SC-1 stays unverified in the SUMMARY body; the 5->4 request-count reduction is proven/committed, the <1s wall-clock timing is not measured
+- [Phase 08]: 08-04: AnimalInfoCard's action-button Row overflowed by 345px at 360px width (pre-existing, uncovered by this plan's first narrow-width test) — fixed with Wrap(alignment: end) instead of Row(mainAxisAlignment: end), Rule 1 auto-fix
+- [Phase 08]: 08-04: sanitary_history_section.dart's header row overflows ~29px at 360px (D-37-locked, cannot be fixed this phase) — flagged as a known follow-up quick task, not this plan's regression

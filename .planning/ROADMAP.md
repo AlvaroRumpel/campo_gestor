@@ -302,7 +302,7 @@ Plans:
   4. Animal com baixa registrada mostra status, motivo e data de baixa de forma proeminente
   5. Layout funciona em mobile web (largura mínima 360px) — veterinário consulta em campo pelo celular
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -323,7 +323,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 08-04-PLAN.md — Ficha: banner de baixa (D-12..D-15), linha chave-valor adaptativa a 360px (D-21), consumo da leitura única e UAT de 4G (D-07)
+- [x] 08-04-PLAN.md — Ficha: banner de baixa (D-12..D-15), linha chave-valor adaptativa a 360px (D-21), consumo da leitura única e UAT de 4G (D-07)
 
 **UI hint:** yes
 
@@ -341,7 +341,7 @@ Plans:
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
 | 7. Expenses by Paddock | 8/8 | Complete    | 2026-08-11 |
-| 8. Animal Dossier Consolidation | 4/5 | In Progress|  |
+| 8. Animal Dossier Consolidation | 5/5 | In Progress|  |
 
 ---
 
