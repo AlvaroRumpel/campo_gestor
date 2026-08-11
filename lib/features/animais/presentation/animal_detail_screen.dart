@@ -65,6 +65,10 @@ class AnimalDetailScreen extends ConsumerWidget {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (animal.deletedAt != null) ...[
+                _BaixaBanner(animal: animal),
+                const SizedBox(height: 16),
+              ],
               AnimalInfoCard(
                 animal: animal,
                 canEdit: canEdit,
@@ -154,29 +158,6 @@ class AnimalInfoCard extends ConsumerWidget {
         : null;
 
     final isActive = animal.deletedAt == null;
-
-    String statusLabel;
-    Color statusBgColor;
-    Color statusTextColor;
-
-    if (isActive) {
-      statusLabel = 'Ativo';
-      statusBgColor = Colors.green.shade100;
-      statusTextColor = Colors.green.shade800;
-    } else {
-      final reasonLabel = switch (animal.baixaReason) {
-        'sale' => 'Vendido',
-        'death' => 'Morto',
-        'discard' => 'Descartado',
-        _ => 'Arquivado',
-      };
-      final dateStr = animal.baixaDate != null
-          ? ' em ${dateFmt.format(animal.baixaDate!)}'
-          : '';
-      statusLabel = 'Arquivado — $reasonLabel$dateStr';
-      statusBgColor = colorScheme.errorContainer;
-      statusTextColor = colorScheme.onErrorContainer;
-    }
 
     return Card(
       color: colorScheme.surfaceContainerHighest,
@@ -276,27 +257,6 @@ class AnimalInfoCard extends ConsumerWidget {
               const SizedBox(height: 8),
               _KvRow(label: 'Observação', value: Text(animal.observation!)),
             ],
-            const SizedBox(height: 8),
-            // Status badge
-            _KvRow(
-              label: 'Status',
-              value: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: statusBgColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: statusTextColor,
-                  ),
-                ),
-              ),
-            ),
             // Action buttons (veterinarian only)
             if (canEdit) ...[
               const SizedBox(height: 16),
@@ -328,6 +288,65 @@ class AnimalInfoCard extends ConsumerWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Full-width banner announcing a baixa (D-12, D-13, D-14, D-15, SC-4).
+///
+/// First child of the ficha's `ListView`, above [AnimalInfoCard], only when
+/// `animal.deletedAt != null`. Stateless — unlike [_EncerrarBanner]
+/// (`atf_detail_screen.dart`), this banner has no dismiss/action affordance:
+/// it announces something that already happened (the animal left the herd),
+/// not an invitation to act. Data comes entirely from the `animal` the ficha
+/// already has in hand — zero extra request.
+class _BaixaBanner extends StatelessWidget {
+  const _BaixaBanner({required this.animal});
+
+  final Animal animal;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final dateFmt = DateFormat('dd/MM/yyyy', 'pt_BR');
+
+    // Moved from AnimalInfoCard's old status switch (D-13) — not duplicated.
+    final reasonLabel = switch (animal.baixaReason) {
+      'sale' => 'Vendido',
+      'death' => 'Morto',
+      'discard' => 'Descartado',
+      _ => 'Arquivado',
+    };
+    final dateStr =
+        animal.baixaDate != null ? ' em ${dateFmt.format(animal.baixaDate!)}' : '';
+    final observation = animal.observation;
+    final hasObservation = observation != null && observation.trim().isNotEmpty;
+    final text = hasObservation
+        ? '$reasonLabel$dateStr — $observation'
+        : '$reasonLabel$dateStr';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: colorScheme.onErrorContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: colorScheme.onErrorContainer),
+            ),
+          ),
+        ],
       ),
     );
   }
