@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08 (complete)
+current_phase: 08 (executed — verification pending)
 current_plan: Not started
-status: phase-complete
-stopped_at: Completed 08-04-PLAN.md (SC-1 4G UAT deferred by user, unverified)
+status: needs-verification
+stopped_at: Phase 8 executed 5/5 plans; 08-VERIFICATION.md returned human_needed (2 open items)
 last_updated: "2026-08-11T22:28:07.169Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 9
-  completed_phases: 9
+  completed_phases: 8
   total_plans: 65
   completed_plans: 65
 ---
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
 | 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
-| 8 | Animal Dossier Consolidation | complete (5/5 plans, 5 waves — SC-1 4G UAT deferred, unverified) |
+| 8 | Animal Dossier Consolidation | executed (5/5 plans, 5 waves) — verification `human_needed`: SC-1 4G UAT deferred + baixa-banner 360px backstop unconfirmed |
 
 ---
 
