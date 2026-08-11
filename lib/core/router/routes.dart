@@ -3,6 +3,7 @@
 /// Phase 0 added the 5 shell branches (dashboard..sanitario).
 /// Phase 1 adds the auth routes (login, signup, reset-password, sem-acesso).
 /// Phase 2 adds /propriedades (property management, root-level outside shell).
+/// Phase 7 adds /gastos/:paddockId (expenses by paddock, root-level outside shell).
 ///
 /// Shell screen convention (WR-03):
 /// Every screen rendered inside the AppShell MUST handle the case where
@@ -39,6 +40,15 @@ abstract final class AppRoutes {
   // ficha), so it cannot live inside any single shell branch.
   static const aplicacaoById = '/aplicacoes/:id'; // template — used by GoRoute path
   static String aplicacaoDetail(String id) => '/aplicacoes/$id';
+
+  // Phase 7 detail route — root-level (outside shell, D-08): the expense
+  // list needs deep-link + back-button context of its own paddock, and is
+  // the fourth use of this pattern after loteById, atfById and
+  // aplicacaoById. A sixth shell branch was rejected because Material 3
+  // recommends 3–5 destinations, and it would change AppShell._navItems,
+  // AppRoutes.all and the tests that count navigation items.
+  static const gastosById = '/gastos/:paddockId'; // template — used by GoRoute path
+  static String gastosPorPiquete(String id) => '/gastos/$id';
 
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';
