@@ -20,6 +20,8 @@ SanitaryApplication _fixture({
     propertyId: 'prop-1',
     lotId: 'lot-1',
     lotName: 'Lote 1',
+    paddockId: 'paddock-1',
+    paddockName: 'Piquete 1',
     doseId: 'dose-1',
     doseName: 'Dose 1',
     dosagePerKg: 1.0,

@@ -39,6 +39,15 @@ sealed class SanitaryApplication with _$SanitaryApplication {
     required String propertyId,
     required String lotId,
     required String lotName,
+    // Phase 7 (D-30): the paddock attribution frozen at write time by
+    // `register_sanitary_application`, added to the `expenses`-adjacent
+    // migration (`20260813_07_expenses_module.sql`) alongside this phase's
+    // `expenses` table. Added here — not in the migration's own plan
+    // (07-01), which is SQL-only — because the Dart model must catch up to
+    // an already-authored NOT NULL column before `buildUnifiedExpenseItems`
+    // (07-04) can filter sanitary rows by paddock at all.
+    required String paddockId,
+    required String paddockName,
     required String doseId,
     required String doseName,
     required double dosagePerKg,

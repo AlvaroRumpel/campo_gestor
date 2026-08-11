@@ -43,6 +43,8 @@ SanitaryApplication _application({int compositionSize = 200}) {
     propertyId: 'prop-1',
     lotId: 'lot-1',
     lotName: 'Lote Recria',
+    paddockId: 'paddock-1',
+    paddockName: 'Piquete 1',
     doseId: 'dose-1',
     doseName: 'Ivomec Gold',
     dosagePerKg: 1.0,
