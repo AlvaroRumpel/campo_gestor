@@ -5,11 +5,11 @@ milestone_name: milestone
 current_phase: 7
 current_plan: 1
 status: in-progress
-stopped_at: Phase 6 complete — UAT 11/11 passed, both gap fixes re-verified. Phase 7 not started.
-last_updated: "2026-08-11T00:00:00.000Z"
+stopped_at: Phase 7 context gathered
+last_updated: "2026-08-11T12:54:45.828Z"
 last_activity: 2026-08-11
 progress:
-  total_phases: 9
+  total_phases: 8
   completed_phases: 7
   total_plans: 52
   completed_plans: 52
@@ -129,10 +129,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 6 gap closure executed — 14/14 plans, both UAT gaps fixed (G-06-2 policy migration applied to PROD, G-06-9 containment filter + retry policy), awaiting UAT re-run of tests 2 and 9
-**Resume file:** .planning/phases/06-sanitary-module-snapshot/06-UAT.md
+**Stopped at:** Phase 7 context gathered
+**Resume file:** .planning/phases/07-expenses-by-paddock/07-CONTEXT.md
 
-**Last session:** 2026-08-07T04:28:19.918Z
+**Last session:** 2026-08-11T12:54:45.795Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 
