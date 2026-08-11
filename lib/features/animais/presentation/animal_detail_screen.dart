@@ -7,7 +7,6 @@ import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../auth/data/property_repository.dart';
 import '../../lotes/data/lote_repository.dart';
-import '../../piquetes/data/piquete_repository.dart';
 import '../../reproducao/presentation/animal_reproductive_history_section.dart';
 import '../../sanitario/presentation/sanitary_history_section.dart';
 import '../data/animal_constants.dart';
@@ -151,11 +150,9 @@ class AnimalInfoCard extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
     final dateFmt = DateFormat('dd/MM/yyyy', 'pt_BR');
 
-    final lotAsync = ref.watch(loteByIdProvider(animal.lotId));
-    final paddockId = lotAsync.asData?.value?.paddockId;
-    final paddockAsync = paddockId != null
-        ? ref.watch(paddockByIdProvider(paddockId))
-        : null;
+    // D-01: one embedded-select read instead of the old lote -> piquete
+    // waterfall (loteByIdProvider then a derived paddockByIdProvider watch).
+    final lotAsync = ref.watch(loteWithPaddockByIdProvider(animal.lotId));
 
     final isActive = animal.deletedAt == null;
 
@@ -201,13 +198,13 @@ class AnimalInfoCard extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 error: (e, st) => const Text('—'),
-                data: (lot) => lot == null
+                data: (lotWithPaddock) => lotWithPaddock == null
                     ? const Text('—')
                     : InkWell(
-                        onTap: () =>
-                            context.go(AppRoutes.loteDetail(lot.id)),
+                        onTap: () => context
+                            .go(AppRoutes.loteDetail(lotWithPaddock.lot.id)),
                         child: Text(
-                          lot.name,
+                          lotWithPaddock.lot.name,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             decoration: TextDecoration.underline,
@@ -217,35 +214,32 @@ class AnimalInfoCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Piquete atual (tappable)
+            // Piquete atual (tappable) — same AsyncValue as "Lote atual"
+            // above; no separate watch (D-01 kills the waterfall).
             _KvRow(
               label: 'Piquete atual',
-              value: paddockAsync == null
-                  ? const Text('—')
-                  : paddockAsync.when(
-                      loading: () => const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+              value: lotAsync.when(
+                loading: () => const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                error: (e, st) => const Text('—'),
+                data: (lotWithPaddock) => lotWithPaddock == null
+                    ? const Text('—')
+                    : InkWell(
+                        onTap: () => context.go(
+                          '/piquetes/${lotWithPaddock.lot.paddockId}',
+                        ),
+                        child: Text(
+                          lotWithPaddock.paddockName,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
                       ),
-                      error: (e, st) => const Text('—'),
-                      data: (paddock) => paddock == null
-                          ? const Text('—')
-                          : InkWell(
-                              onTap: () => context.go(
-                                '/piquetes/${paddock.id}',
-                              ),
-                              child: Text(
-                                paddock.name,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                    ),
+              ),
             ),
             const SizedBox(height: 8),
             _KvRow(
@@ -352,7 +346,18 @@ class _BaixaBanner extends StatelessWidget {
   }
 }
 
-/// Key-value row: label (fixed width 120) + expanded value widget.
+/// Key-value row: label + value, adaptive to available width (D-21, SC-5).
+///
+/// First row-level width breakpoint in the codebase — `LayoutBuilder`
+/// reading `constraints.maxWidth`, not `MediaQuery`, because this row sits
+/// inside `Card > Padding > Column` inside a `ListView`: on wider viewports
+/// the app's adaptive shell narrows the content column below screen width,
+/// so the local constraint (not the window) is the correct signal. Locked
+/// threshold: below 400px the label stacks above the value (full width);
+/// at/above 400px it keeps the existing 120px-label row layout unchanged.
+/// Do not wrap this row in `Wrap` or `IntrinsicWidth` — either breaks the
+/// constraint this `LayoutBuilder` measures. Pattern is reusable as-is for
+/// any future leaf-widget width breakpoint in this project.
 class _KvRow extends StatelessWidget {
   const _KvRow({required this.label, required this.value});
 
@@ -361,24 +366,36 @@ class _KvRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                ),
+    final labelText = Text(
+      label,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color:
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: value),
-      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 400;
+        if (stacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              labelText,
+              const SizedBox(height: 2),
+              value,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 120, child: labelText),
+            const SizedBox(width: 8),
+            Expanded(child: value),
+          ],
+        );
+      },
     );
   }
 }
