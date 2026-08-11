@@ -254,15 +254,20 @@ class AnimalInfoCard extends ConsumerWidget {
             // Action buttons (veterinarian only)
             if (canEdit) ...[
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              // Wrap (not Row) so three buttons don't overflow at 360px —
+              // pre-existing RenderFlex overflow found by this plan's first
+              // narrow-width widget test (D-23); same visual alignment as
+              // the previous end-aligned Row on widths where it already fit.
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   OutlinedButton(
                     onPressed: onEdit,
                     child: const Text('Editar animal'),
                   ),
                   if (isActive) ...[
-                    const SizedBox(width: 8),
                     TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: colorScheme.error,
@@ -270,7 +275,6 @@ class AnimalInfoCard extends ConsumerWidget {
                       onPressed: onBaixa,
                       child: const Text('Dar baixa'),
                     ),
-                    const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: onMover,
                       icon: const Icon(Icons.swap_horiz),

@@ -8,6 +8,8 @@ import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/animais/presentation/animal_detail_screen.dart';
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/core/providers/current_property_provider.dart';
+import 'package:campo_gestor/features/lotes/data/lote_model.dart';
+import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
@@ -92,6 +94,7 @@ Widget _buildScreen({
   required String role,
   Future<List<ReproductiveHistoryEntry>> Function(String animalId)?
       historyBuilder,
+  Future<LotWithPaddockName?> Function(String lotId)? lotWithPaddockBuilder,
 }) {
   final membership = role == 'veterinarian' ? _vetMembership : _readerMembership;
   return ProviderScope(
@@ -101,6 +104,9 @@ Widget _buildScreen({
       if (historyBuilder != null)
         reproductiveHistoryByAnimalProvider
             .overrideWith((ref, id) => historyBuilder(id)),
+      if (lotWithPaddockBuilder != null)
+        loteWithPaddockByIdProvider
+            .overrideWith((ref, id) => lotWithPaddockBuilder(id)),
     ],
     child: MaterialApp(
       localizationsDelegates: const [
@@ -108,6 +114,45 @@ Widget _buildScreen({
         DefaultWidgetsLocalizations.delegate,
       ],
       home: AnimalDetailScreen(animalId: animal.id),
+    ),
+  );
+}
+
+/// AnimalInfoCard mounted directly, inside the same ListView(padding: 16)
+/// shell the real ficha uses — not the whole AnimalDetailScreen.
+///
+/// Used only by the width-breakpoint tests (D-21, SC-5). Isolating
+/// AnimalInfoCard keeps those tests scoped to what this plan's Task 2
+/// actually changed (_KvRow + the lote/piquete rows) and away from
+/// `sanitary_history_section.dart`'s header row, which has its own
+/// pre-existing RenderFlex overflow at narrow widths (D-37 locks that file
+/// — this plan cannot touch it; see SUMMARY "Known Issues").
+Widget _buildInfoCard({
+  required Animal animal,
+  bool canEdit = true,
+  Future<LotWithPaddockName?> Function(String lotId)? lotWithPaddockBuilder,
+}) {
+  return ProviderScope(
+    overrides: [
+      if (lotWithPaddockBuilder != null)
+        loteWithPaddockByIdProvider
+            .overrideWith((ref, id) => lotWithPaddockBuilder(id)),
+    ],
+    child: MaterialApp(
+      home: Scaffold(
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            AnimalInfoCard(
+              animal: animal,
+              canEdit: canEdit,
+              onEdit: () {},
+              onBaixa: () {},
+              onMover: () {},
+            ),
+          ],
+        ),
+      ),
     ),
   );
 }
@@ -366,6 +411,240 @@ void main() {
 
       expect(find.text('Observação'), findsOneWidget);
       expect(find.textContaining('Baixa em 20/03: vendido.'), findsOneWidget);
+    });
+  });
+
+  // ---------------------------------------------------------------------
+  // 360px width harness (D-23) — first width-constrained widget test in
+  // this repo. Set inside individual testWidgets bodies (not the shared
+  // builder) so it never leaks into the tests above. Copy these three
+  // lines for any future width-constrained test:
+  //
+  //   addTearDown(tester.view.resetPhysicalSize);
+  //   tester.view.physicalSize = const Size(360, 800);
+  //   tester.view.devicePixelRatio = 1.0;
+  // ---------------------------------------------------------------------
+
+  group('AnimalDetailScreen — Banner de baixa (D-12..D-15, SC-4)', () {
+    testWidgets('active animal: no banner, no Status label (D-15 guard)',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(animal: _activeAnimal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.info_outline), findsNothing);
+      expect(find.text('Status'), findsNothing);
+    });
+
+    testWidgets('sold animal with date and observation: banner shows reason, date and observation',
+        (tester) async {
+      final animal = _archivedAnimal.copyWith(
+        baixaDate: DateTime(2025, 6, 1),
+        observation: 'Vendido em leilão da região.',
+      );
+      await tester.pumpWidget(
+        _buildScreen(animal: animal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.info_outline), findsOneWidget);
+      expect(
+        find.textContaining('Vendido em 01/06/2025 — Vendido em leilão da região.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('sold animal without observation: banner shows reason and date, no dangling dash',
+        (tester) async {
+      final animal = _archivedAnimal.copyWith(baixaDate: DateTime(2025, 6, 1));
+      await tester.pumpWidget(
+        _buildScreen(animal: animal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vendido em 01/06/2025'), findsOneWidget);
+      // No dangling em-dash after the date (AppBar title already contains an
+      // unrelated "—", so scope the guard to the banner's own text pattern).
+      expect(find.textContaining('01/06/2025 —'), findsNothing);
+    });
+
+    testWidgets('unknown/null baixa reason falls back to "Arquivado"',
+        (tester) async {
+      final animal = _archivedAnimal.copyWith(baixaReason: 'unknown-reason');
+      await tester.pumpWidget(
+        _buildScreen(animal: animal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Arquivado'), findsOneWidget);
+    });
+
+    testWidgets('banner renders above AnimalInfoCard (D-12 order)',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(animal: _archivedAnimal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      final bannerY = tester.getTopLeft(find.byIcon(Icons.info_outline)).dy;
+      final cardY = tester.getTopLeft(find.text('Número')).dy;
+      expect(bannerY, lessThan(cardY));
+    });
+
+    testWidgets('archived animal: reproductive and sanitary blocks stay reachable (D-16)',
+        (tester) async {
+      // Neither history provider is overridden with resolved data here
+      // (mirrors the existing "hides Mover animal button when animal is
+      // archived" test above) — this test only asserts both section
+      // headers render for an archived animal, not on their row content.
+      //
+      // Tall physicalSize: the banner adds height above AnimalInfoCard, and
+      // ListView's default cacheExtent only builds Elements within/near the
+      // viewport — at the default 600px-tall test window the sanitary card
+      // falls outside that window and is never built without a scroll. A
+      // tall viewport sidesteps needing to scroll to prove it's reachable.
+      addTearDown(tester.view.resetPhysicalSize);
+      tester.view.physicalSize = const Size(800, 2000);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(
+        _buildScreen(animal: _archivedAnimal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Histórico Reprodutivo'), findsOneWidget);
+      expect(find.text('Histórico Sanitário'), findsOneWidget);
+    });
+  });
+
+  group('AnimalDetailScreen — Layout adaptativo a 360px (D-21, SC-5)', () {
+    // These tests mount AnimalInfoCard directly via _buildInfoCard (not the
+    // whole AnimalDetailScreen) — see that builder's dartdoc for why:
+    // sanitary_history_section.dart (D-37-locked) has its own pre-existing
+    // narrow-width overflow unrelated to this plan's changes.
+    testWidgets('360px: no layout overflow is reported', (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(_buildInfoCard(animal: _activeAnimal));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('360px: label stacks above value in the same row',
+        (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(_buildInfoCard(animal: _activeAnimal));
+      await tester.pumpAndSettle();
+
+      final labelY = tester.getTopLeft(find.text('Número')).dy;
+      final valueY = tester.getTopLeft(find.text('#9')).dy;
+      expect(valueY, greaterThan(labelY));
+    });
+
+    testWidgets('800px: label stays beside value, unchanged layout',
+        (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      tester.view.physicalSize = const Size(800, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(_buildInfoCard(animal: _activeAnimal));
+      await tester.pumpAndSettle();
+
+      final labelTopLeft = tester.getTopLeft(find.text('Número'));
+      final valueTopLeft = tester.getTopLeft(find.text('#9'));
+      expect(valueTopLeft.dy, equals(labelTopLeft.dy));
+      expect(valueTopLeft.dx, greaterThan(labelTopLeft.dx));
+    });
+
+    testWidgets('360px: a long lot/paddock name does not overflow',
+        (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      final longLot = Lot(
+        id: 'lot-A',
+        propertyId: 'prop-1',
+        paddockId: 'paddock-1',
+        name: 'Lote Fundo de Vale Extremamente Comprido do Setor Norte',
+        createdAt: DateTime(2025, 1, 1),
+      );
+      await tester.pumpWidget(
+        _buildInfoCard(
+          animal: _activeAnimal,
+          lotWithPaddockBuilder: (id) async => LotWithPaddockName(
+            lot: longLot,
+            paddockName: 'Piquete Extremamente Comprido do Fundo do Setor Sul',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('360px: a long baixa observation wraps without overflowing',
+        (tester) async {
+      // The banner (_BaixaBanner, private to animal_detail_screen.dart) is
+      // only reachable by pumping the whole AnimalDetailScreen, so this one
+      // test (unlike the others in this group) cannot use _buildInfoCard.
+      // It therefore also cannot assert tester.takeException() is null:
+      // sanitary_history_section.dart's header row has its own pre-existing
+      // RenderFlex overflow at this width, unrelated to the banner and
+      // outside this plan's D-37 boundary — see SUMMARY "Known Issues".
+      // What this test proves instead: the banner's own Text (no maxLines,
+      // no overflow set) renders the full observation with no truncation —
+      // the observation shows up verbatim both in the banner and in the
+      // card's own "Observação" row (unchanged pre-existing behavior).
+      addTearDown(tester.view.resetPhysicalSize);
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1.0;
+
+      final longObservation =
+          'Animal vendido no leilão regional após tratamento prolongado, '
+          'com acompanhamento veterinário contínuo e nota detalhada sobre '
+          'o histórico completo de manejo antes da saída do rebanho.';
+      final animal = _archivedAnimal.copyWith(
+        baixaDate: DateTime(2025, 6, 1),
+        observation: longObservation,
+      );
+      await tester.pumpWidget(
+        _buildScreen(animal: animal, role: 'veterinarian'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(longObservation), findsNWidgets(2));
+    });
+  });
+
+  group('AnimalDetailScreen — Degradação parcial do card (UI-SPEC partial/animal-info-card)', () {
+    testWidgets(
+        'lote+piquete read failing does not hide the animal\'s own fields',
+        (tester) async {
+      // breed/bodyCondition set so the two "—" fallbacks asserted below can
+      // only come from the failed lote/piquete rows, not from these fields.
+      final animal = _activeAnimal.copyWith(breed: 'Nelore', bodyCondition: 3);
+      await tester.pumpWidget(
+        _buildScreen(
+          animal: animal,
+          role: 'veterinarian',
+          lotWithPaddockBuilder: (id) async => throw Exception('boom'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Número'), findsOneWidget);
+      expect(find.text('#9'), findsOneWidget);
+      expect(find.text('Lote atual'), findsOneWidget);
+      expect(find.text('Piquete atual'), findsOneWidget);
+      expect(find.text('—'), findsNWidgets(2));
     });
   });
 }
