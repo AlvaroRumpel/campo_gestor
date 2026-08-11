@@ -169,6 +169,27 @@ class LoteRepository {
       );
     }).toList();
   }
+
+  /// Fetch a single lot with its paddock name in one embedded-select query (D-01).
+  ///
+  /// Kills the lote → piquete waterfall: callers no longer need a second
+  /// request to resolve `lot.paddockId` into a display name. Returns null
+  /// if the lot is soft-deleted or does not exist (mirrors [fetchLot]).
+  Future<LotWithPaddockName?> fetchLotWithPaddockName(String id) async {
+    final row = await _service.client
+        .from('lots')
+        .select('*, paddocks!inner(name)')
+        .eq('id', id)
+        .isFilter('deleted_at', null)
+        .maybeSingle();
+    if (row == null) return null;
+    final paddockJson = row['paddocks'] as Map<String, dynamic>;
+    final clean = Map<String, dynamic>.from(row)..remove('paddocks');
+    return LotWithPaddockName(
+      lot: Lot.fromJson(clean),
+      paddockName: paddockJson['name'] as String,
+    );
+  }
 }
 
 final loteRepositoryProvider = Provider<LoteRepository>(
@@ -187,6 +208,16 @@ final loteByIdProvider =
     FutureProvider.family<Lot?, String>((ref, id) async {
   final repo = ref.watch(loteRepositoryProvider);
   return repo.fetchLot(id);
+});
+
+/// Single lot with paddock name in one embedded-select query (D-01, D-03).
+///
+/// Auto-dispose family (no keepAlive) — reopening the ficha always refetches
+/// so a vet never sees a stale lot/paddock on the animal dossier.
+final loteWithPaddockByIdProvider =
+    FutureProvider.family<LotWithPaddockName?, String>((ref, id) async {
+  final repo = ref.watch(loteRepositoryProvider);
+  return repo.fetchLotWithPaddockName(id);
 });
 
 /// Active lots in the active property (MOV-01, D-02).
@@ -218,4 +249,17 @@ class LotWithPaddockCount {
   final Lot lot;
   final String paddockName;
   final int activeAnimalCount;
+}
+
+/// Lot joined with its paddock name from a single embedded-select query (D-01).
+///
+/// Built from [LoteRepository.fetchLotWithPaddockName]. Not a Supabase row
+/// by itself — same convention as [LotWithPaddockCount].
+class LotWithPaddockName {
+  const LotWithPaddockName({
+    required this.lot,
+    required this.paddockName,
+  });
+  final Lot lot;
+  final String paddockName;
 }

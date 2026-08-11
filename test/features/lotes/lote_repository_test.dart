@@ -52,6 +52,12 @@ void main() {
       // Method body lands in Plan 04-03 along with the move_lot_to_paddock RPC.
       expect(repo.moveLot, isA<Function>());
     });
+
+    test('fetchLotWithPaddockName exists and is callable (D-01 contract)', () {
+      // Contract: single embedded-select query for lot + paddock name,
+      // killing the lote -> piquete waterfall (Phase 8, D-01).
+      expect(repo.fetchLotWithPaddockName, isA<Function>());
+    });
   });
 
   group('Lot model (PROP-03 — model side)', () {
