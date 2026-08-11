@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 08
-current_plan: 2
+current_plan: 3
 status: ready-to-execute
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-08-11T21:11:13.978Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-08-11T21:30:04.828Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 65
-  completed_plans: 62
+  completed_plans: 63
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 08
-**Current plan:** 2
-**Progress:** [██████████] 95% (8 of 9 phases complete)
+**Current plan:** 3
+**Progress:** [██████████] 97% (8 of 9 phases complete)
 
 ---
 
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
 | 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
-| 8 | Animal Dossier Consolidation | in progress (2/5 plans, 5 waves) |
+| 8 | Animal Dossier Consolidation | in progress (3/5 plans, 5 waves) |
 
 ---
 
@@ -73,6 +73,7 @@ See: .planning/PROJECT.md
 | Phase 05 P15 | 30min | 2 tasks | 4 files |
 | Phase 08 P01 | 20min | 2 tasks | 7 files |
 | Phase 08 P02 | 10min | 2 tasks | 2 files |
+| Phase 08 P03 | 15min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -137,10 +138,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Completed 08-02-PLAN.md
+**Stopped at:** Completed 08-03-PLAN.md
 **Resume file:** None
 
-**Last session:** 2026-08-11T21:11:13.934Z
+**Last session:** 2026-08-11T21:29:55.432Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 
@@ -178,3 +179,5 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 08]: 08-01: ReproductiveHistoryEntry.dgRecords sort reuses isLaterDg as the comparator instead of re-deriving the examDate/createdAt tie-break rule (G-05-4) — single source of truth for DG ordering
 - [Phase 08]: 08-01: Rule 3 auto-fix — _FakeLoteRepository (test/widget/lote_form_dialog_test.dart) needed a stub override for the new fetchLotWithPaddockName method, same recurring LoteRepository interface tax flagged in Phase 04
 - [Phase 08]: 08-02: AnimalReproductiveHistorySection is stateless (ConsumerWidget, not ConsumerStatefulWidget) — no local UI state to manage, unlike the stateful AnimalSanitaryHistorySection
+- [Phase 08]: 08-03: ProviderScope(retry: (retryCount, error) => null) disables Riverpod 3.x's default auto-retry (~200ms backoff) in widget tests asserting manual ref.invalidate() retry behavior — without it, main.dart's app-wide providerRetryPolicy silently self-heals the induced test failure before the manual tap fires
+- [Phase 08]: 08-03: _AnimalListTile's archived badge gate changed from isArchived && showArchived to isArchived alone (showArchived param removed) — required coupled fix so D-17's exact-match bypass never surfaces an archived animal indistinguishable from an active one
