@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 7
 current_plan: 1
 status: in-progress
-stopped_at: Phase 7 context gathered
-last_updated: "2026-08-11T12:54:45.828Z"
+stopped_at: Phase 07 planned — ready to execute
+last_updated: "2026-08-11T13:07:39.288Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 8
@@ -39,7 +39,7 @@ See: .planning/PROJECT.md
 | 4 | Movements | complete (7/7 plans, UAT 8/8 — 2026-08-04) |
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
-| 7 | Expenses by Paddock | not-started |
+| 7 | Expenses by Paddock | planned (8 plans, 5 waves — ready to execute) |
 | 8 | Animal Dossier Consolidation | not-started |
 
 ---
@@ -129,10 +129,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 7 context gathered
-**Resume file:** .planning/phases/07-expenses-by-paddock/07-CONTEXT.md
+**Stopped at:** Phase 07 planned — 8 plans in 5 waves, ready to execute
+**Resume file:** .planning/phases/07-expenses-by-paddock/07-01-PLAN.md
 
-**Last session:** 2026-08-11T12:54:45.795Z
+**Last session:** 2026-08-11T13:07:39.267Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 
@@ -160,4 +160,8 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 04]: 04-05: Closed WR-01..04 + IN-01 gap-closure findings from 04-REVIEW.md (invalidations, mounted guard, pt-BR plural, submit-flow tests) — CR-01 and RPC-live UAT remain owned by 04-04
 - [Phase 04]: 04-06: Closed reopened CR-01 (04-REVIEW.md) with a trigger, not an RLS WITH CHECK tightening — access-path-independent, protects INSERT too, matches existing snapshot-immutability idiom; also closed WR-01 TOCTOU; MOV-02's identical lots.paddock_id bypass explicitly deferred (plan-locked scope: animals only); Task 3 DB push BLOCKED (unlinked CLI), now covers 3 migrations
 - [Phase 04]: 04-07: Closed WR-02/CR-01-parallel (04-REVIEW.md) with trg_lots_paddock_same_property, mirroring the 04-06 animals trigger onto lots.paddock_id (MOV-02); scope reversal (accept->mitigate, T-4-08) per explicit user decision 2026-07-16; Task 3 DB push BLOCKED (unlinked CLI), now covers 4 migrations
+- [Phase 07]: plan-phase 2026-08-11 — D-37 ("4 planos em 3 waves") deviated to **8 plans in 5 waves** with explicit user re-approval. Intent preserved (parallel W1 of DB + Dart data, UI in the middle, dedicated blocking apply/UAT plan last); split was for context cost only, zero scope reduction — decision-coverage gate reads 37/37. Do not re-flag this as a dropped decision at verify time.
+- [Phase 07]: plan-phase 2026-08-11 — plan-checker BLOCKER "missing prohibitions block in 07-02" dismissed as a false positive: the unresolved edge-probe rows are surfaced in 07-02's `<planner_assumptions>` (edge probe ≠ prohibitions); the recalled prohibitions live descriptor-less in `must_haves.prohibitions:` across 07-01/03/04/05/06/07.
+- [Phase 07]: plan-phase 2026-08-11 — D-35 (no receipt attachment / no Supabase Storage this phase) was uncovered by the decision-coverage gate because it is a negative decision; authored as a descriptor-less scope-fence prohibition in 07-05's `must_haves.prohibitions:` rather than tagged `[informational]`, so the executor sees the fence.
+- [Phase 07]: plan-phase 2026-08-11 — "Ano" period preset confirmed as **calendar year** (Jan 1 → today), not rolling 12 months (RESEARCH A2 was open).
 - [Phase 05]: 05-15: closed G-05-2/G-05-3 (AtfDetailScreen rendering/gating gaps) — added AtfMembershipView.animalDeleted from a new deleted_at select column, and hoisted a single dgAnimalIds/pendingMembers derivation shared by the encerrar banner, its AppBar action, its dialog, and the composition remove-gate; dg_summary.dart left untouched per explicit user decision

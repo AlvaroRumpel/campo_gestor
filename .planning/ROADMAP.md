@@ -264,13 +264,27 @@ Plans:
 **Plans:** 8 plans (5 waves)
 
 Plans:
+**Wave 1**
+
 - [ ] 07-01-PLAN.md — migration: `expenses` table, RLS, isolation trigger, `sanitary_applications` paddock freeze + backfill, RPC edits, pgTAP suite (wave 1)
 - [ ] 07-02-PLAN.md — Dart core: `Expense` model, `ExpenseListItem` union, category constants, pure calculations + unit test (wave 1)
 - [ ] 07-03-PLAN.md — `canManageExpenses` two-role gate + test, `/gastos/:paddockId` route constant (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 07-04-PLAN.md — `ExpenseRepository`, unified manual+sanitary merge, four providers (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 07-05-PLAN.md — `ExpenseFormDialog` create/edit, delete confirmation, widget test (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 07-06-PLAN.md — `GastosScreen`, list item card, route registration, FAB gate test (wave 4)
 - [ ] 07-07-PLAN.md — paddock-detail expense summary card + test (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 07-08-PLAN.md — [BLOCKING] apply migration via MCP, replay pgTAP, human UAT (wave 5)
 
 **UI hint:** yes
