@@ -55,13 +55,13 @@ class AtfMembershipView {
   final bool animalDeleted;
 }
 
-/// One entry in an animal's reproductive history (REPR-05, D-14).
+/// One entry in an animal's reproductive history (REPR-05, D-14, D-09/D-10).
 ///
 /// One row per ATF the animal participated in — active or closed memberships
 /// alike — carrying that ATF's most recent DG result. Built from
 /// `animal_atf_memberships` joined with `atf_batches(id, name,
-/// insemination_date, active)` plus a grouped `dg_records` query; not a
-/// Supabase row by itself.
+/// insemination_date, active, implantation_date, bull_name)` plus a grouped
+/// `dg_records` query; not a Supabase row by itself.
 class ReproductiveHistoryEntry {
   const ReproductiveHistoryEntry({
     required this.atfBatchId,
@@ -70,6 +70,9 @@ class ReproductiveHistoryEntry {
     required this.atfActive,
     required this.lastDgResult,
     required this.lastDgDate,
+    required this.dgRecords,
+    this.bullName,
+    required this.implantationDate,
   });
   final String atfBatchId;
   final String atfName;
@@ -77,6 +80,18 @@ class ReproductiveHistoryEntry {
   final bool atfActive;
 
   /// Null means "aguardando DG" — the animal is in this ATF but has no DG yet.
+  /// This is the collapsed-row summary — always the [isLaterDg] winner of
+  /// [dgRecords], never replaced by the full list below (D-10).
   final DgResult? lastDgResult;
   final DateTime? lastDgDate;
+
+  /// All DGs for this animal in this ATF, ordered most-recent-first per the
+  /// single [isLaterDg] rule (D-09, D-10). Empty (never null) when the ATF
+  /// has no DG for this animal yet.
+  final List<DgRecord> dgRecords;
+
+  /// Bull label already resolved on the ATF batch (Phase 5, WR-01); null when
+  /// the ATF has no named bull.
+  final String? bullName;
+  final DateTime implantationDate;
 }

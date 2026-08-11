@@ -54,6 +54,8 @@ final _atfPrimavera = ReproductiveHistoryEntry(
   atfActive: true,
   lastDgResult: DgResult.pregnant,
   lastDgDate: DateTime(2026, 10, 20),
+  dgRecords: const [],
+  implantationDate: DateTime(2026, 9, 15),
 );
 final _atfOutono = ReproductiveHistoryEntry(
   atfBatchId: 'atf-2',
@@ -62,6 +64,8 @@ final _atfOutono = ReproductiveHistoryEntry(
   atfActive: false,
   lastDgResult: DgResult.notPregnant,
   lastDgDate: DateTime(2026, 5, 12),
+  dgRecords: const [],
+  implantationDate: DateTime(2026, 4, 3),
 );
 final _atfInverno = ReproductiveHistoryEntry(
   atfBatchId: 'atf-3',
@@ -70,6 +74,8 @@ final _atfInverno = ReproductiveHistoryEntry(
   atfActive: true,
   lastDgResult: null,
   lastDgDate: null,
+  dgRecords: const [],
+  implantationDate: DateTime(2026, 6, 24),
 );
 
 // ---------------------------------------------------------------------------

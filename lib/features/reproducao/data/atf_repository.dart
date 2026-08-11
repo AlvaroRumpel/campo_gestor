@@ -179,7 +179,8 @@ class AtfRepository {
     final membershipRows = await _service.client
         .from('animal_atf_memberships')
         .select(
-          'atf_batch_id, atf_batches(id, name, insemination_date, active)',
+          'atf_batch_id, atf_batches(id, name, insemination_date, active, '
+          'implantation_date, bull_name)',
         )
         .eq('animal_id', animalId);
 
@@ -204,11 +205,25 @@ class AtfRepository {
       }
     }
 
+    // Full DG list per ATF (D-09/D-10) — additive grouping over the same
+    // dgRecords already fetched above, zero extra requests.
+    final dgsByAtf = <String, List<DgRecord>>{};
+    for (final dg in dgRecords) {
+      dgsByAtf.putIfAbsent(dg.atfBatchId, () => []).add(dg);
+    }
+
     final entries = (membershipRows as List).map((row) {
       final map = row as Map<String, dynamic>;
       final atfJson = map['atf_batches'] as Map<String, dynamic>;
       final atfBatchId = atfJson['id'] as String;
       final lastDg = lastDgByAtf[atfBatchId];
+      // Growable copy — sorting a `const []` in place throws at runtime.
+      final atfDgRecords = List<DgRecord>.from(dgsByAtf[atfBatchId] ?? const [])
+        ..sort((a, b) {
+          if (isLaterDg(a, b)) return -1;
+          if (isLaterDg(b, a)) return 1;
+          return 0;
+        });
       return ReproductiveHistoryEntry(
         atfBatchId: atfBatchId,
         atfName: atfJson['name'] as String,
@@ -217,6 +232,10 @@ class AtfRepository {
         atfActive: atfJson['active'] as bool,
         lastDgResult: lastDg != null ? DgResult.fromDb(lastDg.result) : null,
         lastDgDate: lastDg?.examDate,
+        dgRecords: atfDgRecords,
+        bullName: atfJson['bull_name'] as String?,
+        implantationDate:
+            DateTime.parse(atfJson['implantation_date'] as String),
       );
     }).toList();
 

@@ -65,6 +65,10 @@ class _FakeLoteRepository implements LoteRepository {
     required String lotId,
     required String newPaddockId,
   }) async {}
+
+  @override
+  Future<LotWithPaddockName?> fetchLotWithPaddockName(String id) async =>
+      null;
 }
 
 // ---------------------------------------------------------------------------

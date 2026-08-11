@@ -44,7 +44,10 @@ void main() {
       expect(repo.fetchAtfSummaries, isA<Function>());
     });
 
-    test('fetchReproductiveHistory exists and is callable (REPR-05)', () {
+    test(
+        'fetchReproductiveHistory exists and is callable (REPR-05, D-09/D-10 — '
+        'entries now carry the full dgRecords list, bull name and '
+        'implantation date)', () {
       expect(repo.fetchReproductiveHistory, isA<Function>());
     });
 
