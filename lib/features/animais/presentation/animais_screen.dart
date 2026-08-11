@@ -62,7 +62,13 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
           // Filter animals in-memory
           final filtered = animals.where((aw) {
             final a = aw.animal;
-            if (!_showArchived && a.deletedAt != null) return false;
+            // D-17: an exact-number search bypasses the archived toggle — a
+            // partial/substring match still respects it.
+            final isExactNumberMatch =
+                _query.isNotEmpty && a.number.toString() == _query;
+            if (!_showArchived && a.deletedAt != null && !isExactNumberMatch) {
+              return false;
+            }
             if (_query.isNotEmpty &&
                 !a.number.toString().contains(_query)) {
               return false;
@@ -193,7 +199,6 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
                         itemCount: filtered.length,
                         itemBuilder: (ctx, i) => _AnimalListTile(
                           item: filtered[i],
-                          showArchived: _showArchived,
                         ),
                       ),
               ),
@@ -278,13 +283,9 @@ class _PaddockDropdown extends StatelessWidget {
 }
 
 class _AnimalListTile extends StatelessWidget {
-  const _AnimalListTile({
-    required this.item,
-    required this.showArchived,
-  });
+  const _AnimalListTile({required this.item});
 
   final AnimalWithContext item;
-  final bool showArchived;
 
   @override
   Widget build(BuildContext context) {
@@ -313,7 +314,7 @@ class _AnimalListTile extends StatelessWidget {
                   .withValues(alpha: 0.6),
             ),
       ),
-      trailing: (isArchived && showArchived)
+      trailing: isArchived
           ? _ArchiveBadge(baixaReason: a.baixaReason)
           : null,
       onTap: () => context.go(AppRoutes.animalDetail(a.id)),

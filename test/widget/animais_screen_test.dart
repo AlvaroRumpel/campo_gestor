@@ -269,4 +269,73 @@ void main() {
       expect(find.textContaining(' · '), findsWidgets);
     });
   });
+
+  group(
+    'AnimaisScreen — Busca por número exato ignora o toggle de arquivados (D-17)',
+    () {
+      // A multi-digit number lets a "partial but not equal" search query
+      // exist (single-digit #5 has no non-empty proper substring).
+      final archivedMulti = AnimalWithContext(
+        animal: _animal(
+          id: 'a125',
+          number: 125,
+          category: 'vaca',
+          baixaReason: 'death',
+          deletedAt: _archived,
+        ),
+        lotName: 'Lote A',
+        paddockId: 'p1',
+        paddockName: 'Piquete Norte',
+      );
+      final animalsWithMulti = [..._fakeAnimals, archivedMulti];
+
+      testWidgets(
+          'toggle off + exact number search for an archived animal finds it',
+          (tester) async {
+        await tester.pumpWidget(_buildScreen(animals: animalsWithMulti));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await tester.enterText(find.byType(SearchBar), '125');
+        await tester.pump(const Duration(milliseconds: 350));
+
+        expect(find.textContaining('#125'), findsOneWidget);
+      });
+
+      testWidgets(
+          'toggle off + partial (non-equal) number search does not find the archived animal',
+          (tester) async {
+        await tester.pumpWidget(_buildScreen(animals: animalsWithMulti));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await tester.enterText(find.byType(SearchBar), '12');
+        await tester.pump(const Duration(milliseconds: 350));
+
+        expect(find.textContaining('#125'), findsNothing);
+      });
+
+      testWidgets('toggle off + empty search does not find the archived animal',
+          (tester) async {
+        await tester.pumpWidget(_buildScreen(animals: animalsWithMulti));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.textContaining('#125'), findsNothing);
+      });
+
+      testWidgets(
+          'an archived animal surfaced by exact match still shows the baixa reason badge',
+          (tester) async {
+        await tester.pumpWidget(_buildScreen(animals: animalsWithMulti));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await tester.enterText(find.byType(SearchBar), '125');
+        await tester.pump(const Duration(milliseconds: 350));
+
+        expect(find.text('Morto'), findsOneWidget);
+      });
+    },
+  );
 }
