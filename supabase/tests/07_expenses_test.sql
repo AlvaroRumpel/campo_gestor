@@ -198,11 +198,18 @@ PREPARE vet_expense_update AS
   UPDATE expenses SET amount = 310.00 WHERE id = '76000000-0007-0007-0007-000000000003';
 SELECT lives_ok('EXECUTE vet_expense_update', 'a veterinarian can UPDATE an expense (D-23)');
 
+-- A reader's UPDATE is blocked by the policy's USING clause, which FILTERS the row out
+-- rather than raising: RLS only raises 42501 from a failing WITH CHECK (which is why the
+-- reader INSERT assertion above does throw). So the reader's UPDATE matches 0 rows and
+-- returns without error. Asserting the value is unchanged is the stronger claim anyway —
+-- it proves no mutation occurred, where throws_ok would only prove an error was raised.
 SELECT set_config('request.jwt.claim.sub', '71000000-0007-0007-0007-0000000000a3', true);
-PREPARE reader_expense_update AS
-  UPDATE expenses SET amount = 999.00 WHERE id = '76000000-0007-0007-0007-000000000002';
-SELECT throws_ok('EXECUTE reader_expense_update', '42501', NULL,
-  'a reader-role member cannot UPDATE an expense (D-23)');
+UPDATE expenses SET amount = 999.00 WHERE id = '76000000-0007-0007-0007-000000000002';
+SELECT is(
+  (SELECT amount FROM expenses WHERE id = '76000000-0007-0007-0007-000000000002'),
+  260.00::numeric(14,2),
+  'a reader-role member cannot UPDATE an expense — the write matches 0 rows via the policy '
+  || 'USING clause and the stored amount is unchanged (D-23)');
 
 -- ============================================================
 -- Group 5 — Read gate (D-24). Every member role sees the property's rows; a
