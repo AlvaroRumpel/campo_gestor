@@ -302,12 +302,12 @@ Plans:
   4. Animal com baixa registrada mostra status, motivo e data de baixa de forma proeminente
   5. Layout funciona em mobile web (largura mínima 360px) — veterinário consulta em campo pelo celular
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — Camada de dados: leitura única lote+piquete (D-01) e DGs completos, touro e implantação no histórico reprodutivo (D-09/D-10)
+- [x] 08-01-PLAN.md — Camada de dados: leitura única lote+piquete (D-01) e DGs completos, touro e implantação no histórico reprodutivo (D-09/D-10)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -341,7 +341,7 @@ Plans:
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
 | 7. Expenses by Paddock | 8/8 | Complete    | 2026-08-11 |
-| 8. Animal Dossier Consolidation | 0/5 | Planned | - |
+| 8. Animal Dossier Consolidation | 1/5 | In Progress|  |
 
 ---
 

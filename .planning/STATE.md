@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 8 — Animal Dossier Consolidation
-current_plan: Not started
+current_phase: 08
+current_plan: 1
 status: ready-to-execute
-stopped_at: Phase 8 planned — 5 plans across 5 waves
-last_updated: "2026-08-11T20:07:12.918Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-08-11T21:03:43.437Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 65
-  completed_plans: 60
+  completed_plans: 61
 ---
 
 # Project State
@@ -22,9 +22,9 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 8 — Animal Dossier Consolidation
-**Current plan:** Not started
-**Progress:** [█████████░] 89% (8 of 9 phases complete)
+**Current phase:** 08
+**Current plan:** 1
+**Progress:** [█████████░] 94% (8 of 9 phases complete)
 
 ---
 
@@ -71,6 +71,7 @@ See: .planning/PROJECT.md
 | Phase 04 P06 | 5min | 3 tasks | 4 files |
 | Phase 04 P07 | 8min | 3 tasks | 3 files |
 | Phase 05 P15 | 30min | 2 tasks | 4 files |
+| Phase 08 P01 | 20min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -135,10 +136,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 8 UI-SPEC approved
-**Resume file:** .planning/phases/08-animal-dossier-consolidation/08-UI-SPEC.md
+**Stopped at:** Completed 08-01-PLAN.md
+**Resume file:** None
 
-**Last session:** 2026-08-11T20:07:12.875Z
+**Last session:** 2026-08-11T21:03:43.384Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 
@@ -171,3 +172,7 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 07]: plan-phase 2026-08-11 — D-35 (no receipt attachment / no Supabase Storage this phase) was uncovered by the decision-coverage gate because it is a negative decision; authored as a descriptor-less scope-fence prohibition in 07-05's `must_haves.prohibitions:` rather than tagged `[informational]`, so the executor sees the fence.
 - [Phase 07]: plan-phase 2026-08-11 — "Ano" period preset confirmed as **calendar year** (Jan 1 → today), not rolling 12 months (RESEARCH A2 was open).
 - [Phase 05]: 05-15: closed G-05-2/G-05-3 (AtfDetailScreen rendering/gating gaps) — added AtfMembershipView.animalDeleted from a new deleted_at select column, and hoisted a single dgAnimalIds/pendingMembers derivation shared by the encerrar banner, its AppBar action, its dialog, and the composition remove-gate; dg_summary.dart left untouched per explicit user decision
+- [Phase 08]: 08-01: LotWithPaddockName is a plain const-constructor class (not @freezed), mirroring LotWithPaddockCount/AtfMembershipView convention for embedded-select results
+- [Phase 08]: 08-01: loteWithPaddockByIdProvider is a plain FutureProvider.family with no keepAlive (D-03) — old loteByIdProvider/fetchLot left intact for LoteDetailScreen and the move dialog
+- [Phase 08]: 08-01: ReproductiveHistoryEntry.dgRecords sort reuses isLaterDg as the comparator instead of re-deriving the examDate/createdAt tie-break rule (G-05-4) — single source of truth for DG ordering
+- [Phase 08]: 08-01: Rule 3 auto-fix — _FakeLoteRepository (test/widget/lote_form_dialog_test.dart) needed a stub override for the new fetchLotWithPaddockName method, same recurring LoteRepository interface tax flagged in Phase 04

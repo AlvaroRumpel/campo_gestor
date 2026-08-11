@@ -27,7 +27,7 @@
 
 - [ ] **ANIM-01**: Cada animal gerado recebe número único por (propriedade, categoria) via sequence + lock no banco
 - [ ] **ANIM-02**: Usuário pode editar animal individualmente (raça, estado corporal 1–5, observação)
-- [ ] **ANIM-03**: Usuário pode visualizar ficha consolidada do animal (dados, lote atual, histórico reprodutivo, histórico sanitário)
+- [x] **ANIM-03**: Usuário pode visualizar ficha consolidada do animal (dados, lote atual, histórico reprodutivo, histórico sanitário)
 - [ ] **ANIM-04**: Usuário pode registrar baixa de animal com motivo (venda/morte/descarte) e data (soft delete)
 - [ ] **ANIM-05**: Usuário pode buscar animal por número dentro da propriedade
 - [ ] **ANIM-06**: Usuário pode filtrar lista de animais por categoria, lote e piquete
@@ -121,7 +121,7 @@
 | PROP-05 | Phase 3 — Lots & Animals | Pending |
 | ANIM-01 | Phase 3 — Lots & Animals | Pending |
 | ANIM-02 | Phase 3 — Lots & Animals | Pending |
-| ANIM-03 | Phase 8 — Animal Dossier Consolidation | Pending |
+| ANIM-03 | Phase 8 — Animal Dossier Consolidation | Complete |
 | ANIM-04 | Phase 3 — Lots & Animals | Pending |
 | ANIM-05 | Phase 3 — Lots & Animals | Pending |
 | ANIM-06 | Phase 3 — Lots & Animals | Pending |
