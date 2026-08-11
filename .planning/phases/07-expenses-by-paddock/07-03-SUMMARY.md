@@ -122,3 +122,10 @@ None - no external service configuration required.
 ---
 *Phase: 07-expenses-by-paddock*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+- FOUND: lib/core/auth/role_gates.dart
+- FOUND: test/features/gastos/role_gates_test.dart
+- FOUND: .planning/phases/07-expenses-by-paddock/07-03-SUMMARY.md
+- FOUND commits: 70b6ed1, 2bba7f4, 2538db4
