@@ -21,12 +21,21 @@ class ExpenseListItemCard extends StatelessWidget {
     required this.canManage,
     this.onTap,
     this.onDelete,
+    this.onRestore,
   });
 
   final ExpenseListItem item;
   final bool canManage;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+
+  /// Restore an archived expense (G-07-2, found in UAT). `deleted_at` is
+  /// reversible by design — the RLS UPDATE policy deliberately carries no
+  /// `deleted_at` predicate so an archived row can be un-archived (the
+  /// G-06-2 lesson), and the pgTAP suite asserts the restore round-trip.
+  /// Before this, `ExpenseRepository.restoreExpense` had no caller and an
+  /// archived row still showed the *delete* icon.
+  final VoidCallback? onRestore;
 
   @override
   Widget build(BuildContext context) {
@@ -121,12 +130,22 @@ class ExpenseListItemCard extends StatelessWidget {
                           )
                         : theme.textTheme.bodyMedium,
                   ),
+                  // An archived row offers restore, never delete — deleting
+                  // an already-deleted expense is a no-op that reads as a
+                  // broken control (G-07-2).
                   if (canManage)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Excluir gasto',
-                      onPressed: onDelete,
-                    ),
+                    if (isDeleted)
+                      IconButton(
+                        icon: const Icon(Icons.restore_from_trash_outlined),
+                        tooltip: 'Restaurar gasto',
+                        onPressed: onRestore,
+                      )
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: 'Excluir gasto',
+                        onPressed: onDelete,
+                      ),
                 ],
               ),
             ],

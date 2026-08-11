@@ -83,6 +83,14 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
     _invalidateProviders();
   }
 
+  /// G-07-2: un-archive a soft-deleted expense. No confirmation dialog —
+  /// restoring is non-destructive, unlike `_deleteExpense`.
+  Future<void> _restoreExpense(Expense expense) async {
+    await ref.read(expenseRepositoryProvider).restoreExpense(expense.id);
+    if (!mounted) return;
+    _invalidateProviders();
+  }
+
   Future<void> _pickCustomRange() async {
     final current = _effectiveRange;
     final picked = await showDateRangePicker(
@@ -136,6 +144,21 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        // Explicit back control: /gastos/:paddockId is a root-level route
+        // that is also a deep-link target (D-08), so it can be entered with
+        // no Navigator history at all — in which case Material's automatic
+        // BackButton is absent and the user is stranded on the screen. Falls
+        // back to this paddock's detail screen. Same canPop()/fallback idiom
+        // as aplicacao_detail_screen.dart's _backButton.
+        leading: BackButton(
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            context.go('/piquetes/${widget.paddockId}');
+          },
+        ),
         title: Text(paddockName != null ? 'Gastos — $paddockName' : 'Gastos'),
       ),
       body: itemsAsync.when(
@@ -325,11 +348,18 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
           ManualExpenseItem(:final expense) => () => _deleteExpense(expense),
           SanitaryExpenseItem() => null,
         };
+        // G-07-2: only a manual expense can be restored — a sanitary row is
+        // read-only here and is reversed from its own detail screen.
+        final onRestore = switch (item) {
+          ManualExpenseItem(:final expense) => () => _restoreExpense(expense),
+          SanitaryExpenseItem() => null,
+        };
         return ExpenseListItemCard(
           item: item,
           canManage: canManage,
           onTap: onTap,
           onDelete: onDelete,
+          onRestore: onRestore,
         );
       },
     );
