@@ -55,8 +55,8 @@
 
 ### Gastos por Piquete (GAST)
 
-- [ ] **GAST-01**: Usuário pode lançar gasto vinculado a um piquete (categoria, valor, data, descrição)
-- [ ] **GAST-02**: Usuário pode visualizar total de gastos de um piquete por período (filtro por data)
+- [x] **GAST-01**: Usuário pode lançar gasto vinculado a um piquete (categoria, valor, data, descrição)
+- [x] **GAST-02**: Usuário pode visualizar total de gastos de um piquete por período (filtro por data)
 
 ---
 
@@ -137,8 +137,8 @@
 | SANI-03 | Phase 6 — Sanitary Module | Pending |
 | SANI-04 | Phase 6 — Sanitary Module | Pending |
 | SANI-05 | Phase 6 — Sanitary Module | Pending |
-| GAST-01 | Phase 7 — Expenses by Paddock | Pending |
-| GAST-02 | Phase 7 — Expenses by Paddock | Pending |
+| GAST-01 | Phase 7 — Expenses by Paddock | Complete |
+| GAST-02 | Phase 7 — Expenses by Paddock | Complete |
 
 **Coverage:** 26/26 v1 requirements mapped (100%)
 **Orphans:** 0
