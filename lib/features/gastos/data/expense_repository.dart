@@ -1,4 +1,5 @@
 import '../../../core/services/supabase_service.dart';
+import '../../sanitario/data/sanitary_application_model.dart';
 import 'expense_model.dart';
 
 /// CRUD repository for expenses (GAST-01, GAST-02).
@@ -120,4 +121,35 @@ class ExpenseRepository {
         .select()
         .single();
   }
+}
+
+/// Merges [expenses] (manual, this phase's table) with the [applications]
+/// (Phase 6, read-only) attributed to [paddockId] into one date-ordered list
+/// (D-29, D-30, D-32, D-33). Pure function — no Supabase, no Riverpod. Does
+/// not mutate either input list.
+List<ExpenseListItem> buildUnifiedExpenseItems({
+  required List<Expense> expenses,
+  required List<SanitaryApplication> applications,
+  required String paddockId,
+}) {
+  // 1. Drop reversal rows AND the originals they reverse first (D-33) — the
+  //    existing Phase 6 helper, so a total built on top can never
+  //    double-count a voided application. Do not reimplement this filter.
+  final visible = visibleApplications(applications, showReversed: false);
+
+  // 2. Keep only applications whose paddockId equals the argument. This
+  //    reads the FROZEN column written at registration time by
+  //    `register_sanitary_application` (D-30). Joining through
+  //    `lots.paddock_id` is forbidden here: a lot moved in September would
+  //    retroactively change August's total, which is the exact bug class
+  //    the Phase 6 snapshot model exists to prevent.
+  final matched = visible.where((a) => a.paddockId == paddockId);
+
+  // 3-4. Wrap and sort (D-19). Returns a new list; never mutates the
+  //      arguments.
+  final items = <ExpenseListItem>[
+    for (final expense in expenses) ExpenseListItem.manual(expense),
+    for (final application in matched) ExpenseListItem.sanitary(application),
+  ];
+  return sortExpenseItemsDesc(items);
 }
