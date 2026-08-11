@@ -302,7 +302,15 @@ Plans:
   4. Animal com baixa registrada mostra status, motivo e data de baixa de forma proeminente
   5. Layout funciona em mobile web (largura mínima 360px) — veterinário consulta em campo pelo celular
 
-**Plans:** TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Camada de dados: leitura única lote+piquete (D-01) e DGs completos, touro e implantação no histórico reprodutivo (D-09/D-10)
+- [ ] 08-02-PLAN.md — Extração do bloco reprodutivo para um widget público em reproducao/presentation (D-11)
+- [ ] 08-03-PLAN.md — Recarregar por bloco no histórico sanitário (D-04, dentro da fronteira D-37) e busca por número exato encontrando animal com baixa (D-17)
+- [ ] 08-04-PLAN.md — Ficha: banner de baixa (D-12..D-15), linha chave-valor adaptativa a 360px (D-21), consumo da leitura única e UAT de 4G (D-07)
+- [ ] 08-05-PLAN.md — Bloco reprodutivo: expansão de todos os DGs (D-08/D-09), recarregar por bloco (D-04) e testes da seção isolada (D-23)
+
 **UI hint:** yes
 
 ---
