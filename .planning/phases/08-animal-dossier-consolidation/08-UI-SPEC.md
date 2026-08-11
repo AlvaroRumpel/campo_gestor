@@ -130,7 +130,12 @@ Accent reserved for: tappable lote/piquete links, "Prenha" DG chips. Never used 
 
 ## UI Considerations
 
-Applicable state considerations resolved: 8 covered, 2 backstop, 1 unresolved.
+Applicable state considerations resolved: 11 covered, 2 backstop, 1 unresolved.
+
+> The `partial` rows below were surfaced by the ui-consideration probe (plan-phase §9.5) as an axis
+> the initial pass did not name. They are load-bearing for this phase: D-02's progressive per-block
+> loading and D-04's per-block retry mean a *partially* rendered dossier is the normal case, not an
+> edge case.
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
@@ -146,6 +151,9 @@ Applicable state considerations resolved: 8 covered, 2 backstop, 1 unresolved.
 | overflow / long-text | lote/piquete names, long labels in `_KvRow` | ✅ covered | D-21 adaptive stacking under 400px removes the cramped fixed-width value column |
 | overflow / long-text | baixa banner text (reason + date + observation) | 🧪 backstop | No `maxLines`/ellipsis specified — free-text `observation` (pre-existing + CR-01-appended baixa note) could be long; banner `Text` should wrap normally (no truncation, this is the one place the vet needs the full note) — verify no visual overflow at 360px in the D-23 widget test |
 | overflow / long-text | DG observation inside expansion | 🧪 backstop | Same as above at smaller scale — verify wraps, does not truncate, at 360px |
+| partial | dossier screen shell | ✅ covered | One block failing NEVER blanks the screen: the shell renders every block that resolved, each failed block owns its own error+retry in place, and there is no full-screen error state and no gating on the slowest block (D-02 + D-04) |
+| partial | animal-info-card | ✅ covered | A failed lote/piquete embed does NOT withhold the animal's own data — the card still renders every animal field and degrades only the two affected rows to "—" |
+| partial | reproductive-block / sanitary-block | ✅ covered | Each history block renders its own rows as soon as its own provider resolves, independently of the sibling block's state (one may show rows while the other still spins or shows an error) |
 
 ---
 
