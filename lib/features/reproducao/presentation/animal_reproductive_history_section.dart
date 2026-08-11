@@ -79,11 +79,22 @@ class AnimalReproductiveHistorySection extends ConsumerWidget {
                   child: CircularProgressIndicator(),
                 ),
               ),
-              error: (err, st) => Text(
-                'Erro ao carregar histórico reprodutivo.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
+              error: (err, st) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Erro ao carregar histórico reprodutivo.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.invalidate(
+                      reproductiveHistoryByAnimalProvider(animalId),
+                    ),
+                    child: const Text('Tentar novamente'),
+                  ),
+                ],
               ),
               data: (entries) {
                 if (entries.isEmpty) {
