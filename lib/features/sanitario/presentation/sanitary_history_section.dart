@@ -54,8 +54,18 @@ class _AnimalSanitaryHistorySectionState
       onShowReversedChanged: (v) => setState(() => _showReversed = v),
       body: historyAsync.when(
         loading: () => const _SectionSpinner(),
-        error: (err, st) =>
+        error: (err, st) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             const _SectionMessage('Erro ao carregar histórico sanitário.'),
+            TextButton(
+              onPressed: () => ref.invalidate(
+                sanitaryHistoryByAnimalProvider(widget.animalId),
+              ),
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
         data: (rows) {
           final visible = visibleApplications(
             rows,
@@ -118,8 +128,19 @@ class _LoteSanitaryHistorySectionState
       onShowReversedChanged: (v) => setState(() => _showReversed = v),
       body: historyAsync.when(
         loading: () => const _SectionSpinner(),
-        error: (err, st) => const _SectionMessage(
-          'Erro ao carregar. Verifique sua conexão e tente novamente.',
+        error: (err, st) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionMessage(
+              'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            ),
+            TextButton(
+              onPressed: () => ref.invalidate(
+                sanitaryApplicationsByLotProvider(widget.lotId),
+              ),
+              child: const Text('Tentar novamente'),
+            ),
+          ],
         ),
         data: (rows) {
           final visible = visibleApplications(
