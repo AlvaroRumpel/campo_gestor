@@ -15,6 +15,7 @@ import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/gastos/presentation/gastos_screen.dart';
 import '../../features/piquetes/presentation/paddock_detail_screen.dart';
 import '../../features/lotes/presentation/lote_detail_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
@@ -150,6 +151,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.aplicacaoById,
         builder: (ctx, state) =>
             AplicacaoDetailScreen(applicationId: state.pathParameters['id']!),
+      ),
+      // Phase 7 detail route — root-level, outside any shell branch (D-08):
+      // the expense list for one paddock, reached from
+      // PaddockDetailScreen's summary card and by deep link, mirroring
+      // loteById/atfById/aplicacaoById above.
+      GoRoute(
+        path: AppRoutes.gastosById,
+        builder: (ctx, state) =>
+            GastosScreen(paddockId: state.pathParameters['paddockId']!),
       ),
       // Shell routes (Phase 0)
       StatefulShellRoute.indexedStack(
