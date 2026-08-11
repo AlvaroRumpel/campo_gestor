@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 06-sanitary-module-snapshot
 source: 06-01-SUMMARY.md, 06-02-SUMMARY.md, 06-03-SUMMARY.md, 06-04-SUMMARY.md, 06-05-SUMMARY.md, 06-06-SUMMARY.md, 06-07-SUMMARY.md, 06-08-SUMMARY.md, 06-09-SUMMARY.md, 06-10-SUMMARY.md, 06-11-SUMMARY.md, 06-12-SUMMARY.md
 started: 2026-08-07T17:31:38Z
@@ -20,9 +20,8 @@ result: pass
 ### 2. Dose Management (Doses tab)
 
 expected: Sanitário > Doses tab. FAB creates a dose — six fields in order, per-UA dosage/cost recompute live as you type (disabled fields), per-UA cost absent while cost is blank. Save shows "Dose salva." and the card appears with computed per-UA chips. Edit works. Archive hides the dose; "Mostrar arquivadas" shows it at reduced opacity with "Arquivada" badge; restore brings it back. Edit/archive icons only visible for veterinarian role.
-result: issue
-reported: "eu clico em desarquivar e não desarquiva (per-UA calc questioned but confirmed correct: dosagePerKg × kgPerUa=400)"
-severity: major
+result: pass
+previous: issue — "eu clico em desarquivar e não desarquiva" (G-06-2, fixed by 06-13; re-tested pass 2026-08-11)
 
 ### 3. Register Application (Sanitário FAB)
 
@@ -57,9 +56,8 @@ result: pass
 ### 9. Animal Ficha — Histórico Sanitário
 
 expected: Animal detail screen's Histórico Sanitário section shows real application rows for that animal (replacing the placeholder), with badges and the estornadas toggle behaving like the main list.
-result: issue
-reported: "pelo vista ta dando este problema — DevTools shows repeated failing requests to sanitary_applications with PostgREST error 22P02: {code: '22P02', details: 'Expected \":\", but found \"}\".', message: 'invalid input syntax for type json'}. Histórico Sanitário section stuck on spinner."
-severity: blocker
+result: pass
+previous: issue — PostgREST 22P02 on per-animal containment filter, section stuck on spinner (G-06-9, fixed by 06-14; re-tested pass 2026-08-11)
 
 ### 10. Lote Detail — Histórico Sanitário
 
@@ -103,17 +101,20 @@ Resolved by 06-12 live wave (migrations applied to PROD, pgTAP 74/74 + 5/5 green
 ## Summary
 
 total: 11
-passed: 9
-issues: 2
+passed: 11
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
+resolved: 2
 
 ## Gaps
 
 - gap_id: G-06-2
   truth: "Restore (Reativar dose) on an archived dose un-archives it and it returns to the active list"
-  status: failed
+  status: resolved
+  resolved_by: 06-13-PLAN.md
+  resolved_at: 2026-08-10
   reason: "User reported: eu clico em desarquivar e não desarquiva"
   severity: major
   test: 2
@@ -128,7 +129,9 @@ blocked: 0
 
 - gap_id: G-06-9
   truth: "Animal ficha's Histórico Sanitário section loads real application rows via the per-animal containment lookup (composition_snapshot @> filter over GIN index)"
-  status: failed
+  status: resolved
+  resolved_by: 06-14-PLAN.md
+  resolved_at: 2026-08-10
   reason: "User reported: per-animal sanitary_applications requests fail with PostgREST 22P02 'invalid input syntax for type json — Expected \":\", but found \"}\"' — the containment filter JSON sent by the repository is malformed; section spins forever"
   severity: blocker
   test: 9
