@@ -261,7 +261,18 @@ Plans:
   3. Total agregado do período é exibido no topo da lista e atualiza ao mudar o filtro
   4. Gastos respeitam isolamento multi-tenant via RLS (mesmo padrão das outras tabelas)
 
-**Plans:** TBD
+**Plans:** 8 plans (5 waves)
+
+Plans:
+- [ ] 07-01-PLAN.md — migration: `expenses` table, RLS, isolation trigger, `sanitary_applications` paddock freeze + backfill, RPC edits, pgTAP suite (wave 1)
+- [ ] 07-02-PLAN.md — Dart core: `Expense` model, `ExpenseListItem` union, category constants, pure calculations + unit test (wave 1)
+- [ ] 07-03-PLAN.md — `canManageExpenses` two-role gate + test, `/gastos/:paddockId` route constant (wave 1)
+- [ ] 07-04-PLAN.md — `ExpenseRepository`, unified manual+sanitary merge, four providers (wave 2)
+- [ ] 07-05-PLAN.md — `ExpenseFormDialog` create/edit, delete confirmation, widget test (wave 3)
+- [ ] 07-06-PLAN.md — `GastosScreen`, list item card, route registration, FAB gate test (wave 4)
+- [ ] 07-07-PLAN.md — paddock-detail expense summary card + test (wave 4)
+- [ ] 07-08-PLAN.md — [BLOCKING] apply migration via MCP, replay pgTAP, human UAT (wave 5)
+
 **UI hint:** yes
 
 ### Phase 8: Animal Dossier Consolidation
