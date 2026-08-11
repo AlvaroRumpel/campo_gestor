@@ -25,25 +25,49 @@ Widget _buildCard(List<Override> overrides) {
   );
 }
 
-// Router harness for the tap-through assertion — mirrors the GoRouter
-// pattern already used in test/widget/lote_detail_screen_test.dart.
+// Router harness for the tap-through assertion.
+//
+// G-07-1 REGRESSION GUARD: this harness deliberately reproduces the REAL
+// router's shape — /piquetes/:id nested inside a StatefulShellRoute branch,
+// /gastos/:paddockId at root level outside it. The original harness declared
+// /piquetes/:id at root level, where `context.push` to a sibling root route
+// works fine; that is why the flat harness passed while the shipped app could
+// only reach /gastos/:paddockId by editing the URL. Keep the shell here — a
+// flat harness cannot catch this bug class.
 Widget _buildRoutedCard(List<Override> overrides) {
+  final shellKey = GlobalKey<NavigatorState>();
   final router = GoRouter(
     initialLocation: '/piquetes/$_paddockId',
     routes: [
-      GoRoute(
-        path: '/piquetes/:id',
-        builder: (context, state) => Scaffold(
-          body: PaddockExpenseSummaryCard(
-            paddockId: state.pathParameters['id']!,
-          ),
-        ),
-      ),
       GoRoute(
         path: AppRoutes.gastosById,
         builder: (context, state) => Scaffold(
           body: Text('gastos-${state.pathParameters['paddockId']}'),
         ),
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => navigationShell,
+        branches: [
+          StatefulShellBranch(
+            navigatorKey: shellKey,
+            routes: [
+              GoRoute(
+                path: '/piquetes',
+                builder: (context, state) => const Scaffold(body: Text('lista')),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) => Scaffold(
+                      body: PaddockExpenseSummaryCard(
+                        paddockId: state.pathParameters['id']!,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );
