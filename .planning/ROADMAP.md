@@ -261,14 +261,14 @@ Plans:
   3. Total agregado do período é exibido no topo da lista e atualiza ao mudar o filtro
   4. Gastos respeitam isolamento multi-tenant via RLS (mesmo padrão das outras tabelas)
 
-**Plans:** 8 plans (5 waves)
+**Plans:** 3/8 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 07-01-PLAN.md — migration: `expenses` table, RLS, isolation trigger, `sanitary_applications` paddock freeze + backfill, RPC edits, pgTAP suite (wave 1)
-- [ ] 07-02-PLAN.md — Dart core: `Expense` model, `ExpenseListItem` union, category constants, pure calculations + unit test (wave 1)
-- [ ] 07-03-PLAN.md — `canManageExpenses` two-role gate + test, `/gastos/:paddockId` route constant (wave 1)
+- [x] 07-01-PLAN.md — migration: `expenses` table, RLS, isolation trigger, `sanitary_applications` paddock freeze + backfill, RPC edits, pgTAP suite (wave 1)
+- [x] 07-02-PLAN.md — Dart core: `Expense` model, `ExpenseListItem` union, category constants, pure calculations + unit test (wave 1)
+- [x] 07-03-PLAN.md — `canManageExpenses` two-role gate + test, `/gastos/:paddockId` route constant (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -318,7 +318,7 @@ Plans:
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
-| 7. Expenses by Paddock | 0/0 | Not started | - |
+| 7. Expenses by Paddock | 3/8 | In Progress|  |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
 ---
