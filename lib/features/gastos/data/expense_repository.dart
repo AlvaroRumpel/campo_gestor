@@ -1,5 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/providers/supabase_providers.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../sanitario/data/sanitary_application_model.dart';
+import '../../sanitario/data/sanitary_application_repository.dart';
+import 'expense_calculations.dart';
 import 'expense_model.dart';
 
 /// CRUD repository for expenses (GAST-01, GAST-02).
@@ -153,3 +158,75 @@ List<ExpenseListItem> buildUnifiedExpenseItems({
   ];
   return sortExpenseItemsDesc(items);
 }
+
+final expenseRepositoryProvider = Provider<ExpenseRepository>(
+  (ref) => ExpenseRepository(ref.watch(supabaseServiceProvider)),
+);
+
+// D-18 ceiling: both list providers below sum client-side over the
+// already-loaded list. If this list ever becomes paginated, the total
+// silently becomes "total of this page" — the upgrade path is a
+// server-side `SUM()` RPC, not before.
+//
+// Both list providers are the invalidation targets every write path in
+// 07-05 and 07-06 must call after a successful mutation.
+
+/// The unified manual+sanitary list for [paddockId], excluding archived
+/// manual expenses. `sanitaryApplicationListByPropertyProvider` resolves
+/// `currentPropertyProvider` internally, so this provider takes only the
+/// paddock id — consuming widgets never pass a property id (established
+/// project rule). Adds no new method to `SanitaryApplicationRepository`;
+/// the property-wide fetch already exists and the paddock filter is
+/// client-side.
+final unifiedExpenseListByPaddockProvider =
+    FutureProvider.family<List<ExpenseListItem>, String>((
+  ref,
+  paddockId,
+) async {
+  final expenses = await ref
+      .watch(expenseRepositoryProvider)
+      .fetchExpensesByPaddock(paddockId);
+  final applications =
+      await ref.watch(sanitaryApplicationListByPropertyProvider.future);
+  return buildUnifiedExpenseItems(
+    expenses: expenses,
+    applications: applications,
+    paddockId: paddockId,
+  );
+});
+
+/// Identical to [unifiedExpenseListByPaddockProvider] but includes archived
+/// manual expenses — the "Mostrar excluídos" toggle's data source. A sibling
+/// provider rather than a family parameter keeps the toggle a pure provider
+/// swap, exactly as `archivedDoseListByPropertyProvider` does (D-22).
+/// Sanitary rows are unaffected — they are immutable and never soft-deleted.
+final unifiedExpenseListWithDeletedByPaddockProvider =
+    FutureProvider.family<List<ExpenseListItem>, String>((
+  ref,
+  paddockId,
+) async {
+  final expenses = await ref
+      .watch(expenseRepositoryProvider)
+      .fetchExpensesByPaddock(paddockId, includeArchived: true);
+  final applications =
+      await ref.watch(sanitaryApplicationListByPropertyProvider.future);
+  return buildUnifiedExpenseItems(
+    expenses: expenses,
+    applications: applications,
+    paddockId: paddockId,
+  );
+});
+
+/// The current-month total for [paddockId], derived from the same
+/// [unifiedExpenseListByPaddockProvider] data the list screen reads, so the
+/// paddock card's figure and the screen's opening figure are the same
+/// number by construction (D-09, D-15) — this resolves the CONTEXT.md
+/// discretion item asking whether the card reuses the screen's provider.
+final paddockMonthExpenseTotalProvider =
+    FutureProvider.family<double, String>((ref, paddockId) async {
+  final items = await ref
+      .watch(unifiedExpenseListByPaddockProvider(paddockId).future);
+  return totalAmount(
+    filterByDateRange(items, currentMonthRange(DateTime.now())),
+  );
+});
