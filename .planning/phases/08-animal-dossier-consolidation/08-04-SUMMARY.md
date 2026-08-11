@@ -77,33 +77,34 @@ coverage:
         status: pass
     human_judgment: false
   - id: D4
-    description: "SC-1 (<1s ficha open under Fast 4G throttle, 4 parallel requests) — human UAT with DevTools throttling and a stopwatch"
+    description: "DEFERRED — UNVERIFIED. SC-1 (<1s ficha open under Fast 4G throttle, 4 parallel requests) was NOT measured. The user explicitly deferred Task 4's UAT rather than running it. This is not a pass, not a fail — it is unmeasured. Do not infer a timing result from the request-count reduction (D3/T-08-01): fewer requests is necessary but not sufficient evidence for the <1s wall-clock target."
     verification: []
     human_judgment: true
-    rationale: "This project's repository tests are deliberately shallow contract tests (query-builder mocking is explicitly called brittle in the test files' own header comments) and integration_test does not run on web in this project (STATE.md Phase 0 notes). SC-1's <1s-under-4G evidence can only come from a human timing the real network tab. Task 4 (checkpoint:human-verify) is this UAT and has not run yet — pending human execution."
+    rationale: "This project's repository tests are deliberately shallow contract tests (query-builder mocking is explicitly called brittle in the test files' own header comments) and integration_test does not run on web in this project (STATE.md Phase 0 notes). SC-1's <1s-under-4G evidence can only come from a human timing the real network tab with DevTools 'Fast 4G' throttling. User decision: defer this UAT rather than run it now. Reproduction steps are recorded verbatim below for whoever runs it later."
 
 # Metrics
-duration: pending (Task 4 not yet run)
-completed: pending
-status: blocked-on-checkpoint
+duration: 35min
+completed: 2026-08-11
+status: complete
 ---
 
-# Phase 8 Plan 4: Baixa Banner, Adaptive _KvRow, and Single Lote+Piquete Read Summary (PARTIAL — Task 4 pending human UAT)
+# Phase 8 Plan 4: Baixa Banner, Adaptive _KvRow, and Single Lote+Piquete Read Summary
 
-**Tasks 1-3 complete: full-width errorContainer banner replaces the card's duplicated status chip, `_KvRow` gets its first row-level width breakpoint via `LayoutBuilder`, `AnimalInfoCard` collapses the lote→piquete waterfall into one read, and the repo gains its first 360px-constrained widget-test harness. Task 4 (SC-1's 4G UAT checkpoint) has NOT run — this SUMMARY will be updated with its result before the plan is marked complete.**
+**Full-width errorContainer banner replaces the card's duplicated status chip, `_KvRow` gets its first row-level width breakpoint via `LayoutBuilder`, `AnimalInfoCard` collapses the lote→piquete waterfall into one embedded read, and the repo gains its first 360px-constrained widget-test harness. SC-1's <1s-under-4G wall-clock target is UNMEASURED — deferred by explicit user decision, not verified.**
 
-## Status
+## ⚠ Open Item: SC-1 timing UAT deferred, not verified
 
-**This SUMMARY covers Tasks 1-3 only.** Task 4 is a `checkpoint:human-verify` (`gate="blocking"`) that requires a human with Chrome DevTools "Fast 4G" throttling and a stopwatch — it cannot be executed by an agent. See the plan's own `<what-built>`/`<how-to-verify>`/`<resume-signal>` blocks in `08-04-PLAN.md` Task 4 for the exact UAT script.
+**Tasks 1-4 as coded/tested are done. SC-1's human UAT (Task 4) was explicitly deferred by the user — it did NOT run.** Do not read `status: complete` above as "SC-1 passed." Two separate facts, kept separate:
 
-STATE.md's plan counter and ROADMAP.md's plan-progress table have **not** been advanced — this plan is not yet complete. A continuation agent (or the same session, after the human runs the UAT) must: run Task 4's verification, append its results to this SUMMARY (tempo cronometrado + request count), flip `status: complete`, then run the normal state/roadmap/requirements updates and the final metadata commit.
+- **PROVEN (code-verifiable, committed):** the ficha issues 4 parallel requests instead of 5 with a cascading piquete read — `AnimalInfoCard` now reads `loteWithPaddockByIdProvider` once instead of chaining `loteByIdProvider` → `paddockByIdProvider`. This is mechanically true from the diff and covered by `test/widget/animal_detail_screen_test.dart`'s "Degradação parcial do card" test.
+- **NOT PROVEN (unmeasured):** the <1s wall-clock target under Fast-4G throttle. Fewer requests does not by itself prove sub-1s load time — that requires a human timing it. See "Deferred: SC-1 4G UAT" below for the exact reproduction steps.
 
 ## Performance
 
-- **Duration (Tasks 1-3):** ~35 min
+- **Duration (Tasks 1-3, coded/tested work):** ~35 min
 - **Started:** 2026-08-11T21:47:00Z (approx.)
 - **Tasks 1-3 completed:** 2026-08-11T22:17:00Z (approx.)
-- **Tasks:** 3 of 4 complete
+- **Tasks:** 3 of 4 complete; Task 4 (SC-1 UAT) deferred, not run
 - **Files modified:** 2
 
 ## Accomplishments
@@ -120,9 +121,9 @@ Each task was committed atomically:
 2. **Task 2: Linha chave-valor adaptativa e leitura única de lote+piquete (D-21, D-01)** - `1b24153` (feat)
 3. **Task 3: Testes de widget do banner e do layout a 360px, com o harness de largura reutilizável (D-23, SC-4, SC-5)** - `0f9e8b2` (test)
 
-**Task 4: NOT YET RUN** — checkpoint:human-verify, awaiting the developer.
+**Task 4: DEFERRED — UNVERIFIED (human_needed).** `checkpoint:human-verify`, gate=`blocking`. User explicitly chose to defer this UAT rather than run it now. See "Deferred: SC-1 4G UAT" below for what it measures and the exact reproduction steps.
 
-**Plan metadata:** pending (this SUMMARY will get a `docs:` commit once Task 4's result is appended and `status: complete`)
+**Plan metadata:** see final commit hash at the end of this document.
 
 ## Files Created/Modified
 
@@ -132,6 +133,26 @@ Each task was committed atomically:
 ## Decisions Made
 
 See `key-decisions` above. The most consequential one not fully spelled out in the plan: Task 3's width-sensitive "no overflow" assertions mount `AnimalInfoCard` directly (via a new `_buildInfoCard` helper) rather than the whole `AnimalDetailScreen`, because of a pre-existing, D-37-locked overflow bug discovered by this plan's own first-ever narrow-width test — see Deviations/Known Issues below.
+
+## Deferred: SC-1 4G UAT (Task 4 — not run)
+
+**What it would measure:** whether the ficha paints completely (card + both history blocks filled, no spinners) in under 1 second under DevTools "Fast 4G" throttle, and confirms exactly 4 Supabase requests fire (the waterfall being dead, per D-01/D3 above). This is the human-facing wall-clock proof; nothing in this plan's automated suite measures wall-clock time or live request counts (see rationale below).
+
+**Why it is not automatable here:** this project's repository tests are deliberately shallow contract tests (query-builder mocking is explicitly called brittle in the test files' own header comments — not this plan's decision, a standing project convention), and `integration_test` has no web support in this project (STATE.md Phase 0 notes: `flutter run -d edge` was the manual fallback used for the equivalent SC-1 check in Phase 0). A timing assertion run on desktop against a real network would measure desktop-network latency, not 4G — not representative.
+
+**Reproduction steps (verbatim, for whoever runs this later):**
+
+1. Run the app in Chrome or Edge (dev web build).
+2. Log in and select a property with real data.
+3. Open DevTools → Network tab → enable "Fast 4G" throttle.
+4. Clear the network log.
+5. Go to the animal list and search by number for the heaviest animal available (one with an ATF that has a DG, plus at least one sanitary application).
+6. Time from tap to fully painted ficha (card + both history blocks filled, no spinners).
+7. Record: elapsed time and Supabase request count in the Network tab. **Target: <1s and 4 requests.**
+8. Repeat from step 4 with an ARCHIVED animal (search by exact number, "Mostrar arquivados" off). Confirm it's found, the ficha opens, the red baixa banner shows reason/date/observation at the top, and both histories are still complete.
+9. Still throttled, narrow the browser to 360px width (or DevTools device mode). Confirm no card row is cramped, label/value stack correctly, and the baixa banner text wraps without cutting off. **Known:** you will see `sanitary_history_section.dart`'s header row overflow here — pre-existing, not a regression from this plan, see "Known Issues" below.
+
+**D-01 fallback, carried forward:** if request count > 4, the waterfall wasn't actually killed — investigate before retrying the timing check. If time > 1s WITH 4 requests confirmed, the documented next lever is the consolidated RPC/view that D-01 explicitly deferred pending exactly this condition (not a new decision — re-open D-01's original tradeoff, don't re-derive it).
 
 ## Deviations from Plan
 
@@ -170,20 +191,19 @@ This plan's `<threat_model>` explicitly locks `sanitary_history_section.dart` to
 
 None - no external service configuration required.
 
-## Next Phase Readiness (blocked)
+## Next Phase Readiness
 
-**This plan is not done.** Outstanding before it can be marked complete:
+Tasks 1-3's code and tests are done and green: full test suite (349 tests) and repo-wide `flutter analyze` (4 pre-existing unrelated issues, 0 errors) both pass as of `0f9e8b2`. Phase 8's remaining plans do not depend on SC-1's timing number, so this plan is not a blocker for anything downstream.
 
-1. **Task 4** — a human must run the Fast-4G DevTools UAT described in `08-04-PLAN.md` Task 4's `<how-to-verify>`: open the ficha for a heavy animal (ATF with DG + sanitary application), confirm <1s / 4 requests, repeat for an archived animal (confirm the banner + both histories), and check the 360px layout visually (including the known sanitary-header overflow noted above, which is not this plan's regression).
-2. Append Task 4's two measured numbers (time, request count) to this SUMMARY and flip `status: complete`.
-3. Run the standard `state advance-plan` / `state update-progress` / `roadmap update-plan-progress` / `requirements mark-complete` sequence and the final metadata commit — none of that has run yet.
-4. Optionally: file the D-37-locked sanitary-header-overflow finding as a follow-up quick task, since it's real, pre-existing, and will be visible in Task 4's own UAT.
+**Still outstanding, not blocking:**
 
-No blockers for Tasks 1-3's own correctness: full test suite (349 tests) and repo-wide `flutter analyze` (4 pre-existing unrelated issues, 0 errors) are both green as of `0f9e8b2`.
+1. **SC-1's 4G UAT (Task 4)** — deferred by explicit user decision, not run. See "Deferred: SC-1 4G UAT" above for what it measures and the exact steps. Whoever picks this up later needs no rediscovery.
+2. Optional follow-up: file the D-37-locked `sanitary_history_section.dart` header-overflow-at-360px finding as its own quick task (see "Known Issues").
 
 ---
 *Phase: 08-animal-dossier-consolidation*
-*Status: blocked-on-checkpoint (Task 4 pending human UAT)*
+*Completed: 2026-08-11*
+*SC-1 timing UAT: deferred, unverified — see "Deferred: SC-1 4G UAT" above*
 
 ## Self-Check: PASSED
 Confirmed on disk: `lib/features/animais/presentation/animal_detail_screen.dart`, `test/widget/animal_detail_screen_test.dart`. Confirmed in git log: `5903add`, `1b24153`, `0f9e8b2`.
