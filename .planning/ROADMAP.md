@@ -261,7 +261,7 @@ Plans:
   3. Total agregado do período é exibido no topo da lista e atualiza ao mudar o filtro
   4. Gastos respeitam isolamento multi-tenant via RLS (mesmo padrão das outras tabelas)
 
-**Plans:** 6/8 plans executed
+**Plans:** 7/8 plans executed
 
 Plans:
 **Wave 1**
@@ -280,7 +280,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 07-06-PLAN.md — `GastosScreen`, list item card, route registration, FAB gate test (wave 4)
+- [x] 07-06-PLAN.md — `GastosScreen`, list item card, route registration, FAB gate test (wave 4)
 - [x] 07-07-PLAN.md — paddock-detail expense summary card + test (wave 4)
 
 **Wave 5** *(blocked on Wave 4 completion)*
@@ -318,7 +318,7 @@ Plans:
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
-| 7. Expenses by Paddock | 6/8 | In Progress|  |
+| 7. Expenses by Paddock | 7/8 | In Progress|  |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
 ---
