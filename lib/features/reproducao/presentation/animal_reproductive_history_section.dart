@@ -8,6 +8,31 @@ import '../data/atf_model.dart';
 import '../data/atf_repository.dart';
 import '../data/dg_record_model.dart';
 
+/// dd/MM/yyyy, used only for the DG sub-row date inside the expansion (D-09)
+/// — one step more precise than the row's own short `dd/MM` formatter, since
+/// a DG sub-row has no other context to imply the year.
+final _dgDateFmt = DateFormat('dd/MM/yyyy', 'pt_BR');
+
+/// Result→color mapping shared by the collapsed row's summary chip and each
+/// DG sub-row chip inside the expansion (D-08/D-09) — extracted to one place
+/// so the two presentations cannot drift from each other.
+(Color, Color) _dgResultColors(ColorScheme colorScheme, DgResult result) {
+  return switch (result) {
+    DgResult.pregnant => (
+      colorScheme.primaryContainer,
+      colorScheme.onPrimaryContainer,
+    ),
+    DgResult.notPregnant => (
+      colorScheme.errorContainer,
+      colorScheme.onErrorContainer,
+    ),
+    DgResult.doubtful => (
+      colorScheme.tertiaryContainer,
+      colorScheme.onTertiaryContainer,
+    ),
+  };
+}
+
 /// Read-only reproductive history list on the animal ficha (REPR-05, D-14).
 ///
 /// One row per ATF the animal participated in — active or closed alike —
@@ -65,8 +90,7 @@ class AnimalReproductiveHistorySection extends ConsumerWidget {
                   return Text(
                     'Nenhum ATF registrado para este animal.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color:
-                          theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   );
                 }
@@ -106,20 +130,7 @@ class _ReproductiveHistoryRow extends StatelessWidget {
     if (lastDgResult == null) {
       resultSlot = Text('aguardando DG', style: theme.textTheme.bodyMedium);
     } else {
-      final (bg, fg) = switch (lastDgResult) {
-        DgResult.pregnant => (
-            colorScheme.primaryContainer,
-            colorScheme.onPrimaryContainer,
-          ),
-        DgResult.notPregnant => (
-            colorScheme.errorContainer,
-            colorScheme.onErrorContainer,
-          ),
-        DgResult.doubtful => (
-            colorScheme.tertiaryContainer,
-            colorScheme.onTertiaryContainer,
-          ),
-      };
+      final (bg, fg) = _dgResultColors(colorScheme, lastDgResult);
       resultSlot = Chip(
         label: Text(lastDgResult.label),
         backgroundColor: bg,
@@ -140,7 +151,10 @@ class _ReproductiveHistoryRow extends StatelessWidget {
             side: BorderSide.none,
           );
 
-    return InkWell(
+    final bullName = entry.bullName;
+    final hasBull = bullName != null && bullName.trim().isNotEmpty;
+
+    final summary = InkWell(
       onTap: () => context.go(AppRoutes.atfDetail(entry.atfBatchId)),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -154,11 +168,81 @@ class _ReproductiveHistoryRow extends StatelessWidget {
               style: theme.textTheme.bodyLarge,
             ),
             const Text('·'),
+            Text('implant. ${dateFmt.format(entry.implantationDate)}'),
+            if (hasBull) ...[const Text('·'), Text('touro: $bullName')],
+            const Text('·'),
             resultSlot,
             const Text('·'),
             statusBadge,
           ],
         ),
+      ),
+    );
+
+    // Expand affordance only when there is more than one DG to reveal — a
+    // 0- or 1-DG ATF's collapsed row already shows everything there is
+    // (D-08, UI-SPEC zero-one-many). This ExpansionTile is the project's
+    // first use of the widget; the summary (with its own InkWell) sits in
+    // `title`, so a tap on the summary text still navigates while a tap on
+    // the chevron (outside the InkWell's bounds) only toggles expansion.
+    if (entry.dgRecords.length > 1) {
+      return ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        title: summary,
+        children: [for (final dg in entry.dgRecords) _DgSubRow(dg: dg)],
+      );
+    }
+
+    return summary;
+  }
+}
+
+/// One DG sub-row inside an ATF's [ExpansionTile] (D-08/D-09) — date, a
+/// result chip sharing [_dgResultColors] with the collapsed row's own chip,
+/// and the observation when present. The observation is a `Column` sibling
+/// of the date/chip `Wrap`, not a member of it, so it gets a bounded width
+/// from its ancestor and wraps across lines instead of overflowing at
+/// narrow widths (UI-SPEC overflow/long-text backstop).
+class _DgSubRow extends StatelessWidget {
+  const _DgSubRow({required this.dg});
+
+  final DgRecord dg;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final result = DgResult.fromDb(dg.result)!;
+    final (bg, fg) = _dgResultColors(theme.colorScheme, result);
+    final observation = dg.observation?.trim();
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, top: 4, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Text(
+                _dgDateFmt.format(dg.examDate),
+                style: theme.textTheme.bodyMedium,
+              ),
+              const Text('·'),
+              Chip(
+                label: Text(result.label),
+                backgroundColor: bg,
+                labelStyle: TextStyle(color: fg),
+                side: BorderSide.none,
+              ),
+            ],
+          ),
+          if (observation != null && observation.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text('· $observation', style: theme.textTheme.bodyMedium),
+          ],
+        ],
       ),
     );
   }
