@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../features/auth/data/property_repository.dart';
+import '../../../features/gastos/presentation/paddock_expense_summary_card.dart';
 import '../../../features/lotes/data/lote_repository.dart';
 import '../../../features/lotes/presentation/_lots_section.dart';
 import '../../../features/lotes/presentation/lote_form_dialog.dart';
@@ -40,6 +41,8 @@ class PaddockDetailScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               _PaddockInfoCard(paddock: paddock),
+              const SizedBox(height: 8),
+              PaddockExpenseSummaryCard(paddockId: paddockId),
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -81,6 +84,10 @@ class PaddockDetailScreen extends ConsumerWidget {
     );
   }
 
+  /// Vet-only gate for the "Novo lote" FAB — unchanged by Phase 7. A second,
+  /// broader gate (`canManageExpenses`, `lib/core/auth/role_gates.dart`)
+  /// now also lives on this screen for the expense surface; the two are
+  /// deliberately different and never merged (D-23).
   bool _canEdit(
     SelectedProperty? current,
     List<PropertyMembership>? members,
