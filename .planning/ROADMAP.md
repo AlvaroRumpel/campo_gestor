@@ -261,7 +261,7 @@ Plans:
   3. Total agregado do período é exibido no topo da lista e atualiza ao mudar o filtro
   4. Gastos respeitam isolamento multi-tenant via RLS (mesmo padrão das outras tabelas)
 
-**Plans:** 3/8 plans executed
+**Plans:** 4/8 plans executed
 
 Plans:
 **Wave 1**
@@ -272,7 +272,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07-04-PLAN.md — `ExpenseRepository`, unified manual+sanitary merge, four providers (wave 2)
+- [x] 07-04-PLAN.md — `ExpenseRepository`, unified manual+sanitary merge, four providers (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -318,7 +318,7 @@ Plans:
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
-| 7. Expenses by Paddock | 3/8 | In Progress|  |
+| 7. Expenses by Paddock | 4/8 | In Progress|  |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
 ---
