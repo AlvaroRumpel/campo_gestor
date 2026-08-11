@@ -146,3 +146,10 @@ None - no external service configuration required.
 ---
 *Phase: 07-expenses-by-paddock*
 *Completed: 2026-08-11*
+
+## Self-Check: PASSED
+
+- FOUND: lib/features/gastos/data/expense_repository.dart
+- FOUND: test/features/gastos/expense_unified_list_test.dart
+- FOUND: .planning/phases/07-expenses-by-paddock/07-04-SUMMARY.md
+- FOUND commits: da38cda, 5112283, 367ec84, cf768f7, 10dcb86
