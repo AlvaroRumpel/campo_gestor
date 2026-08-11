@@ -24,7 +24,7 @@ See: .planning/PROJECT.md
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 8 — Animal Dossier Consolidation
 **Current plan:** Not started
-**Progress:** [████████░░] 78% (7 of 9 phases complete)
+**Progress:** [█████████░] 89% (8 of 9 phases complete)
 
 ---
 
@@ -49,9 +49,11 @@ See: .planning/PROJECT.md
 | Metric | Value |
 |---|---|
 | Phases planned | 9 |
-| Phases complete | 7 (0–6, all UAT-verified) |
+| Phases complete | 8 (0–7, all UAT-verified) |
 | Requirements mapped | 26/26 |
-| Plans complete | 52 of 52 across phases 0–6 |
+| Plans complete | 60 of 60 across phases 0–7 |
+| Dart tests | 312 passing |
+| Migration ledger | 18 |
 | Last activity | 2026-08-11 |
 
 ---
