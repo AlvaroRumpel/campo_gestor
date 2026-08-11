@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07
-current_plan: 1
-status: in-progress
-stopped_at: Phase 07 planned — ready to execute
-last_updated: "2026-08-11T17:05:55.476Z"
+current_phase: 8 — Animal Dossier Consolidation
+current_plan: Not started
+status: phase-complete
+stopped_at: Phase 07 complete — 8/8 plans, migration live, UAT 7/7, verification passed
+last_updated: "2026-08-11T19:14:34.818Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 60
-  completed_plans: 52
+  completed_plans: 60
 ---
 
 # Project State
@@ -22,8 +22,8 @@ progress:
 See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
-**Current phase:** 07
-**Current plan:** 1
+**Current phase:** 8 — Animal Dossier Consolidation
+**Current plan:** Not started
 **Progress:** [████████░░] 78% (7 of 9 phases complete)
 
 ---
@@ -39,7 +39,7 @@ See: .planning/PROJECT.md
 | 4 | Movements | complete (7/7 plans, UAT 8/8 — 2026-08-04) |
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
-| 7 | Expenses by Paddock | planned (8 plans, 5 waves — ready to execute) |
+| 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
 | 8 | Animal Dossier Consolidation | not-started |
 
 ---
@@ -115,6 +115,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - **`06_sanitary_test.sql`: 81 assertions, 80 pass** (2026-08-07, post-gap-closure replay — supersedes the earlier 74/74 record, which predates Group 12's restore-regression assertions). The 1 failure is environmental, not a schema defect: Group 8's `count(*) FROM sanitary_applications = 2` assumes an empty database, but PROD now holds 2 real UAT rows created during Phase 6 UAT; it is the suite's only assertion scoped to global table state instead of fixture ids. All 6 Group 12 assertions green. Earlier test-file defect (`ec5519b`, `like` vs `alike`) documented in the suite header.
 - **G-06-2 closed 2026-08-07.** Corrective migration `20260812_06_fix_dose_update_policy` applied to live PROD via MCP `apply_migration` — **migration ledger now at 17**. Root cause: fix commit `ae08dba` edited the already-applied `20260810_06` file in place, so PROD kept the original doses UPDATE policy with `AND deleted_at IS NULL` in USING (restore/edit of archived doses matched 0 rows, silent no-op). Post-apply catalog read confirms the UPDATE policy is membership + veterinarian only; an RLS round-trip as `authenticated` impersonating the real vet restored the real archived UAT dose with 1 row affected (rolled back). Forward-only correction — `20260810_06` untouched.
 - **`anon` can EXECUTE the SECURITY DEFINER RPCs** (all five Phase 5 ones and Phase 4's `move_animal_to_lot`). `REVOKE ALL … FROM public` does not remove Supabase's `ALTER DEFAULT PRIVILEGES` grant to `anon`. Fails closed — `is_member_of()` is false when `auth.uid()` is NULL → `42501` — but leaves a UUID-existence oracle (`23503` vs `42501`) because the row lookup precedes the membership check. Low severity (122-bit v4 UUIDs), pre-existing since Phase 1. Route through `/gsd-secure-phase`.
+- **Phase 7 migration applied 2026-08-11.** `20260813_07_expenses_module` applied to live PROD `wrdwzychjhlpwpivfhhq` via MCP `apply_migration` — **migration ledger now at 18.** One file, one transaction, covering the `expenses` table + the `sanitary_applications` paddock freeze + both sanitary RPC replacements (a half-applied state would have left the unified list unable to render sanitary rows). Preflight confirmed not-already-applied and that both live sanitary rows resolved through `lots → paddocks` to paddock "2A", so the backfill could not abort the `SET NOT NULL`. Catalog verification 12/12: RLS enabled **and forced** on `expenses`, 3 policies (SELECT/INSERT/UPDATE) with **zero DELETE policy** (D-22), 2 triggers, 3 indexes; `sanitary_applications.paddock_id`/`paddock_name` NOT NULL with 0 unbackfilled; **`trg_snapshot_immutable` verified re-ENABLED** (`tgenabled='O'`) after the migration's DISABLE→backfill→ENABLE window; both RPCs SECURITY DEFINER, granted to `authenticated`, both writing the frozen paddock.
+- **`07_expenses_test.sql`: 42 assertions, 42 pass** (2026-08-11), replayed against live PROD via MCP `execute_sql` in `BEGIN…ROLLBACK` with zero fixture leakage. First run was 41/42: the reader-UPDATE assertion expected `42501`, but **RLS only raises from a failing `WITH CHECK` — a failing `USING` clause silently filters the row instead**. The security property was verified directly (reader UPDATE affects 0 rows, stored amount unchanged, 0 tampered rows) and the assertion replaced with that check (commit `ac03bff`). This is a strengthening, not a weakening: it proves no mutation rather than merely that an error was raised. Worth remembering for every future RLS suite in this project.
+- **`gsd-executor` cannot run migration plans.** Plan 07-08 was dispatched to a `gsd-executor` subagent and returned BLOCKED without changing anything: that agent type is registered with a restricted tool list (`Read, Write, Edit, Bash, Grep, Glob, Skill, context7`) that excludes the Supabase MCP tools, and the local Docker/CLI fallback is dead on this machine. It correctly refused to improvise a raw connection to PROD. Tasks 1–2 were run by the orchestrator instead. **This will recur on every future migration plan** — either widen that agent's tool list or mark such plans orchestrator-owned at plan time.
+- **Phase 7 planning gap:** plan 07-04 had to modify `lib/features/sanitario/data/sanitary_application_model.dart` to add the required `paddockId`/`paddockName` fields, but **no Phase 7 plan listed that file in `files_modified`**. Necessary (07-01 made those columns NOT NULL, so the Dart model could not compile without them) and correctly recorded as a Rule 2 deviation — but it means the plan set had a coverage hole that the plan-checker did not catch.
 - **Supabase Auth URL config not set for the deployed origin.** Project `wrdwzychjhlpwpivfhhq` still has Site URL at `http://localhost:3000`, so signup confirmation emails link to localhost. The `emailRedirectTo` client fix (quick task 260804-fpk, F-04-02) is inert until a human sets Site URL + allowed redirect URLs to `https://campo-gestor.pages.dev` in the dashboard.
 
 ### Quick Tasks Completed
@@ -129,8 +133,8 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 07 planned — 8 plans in 5 waves, ready to execute
-**Resume file:** .planning/phases/07-expenses-by-paddock/07-01-PLAN.md
+**Stopped at:** Phase 07 complete — 8/8 plans, migration live, UAT 7/7, verification passed
+**Resume file:** .planning/phases/07-expenses-by-paddock/07-VERIFICATION.md
 
 **Last session:** 2026-08-11T13:07:39.267Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.

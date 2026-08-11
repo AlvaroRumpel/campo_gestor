@@ -16,7 +16,7 @@
 - [x] **Phase 4: Movements** — Mover animal entre lotes, mover lote inteiro entre piquetes (atômico via RPC) (completed 2026-08-04)
 - [x] **Phase 5: Reproductive Module (LoteATF)** — CRUD LoteATF, validação 1 ATF ativo/animal, DG, % prenhez, histórico reprodutivo na ficha (completed 2026-08-06)
 - [x] **Phase 6: Sanitary Module (Snapshot)** — Doses, aplicação sanitária com snapshot congelado, desmarcar individuais, histórico por lote e por animal
-- [ ] **Phase 7: Expenses by Paddock** — Lançamento de gasto vinculado a piquete, total por período
+- [x] **Phase 7: Expenses by Paddock** — Lançamento de gasto vinculado a piquete, total por período (completed 2026-08-11)
 - [ ] **Phase 8: Animal Dossier Consolidation** — Ficha consolidada do animal cruzando lote atual + histórico reprodutivo + histórico sanitário num único view
 
 ---
@@ -261,7 +261,7 @@ Plans:
   3. Total agregado do período é exibido no topo da lista e atualiza ao mudar o filtro
   4. Gastos respeitam isolamento multi-tenant via RLS (mesmo padrão das outras tabelas)
 
-**Plans:** 7/8 plans executed
+**Plans:** 8/8 plans complete
 
 Plans:
 **Wave 1**
@@ -285,7 +285,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 07-08-PLAN.md — [BLOCKING] apply migration via MCP, replay pgTAP, human UAT (wave 5)
+- [x] 07-08-PLAN.md — [BLOCKING] apply migration via MCP, replay pgTAP, human UAT (wave 5)
 
 **UI hint:** yes
 
@@ -318,7 +318,7 @@ Plans:
 | 4. Movements | 7/7 | Complete    | 2026-08-04 |
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
-| 7. Expenses by Paddock | 7/8 | In Progress|  |
+| 7. Expenses by Paddock | 8/8 | Complete    | 2026-08-11 |
 | 8. Animal Dossier Consolidation | 0/0 | Not started | - |
 
 ---
