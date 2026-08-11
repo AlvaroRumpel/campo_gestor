@@ -305,11 +305,25 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 08-01-PLAN.md — Camada de dados: leitura única lote+piquete (D-01) e DGs completos, touro e implantação no histórico reprodutivo (D-09/D-10)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 08-02-PLAN.md — Extração do bloco reprodutivo para um widget público em reproducao/presentation (D-11)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 08-03-PLAN.md — Recarregar por bloco no histórico sanitário (D-04, dentro da fronteira D-37) e busca por número exato encontrando animal com baixa (D-17)
-- [ ] 08-04-PLAN.md — Ficha: banner de baixa (D-12..D-15), linha chave-valor adaptativa a 360px (D-21), consumo da leitura única e UAT de 4G (D-07)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 08-05-PLAN.md — Bloco reprodutivo: expansão de todos os DGs (D-08/D-09), recarregar por bloco (D-04) e testes da seção isolada (D-23)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 08-04-PLAN.md — Ficha: banner de baixa (D-12..D-15), linha chave-valor adaptativa a 360px (D-21), consumo da leitura única e UAT de 4G (D-07)
 
 **UI hint:** yes
 
@@ -327,7 +341,7 @@ Plans:
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
 | 7. Expenses by Paddock | 8/8 | Complete    | 2026-08-11 |
-| 8. Animal Dossier Consolidation | 0/0 | Not started | - |
+| 8. Animal Dossier Consolidation | 0/5 | Planned | - |
 
 ---
 

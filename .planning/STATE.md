@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 8 — Animal Dossier Consolidation
 current_plan: Not started
-status: phase-complete
-stopped_at: Phase 8 context gathered
-last_updated: "2026-08-11T19:46:41.284Z"
+status: ready-to-execute
+stopped_at: Phase 8 planned — 5 plans across 5 waves
+last_updated: "2026-08-11T20:07:12.918Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 60
+  total_plans: 65
   completed_plans: 60
 ---
 
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
 | 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
-| 8 | Animal Dossier Consolidation | not-started |
+| 8 | Animal Dossier Consolidation | planned (0/5 plans, 5 waves) — ready to execute |
 
 ---
 
@@ -135,10 +135,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 8 context gathered
-**Resume file:** .planning/phases/08-animal-dossier-consolidation/08-CONTEXT.md
+**Stopped at:** Phase 8 UI-SPEC approved
+**Resume file:** .planning/phases/08-animal-dossier-consolidation/08-UI-SPEC.md
 
-**Last session:** 2026-08-11T19:46:41.248Z
+**Last session:** 2026-08-11T20:07:12.875Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 

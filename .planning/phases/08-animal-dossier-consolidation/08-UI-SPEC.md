@@ -130,7 +130,7 @@ Accent reserved for: tappable lote/piquete links, "Prenha" DG chips. Never used 
 
 ## UI Considerations
 
-Applicable state considerations resolved: 11 covered, 2 backstop, 1 unresolved.
+Applicable state considerations resolved: 12 covered, 2 backstop, 1 unresolved (15 rows).
 
 > The `partial` rows below were surfaced by the ui-consideration probe (plan-phase §9.5) as an axis
 > the initial pass did not name. They are load-bearing for this phase: D-02's progressive per-block
