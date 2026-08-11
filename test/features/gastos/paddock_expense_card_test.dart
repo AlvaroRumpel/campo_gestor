@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+// Override is not re-exported by flutter_riverpod in Riverpod 3.x; riverpod is
+// a transitive dependency of it, so this import needs the lint exemption.
+// ignore: depend_on_referenced_packages
 import 'package:riverpod/misc.dart' show Override;
 
 const _paddockId = 'pad-1';
