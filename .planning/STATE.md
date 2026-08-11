@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 08
-current_plan: 3
+current_plan: 4
 status: ready-to-execute
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-08-11T21:30:04.828Z"
+stopped_at: Completed 08-05-PLAN.md
+last_updated: "2026-08-11T21:47:08.329Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 65
-  completed_plans: 63
+  completed_plans: 64
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md
 
 **Core value:** O histórico técnico do animal individual — reprodutivo e sanitário — acessível em campo
 **Current phase:** 08
-**Current plan:** 3
-**Progress:** [██████████] 97% (8 of 9 phases complete)
+**Current plan:** 4
+**Progress:** [██████████] 98% (8 of 9 phases complete)
 
 ---
 
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
 | 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
-| 8 | Animal Dossier Consolidation | in progress (3/5 plans, 5 waves) |
+| 8 | Animal Dossier Consolidation | in progress (4/5 plans, 5 waves — 08-04 outstanding) |
 
 ---
 
@@ -74,6 +74,7 @@ See: .planning/PROJECT.md
 | Phase 08 P01 | 20min | 2 tasks | 7 files |
 | Phase 08 P02 | 10min | 2 tasks | 2 files |
 | Phase 08 P03 | 15min | 2 tasks | 4 files |
+| Phase 08 P05 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -138,10 +139,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Completed 08-03-PLAN.md
+**Stopped at:** Completed 08-05-PLAN.md
 **Resume file:** None
 
-**Last session:** 2026-08-11T21:29:55.432Z
+**Last session:** 2026-08-11T21:47:08.278Z
 **Next action:** UAT humano da Fase 6 — todo o código está em master, as 2 migrations estão aplicadas em PROD, 259 testes Dart e 74+5 asserções pgTAP verdes. Falta você exercitar o fluxo no app: cadastrar dose, registrar aplicação em um lote, conferir o snapshot congelado, estornar, e ver o histórico na ficha de um animal movido de lote. Dois itens antigos seguem abertos, nenhum bloqueando: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser.
 **Files of interest:**
 
@@ -181,3 +182,6 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 08]: 08-02: AnimalReproductiveHistorySection is stateless (ConsumerWidget, not ConsumerStatefulWidget) — no local UI state to manage, unlike the stateful AnimalSanitaryHistorySection
 - [Phase 08]: 08-03: ProviderScope(retry: (retryCount, error) => null) disables Riverpod 3.x's default auto-retry (~200ms backoff) in widget tests asserting manual ref.invalidate() retry behavior — without it, main.dart's app-wide providerRetryPolicy silently self-heals the induced test failure before the manual tap fires
 - [Phase 08]: 08-03: _AnimalListTile's archived badge gate changed from isArchived && showArchived to isArchived alone (showArchived param removed) — required coupled fix so D-17's exact-match bypass never surfaces an archived animal indistinguishable from an active one
+- [Phase 08]: 08-05: DG sub-row date uses a separate dd/MM/yyyy formatter distinct from the row's short dd/MM formatter — a sub-row has no other date nearby to imply the year
+- [Phase 08]: 08-05: DgResult.doubtful color-mapping switch extracted once into _dgResultColors, shared by the collapsed-row chip and every DG sub-row chip, to satisfy the plan's no-duplication acceptance criterion
+- [Phase 08]: 08-05: Task 1 and Task 2 edits both landed in the same single file per the plan's own files_modified list; split into two atomic commits by writing, verifying, and committing Task 1's diff, then reapplying and separately verifying/committing Task 2's retry-button hunk

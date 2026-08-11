@@ -302,7 +302,7 @@ Plans:
   4. Animal com baixa registrada mostra status, motivo e data de baixa de forma proeminente
   5. Layout funciona em mobile web (largura mínima 360px) — veterinário consulta em campo pelo celular
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -319,7 +319,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 08-05-PLAN.md — Bloco reprodutivo: expansão de todos os DGs (D-08/D-09), recarregar por bloco (D-04) e testes da seção isolada (D-23)
+- [x] 08-05-PLAN.md — Bloco reprodutivo: expansão de todos os DGs (D-08/D-09), recarregar por bloco (D-04) e testes da seção isolada (D-23)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -341,7 +341,7 @@ Plans:
 | 5. Reproductive Module | 15/15 | Complete    | 2026-08-06 |
 | 6. Sanitary Module | 14/14 | Complete | UAT 11/11 — 2026-08-11 |
 | 7. Expenses by Paddock | 8/8 | Complete    | 2026-08-11 |
-| 8. Animal Dossier Consolidation | 3/5 | In Progress|  |
+| 8. Animal Dossier Consolidation | 4/5 | In Progress|  |
 
 ---
 
