@@ -1,20 +1,24 @@
 ---
 phase: 08-animal-dossier-consolidation
 verified: 2026-08-11T22:36:42Z
-status: human_needed
-score: 5/7 must-haves verified
-behavior_unverified: 1 # baixa-banner overflow backstop (08-04): truncation proven, overflow-absence not directly asserted
+status: passed
+score: 7/7 must-haves verified # 5 automated + 2 closed by human UAT (08-UAT.md tests 14, 15, both pass)
+behavior_unverified: 0 # baixa-banner overflow backstop closed by 08-UAT.md test 15 (human, pass)
+uat: 08-UAT.md # status complete, 15/15 pass, 0 issues
 overrides_applied: 0
 gaps: [] # no FAILED truths — see human_verification and behavior_unverified_items below
 behavior_unverified_items:
+
   - truth: "Baixa banner text (motivo + data + observação livre) wraps across multiple lines without overflowing the layout at 360px width (08-04 backstop, UI-SPEC overflow/long-text)."
     test: "Mount _BaixaBanner (or AnimalDetailScreen with an archived animal + long observation) at a 360px physicalSize and assert tester.takeException() is null."
     expected: "No RenderFlex/layout overflow exception is thrown by the banner itself."
     why_human: "The one test that reaches _BaixaBanner (private to animal_detail_screen.dart) pumps the whole AnimalDetailScreen, which also contains AnimalSanitaryHistorySection — a sibling widget with its own pre-existing, D-37-locked ~29px header overflow at 360px (documented in 08-04-SUMMARY.md 'Known Issues'). Because of that confound, the test deliberately does not assert tester.takeException() is null; it instead asserts the full observation text is found twice (findsNWidgets(2)), which proves no truncation/ellipsis but does not mechanically prove absence of visual overflow for the banner specifically. Source inspection (Container→Row→Expanded→Text, no maxLines/overflow set) suggests the banner itself does not overflow, but this is not test-proven in isolation."
 human_verification:
+
   - test: "SC-1 timing UAT (D-07): open the ficha via exact-number search under DevTools 'Fast 4G' throttle and time from tap to fully painted (card + both history blocks, no spinners); also confirm the Supabase request count is 4."
     expected: "< 1s wall-clock and exactly 4 requests (per 08-04-PLAN.md Task 4 <how-to-verify>)."
     why_human: "Explicitly deferred by the user (08-04-SUMMARY.md 'Deferred: SC-1 4G UAT'). integration_test has no web support in this project and repository tests are deliberately shallow contract tests, so no automated harness can produce a real 4G wall-clock number. The request-count reduction (5→4, waterfall killed) IS code-verified; the <1s target is NOT."
+
   - test: "Baixa banner overflow at 360px, isolated from the known sanitary-section confound (see behavior_unverified_items above)."
     expected: "No visual overflow/clipping of the banner text at 360px, independent of the pre-existing sanitary header issue."
     why_human: "No isolated automated assertion currently proves this; see behavior_unverified_items for the confound."
