@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/data/property_repository.dart';
 import '../providers/current_property_provider.dart';
 import '../router/routes.dart';
+import '../theme/app_colors.dart';
+import 'ui.dart';
 
-/// AppBar title: shows the active property. With 2+ properties, becomes a
-/// PopupMenuButton dropdown showing all memberships with their perfil label.
-/// With 1 property: plain Text (D-05). Loading/error states preserve the
-/// Phase 0 visual contract.
+/// Seletor de fazenda do app bar verde (spec 3.1/4.2): avatar com iniciais +
+/// nome + expand_more. Menu lista as fazendas com papel, "Gerenciar fazendas"
+/// e "Sair" (o logout mora aqui no mobile; no rail desktop há botão próprio).
 class PropertySelector extends ConsumerWidget {
   const PropertySelector({super.key});
 
-  static String _roleLabel(String raw) {
+  static String roleLabel(String raw) {
     switch (raw) {
       case 'owner':
         return 'Proprietário';
@@ -26,6 +28,13 @@ class PropertySelector extends ConsumerWidget {
     }
   }
 
+  Future<void> _signOut(WidgetRef ref) async {
+    // Clear persisted property ID BEFORE signOut so SharedPreferences is
+    // clean before the auth event fires and triggers a router redirect.
+    await ref.read(currentPropertyProvider.notifier).clear();
+    await ref.read(authRepositoryProvider).signOut();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(currentPropertyProvider);
@@ -33,73 +42,87 @@ class PropertySelector extends ConsumerWidget {
 
     return current.when(
       data: (property) {
-        if (property == null) {
-          return const Text(
-            'Selecionar propriedade',
-            style: TextStyle(fontSize: 18),
-          );
-        }
-        // With 1 prop: plain Text + "Gerenciar fazendas" link below (D-05).
+        final name = property?.name ?? 'Selecionar fazenda';
         final list = members.asData?.value ?? const <PropertyMembership>[];
-        if (list.length <= 1) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(property.name, style: const TextStyle(fontSize: 18)),
-              InkWell(
-                onTap: () => context.push(AppRoutes.propriedades),
-                child: Text(
-                  'Gerenciar fazendas',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-        // With 2+ props: dropdown via PopupMenuButton.
-        return PopupMenuButton<PropertyMembership>(
-          tooltip: 'Trocar propriedade',
-          onSelected: (m) => ref
-              .read(currentPropertyProvider.notifier)
-              .selectProperty(m.property),
+        return PopupMenuButton<Object?>(
+          tooltip: 'Trocar de fazenda',
+          onSelected: (v) {
+            if (v is PropertyMembership) {
+              ref
+                  .read(currentPropertyProvider.notifier)
+                  .selectProperty(v.property);
+            }
+          },
           itemBuilder: (context) => [
+            const PopupMenuItem<Object?>(
+              enabled: false,
+              height: 32,
+              child: OverlineLabel('Trocar de fazenda', mono: true),
+            ),
             ...list.map(
-              (m) => PopupMenuItem<PropertyMembership>(
+              (m) => PopupMenuItem<Object?>(
                 value: m,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                child: Row(
                   children: [
-                    Text(m.property.name,
-                        style: const TextStyle(fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text(
-                      _roleLabel(m.role),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.6),
+                    FarmAvatar(
+                      name: m.property.name,
+                      size: 34,
+                      background: m.property.id == property?.id
+                          ? AppColors.primary
+                          : AppColors.neutralChipBg,
+                      foreground: m.property.id == property?.id
+                          ? AppColors.onGreen
+                          : AppColors.ink,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            m.property.name,
+                            style: const TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            roleLabel(m.role),
+                            style: const TextStyle(
+                                fontSize: 12.5,
+                                color: AppColors.textSecondary),
+                          ),
+                        ],
                       ),
                     ),
+                    if (m.property.id == property?.id)
+                      const Icon(Icons.check_circle,
+                          size: 22, color: AppColors.primary),
                   ],
                 ),
               ),
             ),
             const PopupMenuDivider(),
-            PopupMenuItem<PropertyMembership>(
-              value: null,
+            PopupMenuItem<Object?>(
               onTap: () => context.push(AppRoutes.propriedades),
               child: const Row(
                 children: [
-                  Icon(Icons.settings_outlined, size: 18),
-                  SizedBox(width: 8),
-                  Text('Gerenciar fazendas'),
+                  Icon(Icons.settings_outlined,
+                      size: 20, color: AppColors.primary),
+                  SizedBox(width: 10),
+                  Text('Gerenciar fazendas',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary)),
+                ],
+              ),
+            ),
+            PopupMenuItem<Object?>(
+              onTap: () => _signOut(ref),
+              child: const Row(
+                children: [
+                  Icon(Icons.logout, size: 20),
+                  SizedBox(width: 10),
+                  Text('Sair'),
                 ],
               ),
             ),
@@ -107,21 +130,37 @@ class PropertySelector extends ConsumerWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(property.name, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 4),
-              const Icon(Icons.arrow_drop_down, size: 24),
+              FarmAvatar(name: property?.name ?? '?'),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  name,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onGreen,
+                  ),
+                ),
+              ),
+              const Icon(Icons.expand_more,
+                  size: 20, color: AppColors.onGreenSecondary),
             ],
           ),
         );
       },
-      loading: () => const SizedBox(
-        width: 16,
-        height: 16,
-        child: CircularProgressIndicator(strokeWidth: 2),
+      loading: () => const Align(
+        alignment: Alignment.centerLeft,
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+              strokeWidth: 2, color: AppColors.onGreen),
+        ),
       ),
       error: (err, _) => const Text(
-        'Erro ao carregar propriedade',
-        style: TextStyle(fontSize: 16),
+        'Erro ao carregar fazenda',
+        style: TextStyle(fontSize: 15, color: AppColors.onGreen),
       ),
     );
   }

@@ -34,21 +34,23 @@ Future<void> _pumpAppShell(WidgetTester tester, Size size) async {
 }
 
 void main() {
-  testWidgets('AppShell renders NavigationRail at wide viewport (1024x768)', (tester) async {
+  testWidgets('AppShell renders desktop rail at wide viewport (1024x768)', (tester) async {
     await _pumpAppShell(tester, const Size(1024, 768));
-    expect(find.byType(NavigationRail), findsOneWidget);
+    // Redesign: custom 232px green rail (logo + farm card + nav + Sair).
+    expect(find.text('Campo Gestor'), findsOneWidget);
+    expect(find.text('Sair'), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
   });
 
   testWidgets('AppShell renders NavigationBar at narrow viewport (360x800)', (tester) async {
     await _pumpAppShell(tester, const Size(360, 800));
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.text('Sair'), findsNothing);
   });
 
   testWidgets('PropertySelector shows fallback text when provider is null', (tester) async {
     await _pumpAppShell(tester, const Size(1024, 768));
     expect(find.byType(PropertySelector), findsOneWidget);
-    expect(find.text('Selecionar propriedade'), findsOneWidget);
+    expect(find.text('Selecionar fazenda'), findsOneWidget);
   });
 }
