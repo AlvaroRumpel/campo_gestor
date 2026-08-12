@@ -68,3 +68,7 @@ lcov.info
 
 # Graphify cache (local, regenerated on demand)
 graphify-out/cache/
+# Claude Code local
+.claude/worktrees/
+.clone/
+.claude/settings.local.json
