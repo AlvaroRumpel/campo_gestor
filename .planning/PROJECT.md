@@ -17,10 +17,14 @@ O histórico técnico do animal individual — reprodutivo e sanitário — aces
 - [x] Movimentar animais entre lotes e lotes entre piquetes — Validated in Phase 4: MOV-01 (animal → outro lote da mesma propriedade) e MOV-02 (lote inteiro → outro piquete, atomicamente). Ambos via RPC SECURITY DEFINER, com triggers de isolamento multi-tenant que valem em qualquer caminho de escrita (inclusive PATCH cru)
 - [x] Registrar e consultar histórico reprodutivo (lote ATF, DG, % prenhez) — Validated in Phase 5: REPR-01..05 (criação de LoteATF, composição restrita a vacas/novilhas com bloqueio de ATF duplicado, DG por animal editável até encerramento manual, % prenhez auto-atualizado, histórico reprodutivo na ficha do animal). 5 rodadas de gap-closure (UAT + review) até UAT limpo com 0 issues.
 
+- [x] Autenticar usuários com perfis: proprietário, veterinário, leitor — Validated in Phase 1: AUTH-01..05 (email/senha, sessão persistente, `property_members` define perfil por (user_id, property_id), seletor de propriedade ativa, RLS `FORCE ROW LEVEL SECURITY` em todas as tabelas com teste negativo cross-tenant). UAT 4/4.
+- [x] Registrar e consultar histórico sanitário (aplicações com snapshot congelado) — Validated in Phase 6: SANI-01..03, snapshot JSONB imutável por trigger + RLS sem policy de write, estorno por índice único parcial, histórico por lote e por animal. UAT 11/11, pgTAP 80/81.
+- [x] Controlar gastos por piquete — Validated in Phase 7: lançamento vinculado a piquete, total por período (com "Ano" = ano calendário), `sanitary_applications.paddock_id/paddock_name` congelados no snapshot. UAT 7/7, pgTAP 42/42.
+- [x] **Core value entregue** — ficha consolidada do animal (ANIM-03) — Validated in Phase 8: dados do animal + lote/piquete atual (um único select embedded), histórico reprodutivo completo com todos os DGs expansíveis, e histórico sanitário completo, numa única tela; banner de baixa proeminente; layout 360px. UAT 15/15, verification 7/7.
+
 ### Active
-- [ ] Registrar e consultar histórico sanitário (aplicações com snapshot congelado)
-- [ ] Controlar gastos por piquete
-- [ ] Autenticar usuários com perfis: proprietário, veterinário, leitor
+
+_(nenhum — todos os 26 requisitos v1 entregues; milestone v1.0 pronto para fechar)_
 
 ### Out of Scope
 
@@ -93,4 +97,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-08-06 after Phase 5 (Reproductive Module — LoteATF)*
+*Last updated: 2026-08-11 after Phase 8 (Animal Dossier Consolidation) — milestone v1.0 100%*

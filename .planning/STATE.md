@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08 (executed — verification pending)
+current_phase: 08 (complete — milestone v1.0 100%)
 current_plan: Not started
-status: needs-verification
-stopped_at: Phase 8 executed 5/5 plans; 08-VERIFICATION.md returned human_needed (2 open items)
-last_updated: "2026-08-11T22:28:07.169Z"
+status: milestone-complete
+stopped_at: Phase 8 UAT 15/15 pass, 08-VERIFICATION.md passed; milestone v1.0 pronto para /gsd-complete-milestone
+last_updated: "2026-08-12T00:52:37.350Z"
 last_activity: 2026-08-11
 progress:
   total_phases: 9
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 65
   completed_plans: 65
 ---
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md
 | 5 | Reproductive Module (LoteATF) | complete (15/15 plans, UAT — 2026-08-06) |
 | 6 | Sanitary Module (Snapshot) | complete (14/14 plans, UAT 11/11 — 2026-08-11) |
 | 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
-| 8 | Animal Dossier Consolidation | executed (5/5 plans, 5 waves) — verification `human_needed`: SC-1 4G UAT deferred + baixa-banner 360px backstop unconfirmed |
+| 8 | Animal Dossier Consolidation | complete (5/5 plans, UAT 15/15 — 2026-08-11); verification `passed` — SC-1 4G e banner 360px confirmados por UAT humana |
 
 ---
 
@@ -49,7 +49,7 @@ See: .planning/PROJECT.md
 | Metric | Value |
 |---|---|
 | Phases planned | 9 |
-| Phases complete | 9 (0–8; Phase 8's SC-1 4G UAT deferred, unverified) |
+| Phases complete | 9 (0–8, todas com UAT) |
 | Requirements mapped | 26/26 |
 | Plans complete | 65 of 65 across phases 0–8 |
 | Dart tests | 349 passing |
@@ -140,11 +140,11 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Completed 08-04-PLAN.md (SC-1 4G UAT deferred by user, unverified)
+**Stopped at:** Phase 8 complete — UAT 15/15 pass, verification `passed`, milestone v1.0 100%
 **Resume file:** None
 
-**Last session:** 2026-08-11T22:28:07.130Z
-**Next action:** SC-1's 4G timing UAT (Phase 8 plan 04, Task 4) was explicitly deferred by the user — NOT run, not measured. Reproduction steps are recorded verbatim in `08-04-SUMMARY.md` §"Deferred: SC-1 4G UAT". What IS proven: the ficha issues 4 parallel requests instead of 5 (lote+piquete waterfall killed). What is NOT proven: the <1s wall-clock target under Fast-4G throttle — needs a human with DevTools open. Two older, unrelated items still open, neither blocking: (1) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (2) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser. Also flagged this session: `sanitary_history_section.dart`'s header row overflows at 360px (pre-existing, D-37-locked, needs its own follow-up quick task — see 08-04-SUMMARY.md §Known Issues). With the milestone at 100%, `/gsd-complete-milestone` is the next workflow step if the user wants to close it out (not run automatically here).
+**Last session:** 2026-08-12T00:52:37Z
+**Next action:** `/gsd-complete-milestone v1.0` — todas as 9 fases fechadas com UAT. Phase 8's dois checkpoints humanos (SC-1 4G <1s / 4 requests, e o banner de baixa em 360px) foram confirmados nesta sessão via `08-UAT.md` testes 14 e 15; `08-VERIFICATION.md` foi promovido de `human_needed` para `passed` (7/7). Itens abertos que **não** bloqueiam o milestone: (1) `01-VERIFICATION.md` ainda em `human_needed` (Phase 1 foi aprovada por UAT 4/4 em 2026-05-07, mas o relatório de verificação nunca foi fechado); (2) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (3) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser; (4) `sanitary_history_section.dart` header row estoura ~29px em 360px (pré-existente, D-37-locked — merece quick task própria); (5) 2 debug sessions em `diagnosed` (`animal-history-22p02`, `dose-restore-noop`). Nota de higiene do roadmap: os checkboxes das Phases 1 e 2 estavam `[ ]` apesar de completas, o que fez `phase.complete` apontar `next_phase: 1` — corrigido manualmente nesta sessão.
 **Files of interest:**
 
 - `.planning/PROJECT.md` — vision and constraints
