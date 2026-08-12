@@ -72,3 +72,9 @@ graphify-out/cache/
 .claude/worktrees/
 .clone/
 .claude/settings.local.json
+
+# Generated / local state
+graphify-out/
+.claude/.gsd-profile
+.claude/gsd-install-state.json
+.claude/gsd-migration-journal/
