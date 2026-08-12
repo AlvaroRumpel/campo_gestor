@@ -1,10 +1,16 @@
 ---
-status: approved
+status: complete
+status_was: approved
 phase: 01-auth-multi-tenancy-core
 source: [01-VERIFICATION.md]
 started: 2026-05-05
-updated: 2026-05-07
+updated: 2026-08-11
 ---
+
+<!-- 2026-08-11: status normalized `approved` → `complete` at milestone v1.0 close.
+     Same terminal meaning (4/4 pass, 0 pending scenarios); `approved` is not in the
+     audit tool's terminal set (`complete` | `resolved`), so it read as an open gap. -->
+
 
 ## Current Test
 

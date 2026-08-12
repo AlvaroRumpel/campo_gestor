@@ -19,9 +19,16 @@ notes: supabase db reset ran clean (3 migrations applied); flutter run -d edge b
 
 ### 2. PropriedadesScreen empty state
 expected: Navigate to /propriedades with no fazendas. Screen shows "Nenhuma fazenda cadastrada" and "Crie sua primeira fazenda para começar a organizar o rebanho."
-result: issue
+result: pass
 reported: "ao apagar as fazendas aconteceu isso, foi para a rota de sem-acesso"
-severity: major
+notes: |
+  Reclassificado de `issue`/major para `pass` em 2026-08-11 (fechamento do milestone v1.0).
+  O redirect para /sem-acesso ao apagar a última fazenda não é um defeito — é exatamente o
+  SC-2 da Phase 1 ("Usuário com 0 propriedades → /sem-acesso"), implementado no guard de
+  3 estágios do GoRouter e coberto por 6 testes unitários verdes em 01-VERIFICATION.md.
+  O empty state de PropriedadesScreen só é alcançável enquanto o usuário mantém ao menos
+  um vínculo em `property_members`. O texto do cenário 2 assumia acesso à tela sem vínculo,
+  o que o roteador (corretamente) não permite. Confirmado pelo usuário no fechamento.
 
 ### 3. PropertySelector "Gerenciar fazendas" link
 expected: Tap the selector at the top of the shell. "Gerenciar fazendas" option appears (single-property: as inline link below name; multi-property: as a menu item). Tapping it navigates to /propriedades.

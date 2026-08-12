@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "G-06-9: Animal ficha Histórico Sanitário — PostgREST 22P02 'invalid input syntax for type json, Expected \":\", but found \"}\"' on composition_snapshot containment query; infinite spinner with ~10 retries"
 created: 2026-08-07T00:00:00Z
 updated: 2026-08-07T00:00:00Z
@@ -84,5 +84,15 @@ fix: |
     .contains('composition_snapshot', jsonEncode([{'animal_id': animalId}]))
   → produces composition_snapshot=cs.[{"animal_id":"<uuid>"}], the exact @> shape the GIN jsonb_path_ops index serves.
   Secondary (optional): 22P02 is deterministic — Riverpod 3's default retry pointlessly re-issues it ~10 times; consider retry: null/custom on the provider or global retry policy for non-transient PostgrestExceptions.
-verification:
-files_changed: []
+verification: |
+  APPLIED. lib/features/sanitario/data/sanitary_application_repository.dart:88-104 now calls
+  `.contains('composition_snapshot', jsonEncode([{'animal_id': animalId}]))` with the G-06-9
+  rationale recorded inline (lines 90-93). The String branch forwards the pre-encoded JSON
+  verbatim, producing `cs.[{"animal_id":"<uuid>"}]` — the @> shape the GIN jsonb_path_ops index
+  serves. Confirmed live by Phase 8 UAT (08-UAT.md, 15/15 pass, 2026-08-11): the animal ficha's
+  Histórico Sanitário renders real rows with no spinner and no 22P02.
+  Secondary (Riverpod retry) also addressed — main.dart carries an app-wide providerRetryPolicy
+  (see 08-03 decision in STATE.md).
+files_changed:
+  - lib/features/sanitario/data/sanitary_application_repository.dart
+closed: 2026-08-11 (milestone v1.0 close)

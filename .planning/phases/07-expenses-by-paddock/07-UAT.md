@@ -1,10 +1,16 @@
 ---
-status: passed
+status: complete
+status_was: passed
 phase: 07-expenses-by-paddock
 source: [07-08-PLAN.md task 3]
 started: 2026-08-11
 updated: 2026-08-11
 ---
+
+<!-- 2026-08-11: status normalized `passed` → `complete` at milestone v1.0 close.
+     Same terminal meaning (7/7 pass, 0 pending scenarios); `passed` is not in the
+     audit tool's terminal set (`complete` | `resolved`), so it read as an open gap. -->
+
 
 ## Current Test
 

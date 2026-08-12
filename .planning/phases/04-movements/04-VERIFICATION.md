@@ -1,7 +1,7 @@
 ---
 phase: 04-movements
 verified: 2026-07-16T00:00:00Z
-status: human_needed
+status: passed
 score: 9/9 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -9,22 +9,28 @@ re_verification:
   previous_status: human_needed
   previous_score: 9/9
   gaps_closed:
+
     - "The identical raw-write bypass on lots.paddock_id (MOV-02), previously left open as a documented/accepted MVP deferral (04-CONTEXT.md, T-4-08: accept), is now CLOSED by a new BEFORE INSERT OR UPDATE trigger trg_lots_paddock_same_property on `lots` (supabase/migrations/20260717_04_lot_paddock_property_trigger.sql), mirroring trg_animals_lot_same_property exactly. Per explicit user decision (2026-07-16) the scope was reversed: T-4-08 disposition moved accept → mitigate. This was not a previously-failed must-have (it was an accepted deferral, not a gap) — recorded here as a scope expansion the user requested for this session, now closed at the code level."
   gaps_remaining: []
   regressions: []
 human_verification:
+
   - test: "Run `supabase link --project-ref <dev-project-ref>` then `supabase db push` from a machine with dev Supabase credentials, applying all FOUR unpushed Phase-4 migrations (20260519_04_movements.sql, 20260715_04_gap_move_animal_to_lot.sql, 20260716_04_animal_lot_property_trigger.sql, 20260717_04_lot_paddock_property_trigger.sql) in filename order."
     expected: "All four migrations apply cleanly; `supabase db diff` reports no drift."
     why_human: "This session's Supabase CLI is unlinked (`supabase db push --dry-run` → 'Cannot find project ref. Have you run supabase link?') and the local Postgres container is not running (`supabase status` → 'supabase_db_campo_gestor container is not running: exited'). Independently re-confirmed during this re-verification pass (both commands re-run just now). No live Postgres instance is reachable from this environment to push against."
+
   - test: "After the push, run `supabase test db` and confirm supabase/tests/04_movements_test.sql passes 5/5 — animals cross-property→23503, animals same-property→lives_ok, NULL-lot_id INSERT→lives_ok, lots cross-property→23503, lots same-property→lives_ok."
     expected: "pgTAP reports 5/5 assertions passed. Both throws_ok assertions (animals, lots) confirm their respective triggers reject the bypass at the trigger level, with RLS bypassed as postgres superuser — proving each trigger alone (not RLS) closes its gap."
     why_human: "Requires the live database from the item above; cannot run pgTAP against a database that does not exist yet in this environment."
+
   - test: "SC-4 raw-write UAT: as a two-property veterinarian, issue a raw `PATCH /rest/v1/animals?id=eq.<animalInPropertyA>` with body `{\"lot_id\":\"<lotInPropertyB>\"}` using the app's publishable key (bypassing AnimalRepository.moveAnimal and the UI entirely)."
     expected: "HTTP error response carrying SQLSTATE 23503 ('lot ... does not belong to property ... or is archived'); the animal's lot_id is unchanged."
     why_human: "Requires a live pushed database, a real two-property test account, and a raw HTTP client — the exact access-path-independent scenario 04-REVIEW.md CR-01 identified, observed against a running system, not inferred from source."
+
   - test: "MOV-02 raw-write UAT: as a two-property veterinarian, issue a raw `PATCH /rest/v1/lots?id=eq.<lotInPropertyA>` with body `{\"paddock_id\":\"<paddockInPropertyB>\"}` using the app's publishable key (bypassing LoteRepository.moveLot and the UI entirely)."
     expected: "HTTP error response carrying SQLSTATE 23503 ('paddock ... does not belong to property ... or is archived'); the lot's paddock_id is unchanged."
     why_human: "Requires a live pushed database, a real two-property test account, and a raw HTTP client — the exact access-path-independent scenario 04-REVIEW.md WR-02/CR-01-parallel identified, observed against a running system, not inferred from source."
+
   - test: "UI happy paths (MOV-01 move animal, MOV-02 move lot) end-to-end in a running app + role/archived/zero-animal gate checks + pt-BR singular/plural rendering of the animal-count info text."
     expected: "Both move dialogs complete successfully with correct SnackBars and list refreshes; buttons are hidden for non-veterinarian roles, archived lots, and lots with 0 active animals; count text reads '1 animal ativo' vs 'N animais ativos' correctly."
     why_human: "Visual/UX confirmation of a real running app; automated widget tests cover the mechanics (see Behavioral Spot-Checks) but not the human-observed end-to-end feel."

@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "G-06-2: eu clico em desarquivar e não desarquiva — clicking Reativar dose on an archived dose does nothing observable"
 created: 2026-08-07T00:00:00Z
 updated: 2026-08-07T00:00:00Z
@@ -74,5 +74,16 @@ started: Discovered during UAT 2026-08-07. Phase 6 migrations applied to live PR
 
 root_cause: Live PROD still runs the original `veterinarian_can_update_active_dose` RLS policy with `AND deleted_at IS NULL` in its USING clause. Migration 20260810_06_sanitary_module was applied to PROD at 06-12 (2026-08-07 ~01:27) BEFORE the CR-01 fix commit ae08dba (14:14) removed that clause from the migration file. The fixer edited the already-applied migration in place, believing it unapplied (misread 06-12-SUMMARY's before-state ledger row), and no follow-up migration re-applied the policy. Restore issues `UPDATE doses SET deleted_at = NULL WHERE id = X`; RLS USING evaluates the existing archived row, `deleted_at IS NULL` is false, zero rows match, PostgREST returns success — silent no-op, no client error, providers refetch unchanged data.
 fix: (not applied — find_root_cause_only) New migration with `DROP POLICY "veterinarian_can_update_active_dose" ON doses; CREATE POLICY ...` (or ALTER POLICY ... USING) matching the corrected clause already in 20260810_06_sanitary_module.sql:47-49, applied to PROD; then run the updated pgTAP suite (plan 81, incl. Group 12 restore assertions) against live.
-verification: pending fix — restore an archived dose via UI; pgTAP Group 12 green against PROD
-files_changed: []
+verification: |
+  APPLIED 2026-08-07. Corrective migration `20260812_06_fix_dose_update_policy` applied to live
+  PROD `wrdwzychjhlpwpivfhhq` via MCP apply_migration — migration ledger 16 → 17. Forward-only;
+  `20260810_06_sanitary_module` left untouched (no dev/prod drift). Post-apply catalog read
+  confirms the doses UPDATE policy is membership + veterinarian only, with no
+  `deleted_at IS NULL` in USING. Verified by an RLS round-trip as `authenticated` impersonating
+  the real vet: the archived UAT dose restored with 1 row affected (transaction rolled back).
+  pgTAP `06_sanitary_test.sql` replayed at plan 81 — all 6 Group 12 restore assertions green
+  (80/81 overall; the 1 failure is Group 8's global-table-count assertion against a non-empty
+  PROD, not a schema defect).
+files_changed:
+  - supabase/migrations/20260812_06_fix_dose_update_policy.sql
+closed: 2026-08-11 (milestone v1.0 close)

@@ -1,7 +1,7 @@
 # Requirements — Campo Gestor
 
 **Scoped:** 2026-04-26
-**Status:** v1 requirements defined and scoped
+**Status:** ✅ v1 complete — all 30 requirements delivered and closed at milestone v1.0 (2026-08-11)
 
 ---
 
@@ -9,28 +9,28 @@
 
 ### Authentication & Multi-tenancy (AUTH)
 
-- [ ] **AUTH-01**: Usuário pode se cadastrar e fazer login com email e senha
-- [ ] **AUTH-02**: Sistema suporta 3 perfis por propriedade: proprietário, veterinário, leitor
-- [ ] **AUTH-03**: Veterinário pode ser vinculado a múltiplas propriedades via tabela de permissões
-- [ ] **AUTH-04**: Usuário com múltiplas propriedades pode selecionar a propriedade ativa na UI
-- [ ] **AUTH-05**: Isolamento de dados por propriedade via RLS (usuário nunca vê dados de outra fazenda)
+- [x] **AUTH-01**: Usuário pode se cadastrar e fazer login com email e senha
+- [x] **AUTH-02**: Sistema suporta 3 perfis por propriedade: proprietário, veterinário, leitor
+- [x] **AUTH-03**: Veterinário pode ser vinculado a múltiplas propriedades via tabela de permissões
+- [x] **AUTH-04**: Usuário com múltiplas propriedades pode selecionar a propriedade ativa na UI
+- [x] **AUTH-05**: Isolamento de dados por propriedade via RLS (usuário nunca vê dados de outra fazenda)
 
 ### Propriedade / Piquete / Lote (PROP)
 
-- [ ] **PROP-01**: Usuário pode criar, editar e listar propriedades (nome, proprietário)
-- [ ] **PROP-02**: Usuário pode criar, editar e listar piquetes de uma propriedade (nome, área em ha, capacidade)
-- [ ] **PROP-03**: Usuário pode criar, editar e listar lotes operacionais de um piquete (nome, piquete)
-- [ ] **PROP-04**: Ao criar lote, usuário informa composição inicial por categoria e sistema gera animais em batch automaticamente
-- [ ] **PROP-05**: Usuário pode visualizar composição atual do lote (lista de animais com contagem por categoria e total de UA)
+- [x] **PROP-01**: Usuário pode criar, editar e listar propriedades (nome, proprietário)
+- [x] **PROP-02**: Usuário pode criar, editar e listar piquetes de uma propriedade (nome, área em ha, capacidade)
+- [x] **PROP-03**: Usuário pode criar, editar e listar lotes operacionais de um piquete (nome, piquete)
+- [x] **PROP-04**: Ao criar lote, usuário informa composição inicial por categoria e sistema gera animais em batch automaticamente
+- [x] **PROP-05**: Usuário pode visualizar composição atual do lote (lista de animais com contagem por categoria e total de UA)
 
 ### Animal (ANIM)
 
-- [ ] **ANIM-01**: Cada animal gerado recebe número único por (propriedade, categoria) via sequence + lock no banco
-- [ ] **ANIM-02**: Usuário pode editar animal individualmente (raça, estado corporal 1–5, observação)
+- [x] **ANIM-01**: Cada animal gerado recebe número único por (propriedade, categoria) via sequence + lock no banco
+- [x] **ANIM-02**: Usuário pode editar animal individualmente (raça, estado corporal 1–5, observação)
 - [x] **ANIM-03**: Usuário pode visualizar ficha consolidada do animal (dados, lote atual, histórico reprodutivo, histórico sanitário)
-- [ ] **ANIM-04**: Usuário pode registrar baixa de animal com motivo (venda/morte/descarte) e data (soft delete)
-- [ ] **ANIM-05**: Usuário pode buscar animal por número dentro da propriedade
-- [ ] **ANIM-06**: Usuário pode filtrar lista de animais por categoria, lote e piquete
+- [x] **ANIM-04**: Usuário pode registrar baixa de animal com motivo (venda/morte/descarte) e data (soft delete)
+- [x] **ANIM-05**: Usuário pode buscar animal por número dentro da propriedade
+- [x] **ANIM-06**: Usuário pode filtrar lista de animais por categoria, lote e piquete
 
 ### Movimentação (MOV)
 
@@ -47,11 +47,11 @@
 
 ### Sanitário (SANI)
 
-- [ ] **SANI-01**: Usuário pode cadastrar princípios ativos / doses (nome, valor por kg); valor por UA calculado automaticamente (valor/kg × 400)
-- [ ] **SANI-02**: Usuário pode registrar aplicação sanitária em um lote; sistema captura snapshot congelado da composição no momento (imutável após criação)
-- [ ] **SANI-03**: Ao registrar aplicação, usuário pode desmarcar animais individuais antes de confirmar (default = todos do lote)
-- [ ] **SANI-04**: Usuário pode visualizar histórico sanitário de um lote (todas aplicações por data)
-- [ ] **SANI-05**: Usuário pode visualizar histórico sanitário de um animal na ficha (via lookup no snapshot das aplicações)
+- [x] **SANI-01**: Usuário pode cadastrar princípios ativos / doses (nome, valor por kg); valor por UA calculado automaticamente (valor/kg × 400)
+- [x] **SANI-02**: Usuário pode registrar aplicação sanitária em um lote; sistema captura snapshot congelado da composição no momento (imutável após criação)
+- [x] **SANI-03**: Ao registrar aplicação, usuário pode desmarcar animais individuais antes de confirmar (default = todos do lote)
+- [x] **SANI-04**: Usuário pode visualizar histórico sanitário de um lote (todas aplicações por data)
+- [x] **SANI-05**: Usuário pode visualizar histórico sanitário de um animal na ficha (via lookup no snapshot das aplicações)
 
 ### Gastos por Piquete (GAST)
 
@@ -105,26 +105,26 @@
 ## Traceability
 
 **Roadmap:** see `.planning/ROADMAP.md`
-**Updated:** 2026-04-24
+**Updated:** 2026-08-11 (milestone v1.0 close — all rows reconciled to Complete)
 
 | Requirement | Phase | Status |
 |---|---|---|
-| AUTH-01 | Phase 1 — Auth & Multi-tenancy Core | Pending |
-| AUTH-02 | Phase 1 — Auth & Multi-tenancy Core | Pending |
-| AUTH-03 | Phase 1 — Auth & Multi-tenancy Core | Pending |
-| AUTH-04 | Phase 1 — Auth & Multi-tenancy Core | Pending |
-| AUTH-05 | Phase 1 — Auth & Multi-tenancy Core | Pending |
-| PROP-01 | Phase 2 — Property & Paddock Structure | Pending |
-| PROP-02 | Phase 2 — Property & Paddock Structure | Pending |
-| PROP-03 | Phase 3 — Lots & Animals | Pending |
-| PROP-04 | Phase 3 — Lots & Animals | Pending |
-| PROP-05 | Phase 3 — Lots & Animals | Pending |
-| ANIM-01 | Phase 3 — Lots & Animals | Pending |
-| ANIM-02 | Phase 3 — Lots & Animals | Pending |
+| AUTH-01 | Phase 1 — Auth & Multi-tenancy Core | Complete |
+| AUTH-02 | Phase 1 — Auth & Multi-tenancy Core | Complete |
+| AUTH-03 | Phase 1 — Auth & Multi-tenancy Core | Complete |
+| AUTH-04 | Phase 1 — Auth & Multi-tenancy Core | Complete |
+| AUTH-05 | Phase 1 — Auth & Multi-tenancy Core | Complete |
+| PROP-01 | Phase 2 — Property & Paddock Structure | Complete |
+| PROP-02 | Phase 2 — Property & Paddock Structure | Complete |
+| PROP-03 | Phase 3 — Lots & Animals | Complete |
+| PROP-04 | Phase 3 — Lots & Animals | Complete |
+| PROP-05 | Phase 3 — Lots & Animals | Complete |
+| ANIM-01 | Phase 3 — Lots & Animals | Complete |
+| ANIM-02 | Phase 3 — Lots & Animals | Complete |
 | ANIM-03 | Phase 8 — Animal Dossier Consolidation | Complete |
-| ANIM-04 | Phase 3 — Lots & Animals | Pending |
-| ANIM-05 | Phase 3 — Lots & Animals | Pending |
-| ANIM-06 | Phase 3 — Lots & Animals | Pending |
+| ANIM-04 | Phase 3 — Lots & Animals | Complete |
+| ANIM-05 | Phase 3 — Lots & Animals | Complete |
+| ANIM-06 | Phase 3 — Lots & Animals | Complete |
 | MOV-01 | Phase 4 — Movements | Complete |
 | MOV-02 | Phase 4 — Movements | Complete |
 | REPR-01 | Phase 5 — Reproductive Module | Complete |
@@ -132,14 +132,34 @@
 | REPR-03 | Phase 5 — Reproductive Module | Complete |
 | REPR-04 | Phase 5 — Reproductive Module | Complete |
 | REPR-05 | Phase 5 — Reproductive Module | Complete |
-| SANI-01 | Phase 6 — Sanitary Module | Pending |
-| SANI-02 | Phase 6 — Sanitary Module | Pending |
-| SANI-03 | Phase 6 — Sanitary Module | Pending |
-| SANI-04 | Phase 6 — Sanitary Module | Pending |
-| SANI-05 | Phase 6 — Sanitary Module | Pending |
+| SANI-01 | Phase 6 — Sanitary Module | Complete |
+| SANI-02 | Phase 6 — Sanitary Module | Complete |
+| SANI-03 | Phase 6 — Sanitary Module | Complete |
+| SANI-04 | Phase 6 — Sanitary Module | Complete |
+| SANI-05 | Phase 6 — Sanitary Module | Complete |
 | GAST-01 | Phase 7 — Expenses by Paddock | Complete |
 | GAST-02 | Phase 7 — Expenses by Paddock | Complete |
 
-**Coverage:** 26/26 v1 requirements mapped (100%)
+**Coverage:** 30/30 v1 requirements mapped and **Complete** (100%)
 **Orphans:** 0
 **Note:** Phase 0 (Foundation) has no requirement IDs — pure infrastructure prerequisite per research/SUMMARY.md.
+
+**Count correction (2026-08-11):** this file and STATE.md both carried "26/26" since the
+initial scoping. The actual v1 set is **30** — AUTH 5, PROP 5, ANIM 6, MOV 2, REPR 5, SANI 5,
+GAST 2. The traceability table has listed all 30 rows since day one; only the summary figure
+was wrong. No requirement was ever missing from the roadmap — the undercount was a tally
+error, not a coverage gap.
+
+**Closure evidence (2026-08-11):** every requirement's owning phase carries a `passed`
+VERIFICATION.md and a human UAT record:
+
+| Phase | Requirements | Verification | UAT |
+|---|---|---|---|
+| 1 — Auth & Multi-tenancy | AUTH-01..05 | `passed` | 4/4 (2026-05-07) |
+| 2 — Property & Paddock | PROP-01, PROP-02 | `passed` | 10/10 (2026-05-08) |
+| 3 — Lots & Animals | PROP-03..05, ANIM-01/02/04/05/06 | `passed` | 5/5 (2026-08-10) |
+| 4 — Movements | MOV-01, MOV-02 | `passed` | 8/8 (2026-08-04) |
+| 5 — Reproductive (LoteATF) | REPR-01..05 | `passed` | pass (2026-08-06) |
+| 6 — Sanitary (Snapshot) | SANI-01..05 | `passed` | 11/11 (2026-08-11) |
+| 7 — Expenses by Paddock | GAST-01, GAST-02 | `passed` | 7/7 (2026-08-11) |
+| 8 — Animal Dossier | ANIM-03 | `passed` | 15/15 (2026-08-11) |

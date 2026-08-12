@@ -10,7 +10,7 @@
 ## Phases
 
 - [x] **Phase 0: Foundation** — Flutter scaffold, Supabase init, AppShell, currentPropertyProvider; sem features de domínio
-- [x] **Phase 1: Auth & Multi-tenancy Core** — Login email/senha, perfis, vínculo veterinário↔propriedade, propriedade ativa, RLS completo (completed 2026-05-07; 01-VERIFICATION.md ainda `human_needed`)
+- [x] **Phase 1: Auth & Multi-tenancy Core** — Login email/senha, perfis, vínculo veterinário↔propriedade, propriedade ativa, RLS completo (completed 2026-05-07; 01-VERIFICATION.md promovido a `passed` em 2026-08-11)
 - [x] **Phase 2: Property & Paddock Structure** — CRUD de propriedade e piquete; protótipos de risco (numeração RPC, snapshot JSONB, ATF partial unique index) (completed 2026-05-08)
 - [x] **Phase 3: Lots & Animals (Operational Core)** — Lote operacional CRUD, criação em batch de animais via RPC, edição e ficha do animal, busca/filtro, baixa (completed 2026-08-10)
 - [x] **Phase 4: Movements** — Mover animal entre lotes, mover lote inteiro entre piquetes (atômico via RPC) (completed 2026-08-04)
@@ -36,7 +36,7 @@
   4. GoRouter está configurado com rotas web-friendly (URLs deep-linkables, back button funcional) e guards de auth ainda permissivos (placeholder)
   5. Camada de Repository/Service base implementada — features futuras nunca importam Supabase SDK diretamente
 
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans executed
 Plans:
 
 - [x] 00-01-PLAN.md — Wave 0 test scaffolding + verification scripts + analysis_options

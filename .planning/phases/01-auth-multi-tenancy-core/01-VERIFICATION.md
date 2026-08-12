@@ -1,9 +1,11 @@
 ---
 phase: 01-auth-multi-tenancy-core
 verified: 2026-05-05T00:00:00Z
-status: human_needed
-score: 4/5 must-haves verified
+status: passed
+closed: 2026-08-11T00:00:00Z
+score: 5/5 must-haves verified (4 programmatic + human checkpoints closed by 01-HUMAN-UAT.md 4/4)
 overrides_applied: 0
+human_verification_resolved: true
 human_verification:
   - test: "Sign up with a new email, log in, reload the browser tab"
     expected: "Session persists — user lands on /dashboard without re-entering credentials"
@@ -172,3 +174,31 @@ No programmatic gaps found. All artifacts exist, are substantive, are wired, and
 
 _Verified: 2026-05-05_
 _Verifier: Claude (gsd-verifier)_
+
+---
+
+## Closure — 2026-08-11 (milestone v1.0)
+
+**Status promoted `human_needed` → `passed`.**
+
+The 4 outstanding human checkpoints above were executed and approved in
+`01-HUMAN-UAT.md` (status `approved`, **4/4 pass, 2026-05-07**) — two days after this
+report was written. The report was simply never promoted afterwards.
+
+| # | Human item | Closed by |
+|---|---|---|
+| 1 | Session persistence across reloads (SC-1) | 01-HUMAN-UAT.md — pass |
+| 2 | Email confirmation policy (SC-1 wording vs D-01) | 01-HUMAN-UAT.md — pass; login-without-confirmation confirmed intentional per D-01 |
+| 3 | RLS isolation test (AUTH-05, SC-4) | 01-HUMAN-UAT.md — pass |
+| 4 | End-to-end login + property display + logout | 01-HUMAN-UAT.md — pass |
+
+One real defect was found and fixed during that UAT: the router's `refreshListenable` was
+wired only to the auth stream, so `memberPropertiesProvider` completing did not re-trigger
+redirect evaluation and the user stayed on `/login` after a successful login. Fixed by
+replacing `GoRouterRefreshStream` with `_RouterRefreshNotifier`, which also listens to
+`memberPropertiesProvider` via `ref.listen`.
+
+SC-1 / D-01 documentation tension: resolved as intentional — the ROADMAP wording is loose,
+`enable_confirmations = false` is the decision of record.
+
+_Closed by: /gsd-complete-milestone v1.0, user confirmation 2026-08-11_
