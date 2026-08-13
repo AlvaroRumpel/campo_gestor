@@ -391,6 +391,25 @@ Plans:
 - **Phase 7 (Gastos)** is independent of Phases 3–6 and can be slotted at any time after Phase 2
 - **Phase 4 (Movements)** ideally runs before 5/6 so reproductive/sanitary modules can rely on stable lot composition
 
+### Phase 9: Redesign UI/UX musgo evoluído
+
+**Goal:** Substituir a UI Material 3 "de fábrica" pela identidade "musgo evoluído" (Claude Design `Campo Gestor - Redesign.dc.html`) em todas as telas, sem alterar regras de negócio, contratos de providers/repositories ou role gating.
+**Requirements**: Spec de design importada (20 frames); restrições: permissão = ausência, snapshot imutável, pt-BR, semáforo de lotação, dados numéricos em mono.
+**Depends on:** Phase 8
+**Plans:** executado retroativamente fora do fluxo plan/execute (instrução direta do usuário via import do Claude Design) — registro em 09-SUMMARY.md
+
+Plans:
+
+- [x] Fundação: fontes Archivo/IBM Plex Mono, tema M3 completo, tokens AppColors, primitivas ui.dart, shell (rail 232px + bottom nav, CampoAppBar/DetailAppBar) — `195b3cf`
+- [x] Dashboard Início com KPIs reais, banner de pendências, lotação, prenhez, gastos — `5a962e6`
+- [x] Animais: lista densa agrupada + ficha com timeline única repro+sanitário — `c874c21`
+- [x] Piquetes + Lotes: segmented com lista própria de lotes, Novo lote com steppers — `40085a2`
+- [x] Reprodução: lista ATF, DG em massa colorido, seleção de animais; vocabulário Prenhe/Vazia/Duvidosa — `a8349cd`
+- [x] Sanitário: registro em tela única (substitui fluxo de 3 passos), doses, estorno — `f367b16`
+- [x] Gastos, auth (login/signup/reset) e fazendas — `dd66146`
+
+**Status:** executado (analyze limpo, 360/360 testes) — aguardando deploy + validação visual (UAT) pelo usuário.
+
 ---
 
 ## Notes
