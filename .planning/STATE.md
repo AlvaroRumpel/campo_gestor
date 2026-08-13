@@ -55,7 +55,7 @@ See: .planning/PROJECT.md
 | Plans complete | 65 of 65 across phases 0–8 |
 | Dart tests | 349 passing |
 | Migration ledger | 18 |
-| Last activity | 2026-08-11 |
+| Last activity | 2026-08-13 - Completed quick task 260813-ok3: shell adaptativo desktop |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
@@ -136,6 +136,7 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 | 260804-fpk | Fix 4 cross-phase UAT findings from Phase 4 session (auth signup + lotes UI) | 2026-08-04 | 97dd9e3 | [260804-fpk-fix-4-cross-phase-uat-findings-from-phas](./quick/260804-fpk-fix-4-cross-phase-uat-findings-from-phas/) |
 | 260805-3mr | Show animal.observation on the ficha (AnimalInfoCard) — was write-only since capture, incl. CR-01 baixa-appended notes | 2026-08-05 | 51f50b2 | [260805-3mr-add-a-display-for-the-animal-s-observati](./quick/260805-3mr-add-a-display-for-the-animal-s-observati/) |
 | 260810-dpl | Deploy script (`tool/deploy.dart`) — reads dart-defines from gitignored .vscode/launch.json, runs flutter build web + wrangler pages deploy | 2026-08-10 | — | (no dir — inline task) |
+| 260813-ok3 | Shell adaptativo desktop (breakpoints nomeados, rail 76px em 600–1439, drawer 232px ≥1440, showAdaptiveForm 440/560/680) | 2026-08-13 | a2cc8c8 | [260813-ok3-implementar-shell-adaptativo-desktop-do-](./quick/260813-ok3-implementar-shell-adaptativo-desktop-do-/) |
 
 ---
 
