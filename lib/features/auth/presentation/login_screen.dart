@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../data/auth_repository.dart';
+import 'auth_scaffold.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -18,6 +20,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _busy = false;
+  bool _obscure = true;
 
   @override
   void dispose() {
@@ -43,23 +46,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).signIn(
-            email: _emailCtrl.text.trim(),
-            password: _passCtrl.text,
-          );
+      await ref
+          .read(authRepositoryProvider)
+          .signIn(email: _emailCtrl.text.trim(), password: _passCtrl.text);
       // Router redirect (auth guard) takes the user to /dashboard on success.
     } on AuthException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Email ou senha inválidos. Verifique e tente novamente.'),
+          content: Text(
+            'Email ou senha inválidos. Verifique e tente novamente.',
+          ),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não foi possível conectar. Verifique sua conexão e tente novamente.'),
+          content: Text(
+            'Não foi possível conectar. Verifique sua conexão e tente novamente.',
+          ),
         ),
       );
     } finally {
@@ -69,94 +75,86 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 48),
-                    Icon(Icons.grass, size: 64, color: theme.colorScheme.primary),
-                    const SizedBox(height: 24),
-                    Text('Campo Gestor',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        )),
-                    const SizedBox(height: 32),
-                    Card(
-                      color: theme.colorScheme.surfaceContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Form(
-                          key: _formKey,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          child: Column(
-                            children: [
-                              TextFormField(
-                                controller: _emailCtrl,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: _validateEmail,
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _passCtrl,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'Senha',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: _validatePass,
-                              ),
-                              const SizedBox(height: 24),
-                              FilledButton(
-                                onPressed: _busy ? null : _submit,
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 48),
-                                ),
-                                child: _busy
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Text('Entrar'),
-                              ),
-                              const SizedBox(height: 8),
-                              TextButton(
-                                onPressed: () => context.go(AppRoutes.signup),
-                                child: const Text('Não tem conta? Criar conta'),
-                              ),
-                              TextButton(
-                                onPressed: () =>
-                                    context.go(AppRoutes.resetPassword),
-                                child: const Text('Esqueceu a senha?'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+    return AuthScaffold(
+      title: 'Campo Gestor',
+      tagline:
+          'O histórico do rebanho na mão de quem decide — '
+          'no escritório ou no meio do pasto.',
+      child: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+              validator: _validateEmail,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _passCtrl,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: 'Senha',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? Icons.visibility : Icons.visibility_off,
+                    size: 22,
+                  ),
+                  tooltip: _obscure ? 'Mostrar senha' : 'Ocultar senha',
+                  onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
+              validator: _validatePass,
             ),
-          ),
+            const SizedBox(height: 18),
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(54),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Entrar'),
+            ),
+            const SizedBox(height: 6),
+            OverflowBar(
+              alignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () => context.go(AppRoutes.signup),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primaryDarkText,
+                  ),
+                  child: const Text('Criar conta'),
+                ),
+                TextButton(
+                  onPressed: () => context.go(AppRoutes.resetPassword),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  child: const Text('Esqueci a senha'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -12,6 +12,7 @@ import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 const _propA = SelectedProperty(id: 'prop-a', name: 'Fazenda A');
 const _propB = SelectedProperty(id: 'prop-b', name: 'Fazenda B');
@@ -44,6 +45,11 @@ Widget _buildGastosScreen(String role) {
 }
 
 void main() {
+  // GastosScreen's hero renders the period as "agosto 2026" via
+  // DateFormat('MMMM yyyy', 'pt_BR') — named-locale symbols must be loaded
+  // in tests (same pattern as dashboard_screen_test.dart).
+  setUpAll(() => initializeDateFormatting('pt_BR'));
+
   group('canManageExpenses (GAST-01, D-23)', () {
     test('returns true when the membership role is owner', () {
       final members = [const PropertyMembership(property: _propA, role: 'owner')];

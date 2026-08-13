@@ -8,7 +8,9 @@
 //
 // Covers required-field validation (categoria/valor/data), the pt-BR
 // comma-decimal parse, zero/negative rejection, the optional description
-// field, create-vs-edit dispatch, and confirmDeleteExpense's title copy.
+// field, create-vs-edit dispatch, the "Mais N" category-chip expansion
+// (redesign spec 4.18), and confirmDeleteExpense's title copy.
+import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/gastos/data/expense_model.dart';
 import 'package:campo_gestor/features/gastos/data/expense_repository.dart';
 import 'package:campo_gestor/features/gastos/presentation/expense_form_dialog.dart';
@@ -32,6 +34,9 @@ class _FakeExpenseRepository implements ExpenseRepository {
     bool includeArchived = false,
   }) async =>
       [];
+
+  @override
+  Future<List<Expense>> fetchExpensesByProperty(String propertyId) async => [];
 
   @override
   Future<Expense> createExpense({
@@ -116,7 +121,8 @@ Expense _expenseFixture({
     );
 
 // ---------------------------------------------------------------------------
-// Widget builder
+// Widget builder — mounts the form through showAdaptiveForm, the same entry
+// point GastosScreen uses (dialog variant at the default 800px test surface).
 // ---------------------------------------------------------------------------
 
 Widget _buildApp({
@@ -137,7 +143,7 @@ Widget _buildApp({
       home: Scaffold(
         body: Builder(
           builder: (ctx) => ElevatedButton(
-            onPressed: () => showDialog<bool>(
+            onPressed: () => showAdaptiveForm<bool>(
               context: ctx,
               builder: (_) => ExpenseFormDialog(
                 propertyId: 'prop-1',
@@ -157,8 +163,6 @@ Future<void> _selectCategory(
   WidgetTester tester, [
   String label = 'Ração/Suplementação',
 ]) async {
-  await tester.tap(find.byType(DropdownButtonFormField<String>));
-  await tester.pumpAndSettle();
   await tester.tap(find.text(label).last);
   await tester.pumpAndSettle();
 }
@@ -170,17 +174,35 @@ Future<void> _selectCategory(
 void main() {
   group('ExpenseFormDialog (GAST-01, 07-UI-SPEC E2)', () {
     testWidgets(
-        'create mode: title "Novo gasto" and an empty category dropdown',
-        (tester) async {
+        'create mode: title "Novo gasto", 5 primary category chips and a '
+        '"Mais 3" chip that expands the remaining categories', (tester) async {
       await tester.pumpWidget(_buildApp(repo: _FakeExpenseRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
       expect(find.text('Novo gasto'), findsOneWidget);
-      final dropdown = tester.widget<DropdownButtonFormField<String>>(
-        find.byType(DropdownButtonFormField<String>),
-      );
-      expect(dropdown.initialValue, isNull);
+      for (final label in [
+        'Ração/Suplementação',
+        'Mão de obra',
+        'Manutenção',
+        'Pastagem/Adubação',
+        'Combustível',
+      ]) {
+        expect(find.text(label), findsOneWidget);
+      }
+      // The 3 non-primary categories start hidden behind "Mais 3".
+      expect(find.text('Mais 3'), findsOneWidget);
+      expect(find.text('Sanidade/Medicamentos'), findsNothing);
+      expect(find.text('Arrendamento'), findsNothing);
+      expect(find.text('Outros'), findsNothing);
+
+      await tester.tap(find.text('Mais 3'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mais 3'), findsNothing);
+      expect(find.text('Sanidade/Medicamentos'), findsOneWidget);
+      expect(find.text('Arrendamento'), findsOneWidget);
+      expect(find.text('Outros'), findsOneWidget);
     });
 
     testWidgets(
@@ -201,8 +223,8 @@ void main() {
     });
 
     testWidgets(
-        'valid create: valor "1240,50" calls createExpense once with amount == 1240.50',
-        (tester) async {
+        'valid create: valor "1240,50" calls createExpense once with '
+        'amount == 1240.50 and the tapped chip category', (tester) async {
       final repo = _FakeExpenseRepository();
       await tester.pumpWidget(_buildApp(repo: repo));
       await tester.tap(find.text('open'));
@@ -218,6 +240,7 @@ void main() {
 
       expect(repo.createCallCount, 1);
       expect(repo.lastCreateArgs?['amount'], 1240.50);
+      expect(repo.lastCreateArgs?['category'], 'racao_suplementacao');
     });
 
     testWidgets('valor "0" is rejected and calls no repository method',
@@ -286,7 +309,8 @@ void main() {
     });
 
     testWidgets(
-        'edit mode: title "Editar gasto", fields pre-filled, submit calls updateExpense not createExpense',
+        'edit mode: title "Editar gasto", fields pre-filled, submit calls '
+        'updateExpense with the untouched original category, not createExpense',
         (tester) async {
       final repo = _FakeExpenseRepository();
       final existing = _expenseFixture(amount: 500, description: 'Ração');
@@ -297,16 +321,34 @@ void main() {
       expect(find.text('Editar gasto'), findsOneWidget);
       expect(find.text('500,00'), findsOneWidget);
       expect(find.text('Ração'), findsOneWidget);
-      final dropdown = tester.widget<DropdownButtonFormField<String>>(
-        find.byType(DropdownButtonFormField<String>),
-      );
-      expect(dropdown.initialValue, 'racao_suplementacao');
 
       await tester.tap(find.text('Salvar gasto'));
       await tester.pumpAndSettle();
 
       expect(repo.updateCallCount, 1);
       expect(repo.createCallCount, 0);
+      expect(repo.lastUpdateArgs?['category'], 'racao_suplementacao');
+    });
+
+    testWidgets(
+        'edit mode with a category hidden behind "Mais N": its chip is shown '
+        'expanded from the start', (tester) async {
+      final repo = _FakeExpenseRepository();
+      final existing = _expenseFixture(category: 'arrendamento', amount: 250);
+      await tester.pumpWidget(_buildApp(repo: repo, expense: existing));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      // No "Mais N" chip — the full set is expanded so the stored category
+      // is visible and selected, and submitting keeps it.
+      expect(find.textContaining('Mais '), findsNothing);
+      expect(find.text('Arrendamento'), findsOneWidget);
+
+      await tester.tap(find.text('Salvar gasto'));
+      await tester.pumpAndSettle();
+
+      expect(repo.updateCallCount, 1);
+      expect(repo.lastUpdateArgs?['category'], 'arrendamento');
     });
 
     testWidgets(

@@ -3,16 +3,28 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/ui.dart';
 import '../../sanitario/data/sanitary_calculations.dart';
 import '../data/expense_constants.dart';
 import '../data/expense_model.dart';
 import '../data/expense_repository.dart';
 
-/// Create/edit dialog for a gasto (GAST-01, D-11, D-12). Mirrors
-/// `DoseFormDialog`'s shell exactly: `AlertDialog` with a
-/// `LinearProgressIndicator` title while saving, `SizedBox(width: 480)` +
-/// `Form` + `SingleChildScrollView` content, inline error text, a
-/// `TextButton`/`FilledButton` action pair.
+/// As 5 categorias mostradas de cara como chips (spec 4.18); as demais ficam
+/// atrás do chip "Mais N".
+const List<String> _kPrimaryCategories = <String>[
+  'racao_suplementacao',
+  'mao_de_obra',
+  'manutencao',
+  'pastagem_adubacao',
+  'combustivel',
+];
+
+/// Create/edit form for a gasto (GAST-01, D-11, D-12), shown via
+/// `showAdaptiveForm` (bottom sheet <600px / dialog 480px, spec 4.18):
+/// CATEGORIA como chips h40 r999 com ícone 18, VALOR com prefixo "R$" mono e
+/// valor mono 30/700, DATA com calendar, DESCRIÇÃO, rodapé Cancelar +
+/// "Salvar gasto" (flex 1 / 1.4).
 ///
 /// There is no piquete field and no piquete selector — the route already
 /// resolved [paddockId] (D-10). [expense] null means create mode; non-null
@@ -38,6 +50,7 @@ class _ExpenseFormDialogState extends ConsumerState<ExpenseFormDialog> {
   final _dateFmt = DateFormat('dd/MM/yyyy');
 
   String? _category;
+  late bool _showAllCategories;
   late final TextEditingController _valorCtrl;
   late final TextEditingController _dataCtrl;
   late final TextEditingController _descricaoCtrl;
@@ -52,6 +65,10 @@ class _ExpenseFormDialogState extends ConsumerState<ExpenseFormDialog> {
     super.initState();
     final existing = widget.expense;
     _category = existing?.category;
+    // Editing an expense whose category lives behind "Mais N" must show its
+    // chip selected, not hidden.
+    _showAllCategories =
+        _category != null && !_kPrimaryCategories.contains(_category);
     _valorCtrl = TextEditingController(
       text: existing != null ? _fmtDouble(existing.amount) : '',
     );
@@ -147,132 +164,270 @@ class _ExpenseFormDialogState extends ConsumerState<ExpenseFormDialog> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : Text(_isEditing ? 'Editar gasto' : 'Novo gasto'),
-      content: SizedBox(
-        width: 480,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: _category,
-                  decoration: const InputDecoration(
-                    labelText: 'Categoria *',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final c in kExpenseCategories)
-                      DropdownMenuItem(
-                        value: c,
-                        child: Text(kExpenseCategoryLabels[c]!),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _category = v),
-                  validator: (v) =>
-                      v == null ? 'Selecione a categoria do gasto' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _valorCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Valor *',
-                    border: OutlineInputBorder(),
-                    prefixText: 'R\$ ',
-                    hintText: 'Ex: 1.240,00',
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Valor é obrigatório';
-                    }
-                    final parsed = _parseDouble(v);
-                    if (parsed == null) {
-                      return 'Valor é obrigatório';
-                    }
-                    if (parsed <= 0) {
-                      return 'Valor deve ser maior que zero';
-                    }
-                    return null;
+  Widget _categoryField() {
+    final hidden = kExpenseCategories
+        .where((c) => !_kPrimaryCategories.contains(c))
+        .toList();
+    final visible = [
+      ..._kPrimaryCategories,
+      if (_showAllCategories) ...hidden,
+    ];
+    return FormField<String>(
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: (_) =>
+          _category == null ? 'Selecione a categoria do gasto' : null,
+      builder: (state) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const OverlineLabel('Categoria *'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final c in visible)
+                _CategoryChip(
+                  label: kExpenseCategoryLabels[c] ?? c,
+                  icon: kExpenseCategoryIcons[c] ?? Icons.more_horiz,
+                  selected: _category == c,
+                  onTap: () {
+                    setState(() => _category = c);
+                    state.didChange(c);
                   },
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _dataCtrl,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Data *',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: _pickDate,
-                    ),
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Data é obrigatória'
-                      : null,
+              if (!_showAllCategories)
+                _CategoryChip(
+                  label: 'Mais ${hidden.length}',
+                  icon: Icons.more_horiz,
+                  selected: false,
+                  onTap: () => setState(() => _showAllCategories = true),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _descricaoCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Descrição',
-                    border: OutlineInputBorder(),
-                    hintText: 'Opcional',
+            ],
+          ),
+          if (state.hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                state.errorText!,
+                style:
+                    const TextStyle(fontSize: 12, color: AppColors.danger),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_saving) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 10),
+              ],
+              Text(
+                _isEditing ? 'Editar gasto' : 'Novo gasto',
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _categoryField(),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _valorCtrl,
+                        style: monoStyle(size: 30, weight: FontWeight.w700),
+                        decoration: InputDecoration(
+                          labelText: 'Valor *',
+                          prefixText: 'R\$ ',
+                          prefixStyle: monoStyle(
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                          hintText: 'Ex: 1.240,00',
+                          hintStyle: monoStyle(
+                            size: 30,
+                            weight: FontWeight.w700,
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                        ],
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Valor é obrigatório';
+                          }
+                          final parsed = _parseDouble(v);
+                          if (parsed == null) {
+                            return 'Valor é obrigatório';
+                          }
+                          if (parsed <= 0) {
+                            return 'Valor deve ser maior que zero';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _dataCtrl,
+                        readOnly: true,
+                        style: monoStyle(size: 15.5, weight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          labelText: 'Data *',
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.calendar_today, size: 22),
+                            onPressed: _pickDate,
+                          ),
+                        ),
+                        onTap: _pickDate,
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Data é obrigatória'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _descricaoCtrl,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Descrição',
+                          hintText: 'Opcional',
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _errorMessage!,
+                  style:
+                      const TextStyle(fontSize: 12, color: AppColors.danger),
                 ),
               ],
-            ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 10,
+                    child: OutlinedButton(
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 14,
+                    child: FilledButton(
+                      onPressed: _saving ? null : _submit,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Salvar gasto'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-      actions: [
-        if (_errorMessage != null)
-          Text(
-            _errorMessage!,
-            style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
-          ),
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Salvar gasto'),
-        ),
-      ],
     );
   }
 }
 
-/// Delete-confirmation dialog (D-28) — the exact value and dd/MM date stay
-/// inline in the title; Material 3 wraps a long title to multiple lines by
-/// default, which is the required behaviour for a destructive confirmation
-/// (never shortened to a generic question with the figures moved into the
-/// body). Performs no write and no provider invalidation — the caller
-/// (07-06) runs `ExpenseRepository.archiveExpense` and the two list
-/// invalidations only after this resolves `true`.
+/// Chip de categoria h40 r999 com ícone 18 (spec 4.18).
+class _CategoryChip extends StatelessWidget {
+  const _CategoryChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 13),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: selected ? null : Border.all(color: AppColors.chipBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? AppColors.onGreen : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: selected ? AppColors.onGreen : AppColors.ink,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Delete-confirmation dialog (D-28, spec 4.19) — ícone-container 38 r11
+/// `#FDECE7` + `delete` `#A32D14`, o valor exato e a data dd/MM ficam no
+/// título (Material 3 wraps a long title by default — never shortened to a
+/// generic question with the figures moved into the body), corpo sobre
+/// restauração, Cancelar outline + "Excluir" destrutivo. Performs no write
+/// and no provider invalidation — the caller runs
+/// `ExpenseRepository.archiveExpense` only after this resolves `true`.
 Future<bool> confirmDeleteExpense(
   BuildContext context,
   Expense expense,
@@ -280,20 +435,45 @@ Future<bool> confirmDeleteExpense(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(
-        'Excluir gasto de ${formatCurrencyBrl(expense.amount)} de '
-        '${DateFormat('dd/MM').format(expense.expenseDate)}?',
+      title: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppColors.dangerContainer,
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: const Icon(
+              Icons.delete_outline,
+              size: 21,
+              color: AppColors.danger,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Excluir gasto de ${formatCurrencyBrl(expense.amount)} de '
+              '${DateFormat('dd/MM').format(expense.expenseDate)}?',
+            ),
+          ),
+        ],
+      ),
+      content: const Text(
+        "O lançamento sai do total do período, mas continua visível em "
+        "'Mostrar excluídos' e pode ser restaurado.",
       ),
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: () => Navigator.pop(ctx, false),
           child: const Text('Cancelar'),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(ctx, true),
           style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(ctx).colorScheme.error,
-            foregroundColor: Theme.of(ctx).colorScheme.onError,
+            backgroundColor: AppColors.danger,
+            foregroundColor: AppColors.onDanger,
           ),
           child: const Text('Excluir'),
         ),

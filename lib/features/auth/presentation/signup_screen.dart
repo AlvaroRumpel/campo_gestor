@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../data/auth_repository.dart';
+import 'auth_scaffold.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -18,6 +20,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _busy = false;
+  bool _obscure = true;
 
   @override
   void dispose() {
@@ -61,105 +64,81 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 48),
-                    Icon(Icons.grass, size: 64, color: theme.colorScheme.primary),
-                    const SizedBox(height: 24),
-                    Text('Criar conta',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.titleLarge
-                            ?.copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 32),
-                    Card(
-                      color: theme.colorScheme.surfaceContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Form(
-                          key: _formKey,
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          child: Column(
-                            children: [
-                              TextFormField(
-                                controller: _emailCtrl,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (v) => (v == null ||
-                                        !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
-                                            .hasMatch(v.trim()))
-                                    ? 'Digite um email válido'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _passCtrl,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'Senha',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (v) => (v == null || v.length < 6)
-                                    ? 'A senha deve ter pelo menos 6 caracteres'
-                                    : null,
-                              ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                controller: _confirmCtrl,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'Confirmar senha',
-                                  border: OutlineInputBorder(),
-                                ),
-                                validator: (v) => v == _passCtrl.text
-                                    ? null
-                                    : 'As senhas não coincidem',
-                              ),
-                              const SizedBox(height: 24),
-                              FilledButton(
-                                onPressed: _busy ? null : _submit,
-                                style: FilledButton.styleFrom(
-                                  minimumSize: const Size(double.infinity, 48),
-                                ),
-                                child: _busy
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      )
-                                    : const Text('Criar conta'),
-                              ),
-                              const SizedBox(height: 8),
-                              TextButton(
-                                onPressed: () => context.go(AppRoutes.login),
-                                child: const Text('Já tem conta? Entrar'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+    return AuthScaffold(
+      title: 'Criar conta',
+      tagline: 'Campo Gestor — gestão do rebanho no campo.',
+      child: Form(
+        key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email'),
+              validator: (v) => (v == null ||
+                      !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v.trim()))
+                  ? 'Digite um email válido'
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _passCtrl,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: 'Senha',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? Icons.visibility : Icons.visibility_off,
+                    size: 22,
+                  ),
+                  tooltip: _obscure ? 'Mostrar senha' : 'Ocultar senha',
+                  onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
+              validator: (v) => (v == null || v.length < 6)
+                  ? 'A senha deve ter pelo menos 6 caracteres'
+                  : null,
             ),
-          ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _confirmCtrl,
+              obscureText: _obscure,
+              decoration: const InputDecoration(labelText: 'Confirmar senha'),
+              validator: (v) =>
+                  v == _passCtrl.text ? null : 'As senhas não coincidem',
+            ),
+            const SizedBox(height: 18),
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(54),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Criar conta'),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () => context.go(AppRoutes.login),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryDarkText,
+              ),
+              child: const Text('Já tem conta? Entrar'),
+            ),
+          ],
         ),
       ),
     );

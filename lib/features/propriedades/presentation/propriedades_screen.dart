@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/campo_app_bar.dart';
+import '../../../core/widgets/ui.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../data/propriedade_model.dart';
 import '../data/propriedade_repository.dart';
@@ -24,8 +27,15 @@ class PropriedadesScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fazendas'),
+      appBar: DetailAppBar(
+        parentLabel: 'Fazendas',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go(AppRoutes.dashboard);
+        },
       ),
       body: propertiesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -37,12 +47,17 @@ class PropriedadesScreen extends ConsumerWidget {
         ),
         data: (properties) {
           if (properties.isEmpty) {
-            return _EmptyState(canCreate: canEdit);
+            return const EmptyState(
+              icon: Icons.landscape_outlined,
+              title: 'Nenhuma fazenda cadastrada',
+              message:
+                  'Crie sua primeira fazenda para começar a organizar o rebanho.',
+            );
           }
           return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             itemCount: properties.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
             itemBuilder: (context, i) => _PropertyCard(
               property: properties[i],
               canEdit: canEdit,
@@ -53,14 +68,15 @@ class PropriedadesScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: canEdit
-          ? FloatingActionButton(
+          ? FloatingActionButton.extended(
               onPressed: () => _openForm(
                 context,
                 ref,
                 isFirstProperty: membersAsync.asData?.value.isEmpty ?? false,
               ),
               tooltip: 'Nova fazenda',
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add, size: 22),
+              label: const Text('Fazenda'),
             )
           : null,
     );
@@ -87,7 +103,7 @@ class PropriedadesScreen extends ConsumerWidget {
     Property? property,
     bool isFirstProperty = false,
   }) async {
-    final result = await showDialog<bool>(
+    final result = await showAdaptiveForm<bool>(
       context: context,
       builder: (_) => PropertyFormDialog(existing: property),
     );
@@ -108,19 +124,39 @@ class PropriedadesScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remover fazenda'),
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.dangerContainer,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.delete_outline,
+                size: 21,
+                color: AppColors.danger,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Remover fazenda')),
+          ],
+        ),
         content: Text(
           'Tem certeza que deseja remover "${property.name}"? Esta ação não pode ser desfeita.',
         ),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.onDanger,
             ),
             child: const Text('Remover'),
           ),
@@ -134,45 +170,6 @@ class PropriedadesScreen extends ConsumerWidget {
       ref.invalidate(propertyListProvider);
       ref.invalidate(memberPropertiesProvider);
     }
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.canCreate});
-  final bool canCreate;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.landscape_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhuma fazenda cadastrada',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Crie sua primeira fazenda para começar a organizar o rebanho.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 
@@ -190,32 +187,65 @@ class _PropertyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Card(
-      child: ListTile(
-        leading: const Icon(Icons.landscape),
-        title: Text(property.name),
-        subtitle: property.owner != null
-            ? Text('Proprietário: ${property.owner}')
-            : null,
-        trailing: canEdit
-            ? PopupMenuButton<String>(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            FarmAvatar(
+              name: property.name,
+              size: 40,
+              background: AppColors.surfaceVariant,
+              foreground: AppColors.primaryDarkText,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    property.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (property.owner != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'Proprietário: ${property.owner}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (canEdit)
+              PopupMenuButton<String>(
                 onSelected: (v) {
                   if (v == 'edit') onEdit();
                   if (v == 'delete') onDelete();
                 },
                 itemBuilder: (_) => [
                   const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'delete',
                     child: Text(
                       'Remover',
-                      style: TextStyle(color: theme.colorScheme.error),
+                      style: TextStyle(color: AppColors.danger),
                     ),
                   ),
                 ],
-              )
-            : null,
+              ),
+          ],
+        ),
       ),
     );
   }
