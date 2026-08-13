@@ -13,7 +13,11 @@ import 'ui.dart';
 /// nome + expand_more. Menu lista as fazendas com papel, "Gerenciar fazendas"
 /// e "Sair" (o logout mora aqui no mobile; no rail desktop há botão próprio).
 class PropertySelector extends ConsumerWidget {
-  const PropertySelector({super.key});
+  const PropertySelector({super.key, this.compact = false});
+
+  /// When true, renders only the farm avatar (no name/expand_more) — used
+  /// by the 76px icon rail, which has no room for the full row.
+  final bool compact;
 
   static String roleLabel(String raw) {
     switch (raw) {
@@ -127,26 +131,28 @@ class PropertySelector extends ConsumerWidget {
               ),
             ),
           ],
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FarmAvatar(name: property?.name ?? '?'),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  name,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onGreen,
-                  ),
+          child: compact
+              ? FarmAvatar(name: property?.name ?? '?', size: 36)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FarmAvatar(name: property?.name ?? '?'),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onGreen,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.expand_more,
+                        size: 20, color: AppColors.onGreenSecondary),
+                  ],
                 ),
-              ),
-              const Icon(Icons.expand_more,
-                  size: 20, color: AppColors.onGreenSecondary),
-            ],
-          ),
         );
       },
       loading: () => const Align(

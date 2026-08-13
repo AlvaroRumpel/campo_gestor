@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/breakpoints.dart';
 
 /// Primitivas visuais do redesign, compartilhadas entre features.
 /// Anatomias vêm do spec "musgo evoluído" (seções 3.x).
@@ -477,19 +478,29 @@ class WarningBanner extends StatelessWidget {
   }
 }
 
-// ─── Formulário adaptativo: bottom sheet (<600px) ou dialog 480px ───
+// ─── Formulário adaptativo: bottom sheet (<600px) ou dialog de largura
+// configurável (>=600px). [FormWidth] dá as três larguras contratadas:
+// confirmação destrutiva curta, formulário padrão de uma coluna e
+// formulário largo com campos lado a lado. ───
+
+abstract final class FormWidth {
+  static const double confirm = 440;
+  static const double form = 560;
+  static const double wide = 680;
+}
 
 Future<T?> showAdaptiveForm<T>({
   required BuildContext context,
   required WidgetBuilder builder,
+  double width = FormWidth.form,
 }) {
-  final isWide = MediaQuery.sizeOf(context).width >= 600;
+  final isWide = MediaQuery.sizeOf(context).width >= Breakpoints.mobile;
   if (isWide) {
     return showDialog<T>(
       context: context,
       builder: (ctx) => Dialog(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: BoxConstraints(maxWidth: width),
           child: builder(ctx),
         ),
       ),
