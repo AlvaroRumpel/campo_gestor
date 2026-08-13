@@ -1,7 +1,7 @@
 // PROP-04 — LoteFormDialog: batch composition validation.
 // Wave 0 stubs turned GREEN in Plan 04.
 // Decisions enforced: D-10 (7 categorias), D-11 (nome required + total>0), D-12 (paddock readonly).
-import 'package:campo_gestor/features/animais/data/animal_model.dart';
+import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
 import 'package:campo_gestor/features/lotes/presentation/lote_form_dialog.dart';
@@ -72,7 +72,8 @@ class _FakeLoteRepository implements LoteRepository {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: mount LoteFormDialog via a button that opens it via showDialog
+// Helper: mount LoteFormDialog via a button that opens it via showAdaptiveForm
+// (the same entry point the app uses — dialog >=600px, sheet below).
 // ---------------------------------------------------------------------------
 Widget _buildApp({Lot? existing, required _FakeLoteRepository repo}) {
   return ProviderScope(
@@ -83,7 +84,7 @@ Widget _buildApp({Lot? existing, required _FakeLoteRepository repo}) {
       home: Scaffold(
         body: Builder(
           builder: (ctx) => ElevatedButton(
-            onPressed: () => showDialog<bool>(
+            onPressed: () => showAdaptiveForm<bool>(
               context: ctx,
               builder: (_) => LoteFormDialog(
                 paddockId: 'p1',
@@ -99,10 +100,26 @@ Widget _buildApp({Lot? existing, required _FakeLoteRepository repo}) {
   );
 }
 
+/// Taps the submit button (fixed footer, always visible).
+Future<void> _tapSubmit(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('lote_submit')));
+  await tester.pumpAndSettle();
+}
+
+/// Expands the "Touros, Bois e Novilhos" collapsed section (spec 4.16).
+Future<void> _expandExtras(WidgetTester tester) async {
+  final expander = find.byKey(const ValueKey('extras_expander'));
+  // The composition list scrolls; the expander may start off-screen.
+  await tester.ensureVisible(expander);
+  await tester.tap(expander);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('LoteFormDialog (PROP-04)', () {
     testWidgets(
-        'renders 7 category counter rows: Vacas, Novilhas, Terneiros, Terneiras, Touros, Bois, Novilhos',
+        'renders all 7 category counter rows — 4 visíveis + 3 atrás do '
+        'expansor "Touros, Bois e Novilhos" (spec 4.16)',
         (tester) async {
       await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
@@ -112,6 +129,11 @@ void main() {
       expect(find.text('Novilhas'), findsOneWidget);
       expect(find.text('Terneiros'), findsOneWidget);
       expect(find.text('Terneiras'), findsOneWidget);
+      // Touro/boi/novilho ficam colapsados por padrão
+      expect(find.text('Touros'), findsNothing);
+
+      await _expandExtras(tester);
+
       expect(find.text('Touros'), findsOneWidget);
       expect(find.text('Bois'), findsOneWidget);
       expect(find.text('Novilhos'), findsOneWidget);
@@ -124,8 +146,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Criar lote'));
-      await tester.pumpAndSettle();
+      await _tapSubmit(tester);
 
       expect(find.text('Nome do lote é obrigatório'), findsOneWidget);
     });
@@ -141,8 +162,7 @@ void main() {
         find.widgetWithText(TextFormField, 'Nome do lote *'),
         'Lote A',
       );
-      await tester.tap(find.text('Criar lote'));
-      await tester.pumpAndSettle();
+      await _tapSubmit(tester);
 
       expect(
         find.text('Informe ao menos 1 animal para criar o lote'),
@@ -151,16 +171,13 @@ void main() {
     });
 
     testWidgets(
-        'shows optional "Iniciar do número" field with hint "Ex: 101 (deixe vazio para auto)"',
+        'shows optional "Numerar a partir de" field with hint "vazio = automático"',
         (tester) async {
       await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Ex: 101 (deixe vazio para auto)'),
-        findsOneWidget,
-      );
+      expect(find.text('vazio = automático'), findsOneWidget);
     });
 
     testWidgets('shows raça dropdown per category row (search-select, optional)',
@@ -168,6 +185,8 @@ void main() {
       await tester.pumpWidget(_buildApp(repo: _FakeLoteRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
+
+      await _expandExtras(tester);
 
       // One DropdownButtonFormField<String?> per category row = 7 minimum
       expect(
@@ -189,8 +208,12 @@ void main() {
         'Lote A',
       );
       await tester.enterText(find.byKey(const ValueKey('qty_field_vaca')), '20');
-      await tester.tap(find.text('Criar lote'));
-      await tester.pumpAndSettle();
+      await tester.pump();
+
+      // Resumo live + CTA refletem a contagem (spec 4.16)
+      expect(find.text('Criar lote e 20 animais'), findsOneWidget);
+
+      await _tapSubmit(tester);
 
       expect(repo.lastCategoryQuantities?['vaca'], 20);
     });
@@ -227,8 +250,7 @@ void main() {
       await tester.pump();
       await tester.enterText(find.byKey(const ValueKey('qty_field_vaca')), '');
       await tester.pump();
-      await tester.tap(find.text('Criar lote'));
-      await tester.pumpAndSettle();
+      await _tapSubmit(tester);
 
       expect(
         find.text('Informe ao menos 1 animal para criar o lote'),

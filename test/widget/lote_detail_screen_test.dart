@@ -129,9 +129,9 @@ Widget _buildRoutedScreen({
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('LoteDetailScreen — Mover para piquete button (MOV-02, SC-3)', () {
+  group('LoteDetailScreen — Mover lote button (MOV-02, SC-3)', () {
     testWidgets(
-        'shows Mover para piquete button when active && animals > 0 && veterinarian',
+        'shows Mover lote button when active && animals > 0 && veterinarian',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
@@ -143,12 +143,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(OutlinedButton, 'Mover para piquete'),
+        find.widgetWithText(OutlinedButton, 'Mover lote'),
         findsOneWidget,
       );
     });
 
-    testWidgets('hides Mover para piquete button when role is reader',
+    testWidgets('hides Mover lote button when role is reader',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(lot: _lot, role: 'reader', animals: [_activeAnimal]),
@@ -156,12 +156,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(OutlinedButton, 'Mover para piquete'),
+        find.widgetWithText(OutlinedButton, 'Mover lote'),
         findsNothing,
       );
     });
 
-    testWidgets('hides Mover para piquete button when lot has 0 active animals',
+    testWidgets('hides Mover lote button when lot has 0 active animals',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(lot: _lot, role: 'veterinarian', animals: []),
@@ -169,12 +169,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(OutlinedButton, 'Mover para piquete'),
+        find.widgetWithText(OutlinedButton, 'Mover lote'),
         findsNothing,
       );
     });
 
-    testWidgets('hides Mover para piquete button when lot is archived',
+    testWidgets('hides Mover lote button when lot is archived',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
@@ -186,8 +186,30 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(OutlinedButton, 'Mover para piquete'),
+        find.widgetWithText(OutlinedButton, 'Mover lote'),
         findsNothing,
+      );
+    });
+  });
+
+  group('LoteDetailScreen — header (spec 4.7)', () {
+    testWidgets('renders lot name, paddock context and UA badge',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          lot: _lot,
+          role: 'veterinarian',
+          animals: [_activeAnimal],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lote Alpha'), findsOneWidget);
+      // 1 vaca ativa = 1,0 UA
+      expect(find.text('1,0 UA'), findsOneWidget);
+      expect(
+        find.textContaining('Piquete Norte · 1 animal ativo'),
+        findsOneWidget,
       );
     });
   });
@@ -201,7 +223,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(BackButton));
+      await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
       expect(find.text('paddock-detail-${_lot.paddockId}'), findsOneWidget);
@@ -215,7 +237,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(BackButton));
+      await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
       expect(find.text('paddock-list'), findsOneWidget);

@@ -2,6 +2,7 @@
 // Wave 0 stubs. Implementation lands in Plan 04-03 (MoverLoteDialog).
 // Decisions enforced: D-07 (paddock picker + info text), D-09 (current paddock excluded), D-10 (SnackBar copy).
 import 'package:campo_gestor/core/services/supabase_service.dart';
+import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
@@ -145,7 +146,7 @@ Widget _buildHost({
                 builder: (context) => Center(
                   child: ElevatedButton(
                     onPressed: () async {
-                      final result = await showDialog<Map<String, String>>(
+                      final result = await showAdaptiveForm<Map<String, String>>(
                         context: context,
                         builder: (_) => MoverLoteDialog(
                           lot: lot ?? _sampleLot,

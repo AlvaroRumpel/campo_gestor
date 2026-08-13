@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../piquetes/data/piquete_repository.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
 
-/// Dialog for moving an entire lot to another paddock in the same property
-/// (MOV-02, D-06..D-10).
+/// Form content for moving an entire lot to another paddock in the same
+/// property (MOV-02, D-06..D-10). Shown via `showAdaptiveForm` (bottom sheet
+/// <600px / dialog 480px).
 ///
-/// Layout (matches BaixaDialog/MoverAnimalDialog template):
-/// - title: 'Mover lote "[nome]" para outro piquete?' (or LinearProgressIndicator during save)
-/// - content: 480-wide column with info text + scrollable paddock picker
-///   (maxHeight 320), excluding the lot's current paddock
-/// - actions: TextButton('Cancelar') + FilledButton('Confirmar movimentação')
-///   (confirm disabled until a paddock is selected)
+/// Layout (spec 3.7/4.16 footer):
+/// - title: 'Mover lote "[nome]" para outro piquete?' 20/700
+/// - info text + scrollable paddock picker (maxHeight 320), excluding the
+///   lot's current paddock
+/// - footer: OutlinedButton('Cancelar') flex 1 + FilledButton('Confirmar
+///   movimentação') flex 1.4 (confirm disabled until a paddock is selected)
 ///
 /// On success: invalidates [loteByIdProvider], both old and new
 /// [loteListByPaddockProvider] (D-12), then pops with a result Map
@@ -72,60 +74,89 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : Text('Mover lote "${widget.lot.name}" para outro piquete?'),
-      content: SizedBox(
-        width: 480,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.activeAnimalCount == 1
-                    ? '1 animal será transferido para o novo piquete. A operação é atômica — ou todos movem ou nenhum.'
-                    : '${widget.activeAnimalCount} animais serão transferidos para o novo piquete. A operação é atômica — ou todos movem ou nenhum.',
-                style: theme.textTheme.bodyMedium,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_saving)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: LinearProgressIndicator(),
+            ),
+          Text(
+            'Mover lote "${widget.lot.name}" para outro piquete?',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            widget.activeAnimalCount == 1
+                ? '1 animal será transferido para o novo piquete. A operação é atômica — ou todos movem ou nenhum.'
+                : '${widget.activeAnimalCount} animais serão transferidos para o novo piquete. A operação é atômica — ou todos movem ou nenhum.',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.45,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: _PaddockPickerList(
+                currentPaddockId: widget.lot.paddockId,
+                selectedPaddockId: _selectedPaddockId,
+                onSelected: (id, name) {
+                  setState(() {
+                    _selectedPaddockId = id;
+                    _selectedPaddockName = name;
+                  });
+                },
               ),
-              const SizedBox(height: 16),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 320),
-                child: _PaddockPickerList(
-                  currentPaddockId: widget.lot.paddockId,
-                  selectedPaddockId: _selectedPaddockId,
-                  onSelected: (id, name) {
-                    setState(() {
-                      _selectedPaddockId = id;
-                      _selectedPaddockName = name;
-                    });
-                  },
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                flex: 10,
+                child: OutlinedButton(
+                  onPressed: _saving ? null : () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('Cancelar'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 14,
+                child: FilledButton(
+                  onPressed:
+                      (_saving || _selectedPaddockId == null) ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Confirmar movimentação'),
                 ),
               ),
             ],
           ),
-        ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed:
-              (_saving || _selectedPaddockId == null) ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Confirmar movimentação'),
-        ),
-      ],
     );
   }
 }

@@ -2,18 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
-import '../../animais/data/animal_repository.dart' show AnimalNumberConflictException;
+import '../../animais/data/animal_repository.dart'
+    show AnimalNumberConflictException;
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
 
-/// Dialog for creating a lot with batch animal composition (create mode)
-/// or editing a lot name (edit mode, D-12).
+String _fmtUa(double v) => v.toStringAsFixed(1).replaceAll('.', ',');
+
+/// Categorias visíveis por padrão no sheet de novo lote (spec 4.16);
+/// touro/boi/novilho ficam atrás do expansor "Touros, Bois e Novilhos".
+const _mainCategories = ['vaca', 'novilha', 'terneiro', 'terneira'];
+const _extraCategories = ['touro', 'boi', 'novilho'];
+
+/// Conteúdo de formulário (spec 4.16) exibido via [showAdaptiveForm]:
+/// criação de lote com composição em lote (create mode) ou edição de nome
+/// (edit mode, D-12).
 ///
-/// Create mode: shows name field + 7 category composition rows + optional
-/// "Iniciar do número" field. Submit calls [LoteRepository.createLotWithAnimals].
+/// Create mode: nome + steppers por categoria + raça + "Numerar a partir de"
+/// + resumo live. Submit chama [LoteRepository.createLotWithAnimals].
 ///
-/// Edit mode ([existing] != null): shows name field only. Submit calls
+/// Edit mode ([existing] != null): apenas nome. Submit chama
 /// [LoteRepository.updateLotName].
 class LoteFormDialog extends ConsumerStatefulWidget {
   const LoteFormDialog({
@@ -41,8 +52,15 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
   final Map<String, int> _qtys = {for (final c in kCategories) c: 0};
   final Map<String, String?> _breeds = {for (final c in kCategories) c: null};
   bool _saving = false;
+  bool _extrasExpanded = false;
+  int? _startNumber;
 
   bool get _isEditing => widget.existing != null;
+
+  int get _totalAnimals => _qtys.values.fold(0, (a, b) => a + b);
+
+  double get _totalUa => _qtys.entries
+      .fold(0.0, (sum, e) => sum + e.value * (kUaWeights[e.key] ?? 0));
 
   @override
   void initState() {
@@ -62,8 +80,7 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     if (!_isEditing) {
-      final total = _qtys.values.fold(0, (a, b) => a + b);
-      if (total == 0) {
+      if (_totalAnimals == 0) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -112,6 +129,7 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
       );
 
       ref.invalidate(loteListByPaddockProvider(widget.paddockId));
+      ref.invalidate(loteWithPaddockListByPropertyProvider);
       if (mounted) Navigator.pop(context, true);
     } on AnimalNumberConflictException catch (e) {
       if (!mounted) return;
@@ -132,99 +150,282 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
     }
   }
 
+  String get _submitLabel {
+    if (_isEditing) return 'Salvar';
+    if (_totalAnimals == 0) return 'Criar lote';
+    return 'Criar lote e $_totalAnimals '
+        '${_totalAnimals == 1 ? 'animal' : 'animais'}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : Text(_isEditing ? 'Editar lote' : 'Novo lote'),
-      content: SizedBox(
-        width: 480,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _nameCtrl,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do lote *',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Nome do lote é obrigatório'
-                      : null,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_saving)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: LinearProgressIndicator(),
+              ),
+            Text(
+              _isEditing ? 'Editar lote' : 'Novo lote',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 14),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _nameCtrl,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do lote *',
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Nome do lote é obrigatório'
+                          : null,
+                    ),
+                    if (!_isEditing) ...[
+                      const SizedBox(height: 18),
+                      const OverlineLabel('Composição'),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'quantidade e raça por categoria',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      for (final cat in _mainCategories)
+                        _CategoryCompositionRow(
+                          category: cat,
+                          qty: _qtys[cat]!,
+                          onQtyChanged: (v) => setState(() => _qtys[cat] = v),
+                          breed: _breeds[cat],
+                          onBreedChanged: (b) =>
+                              setState(() => _breeds[cat] = b),
+                        ),
+                      InkWell(
+                        key: const ValueKey('extras_expander'),
+                        onTap: () => setState(
+                            () => _extrasExpanded = !_extrasExpanded),
+                        child: SizedBox(
+                          height: 46,
+                          child: Row(
+                            children: [
+                              Icon(
+                                _extrasExpanded
+                                    ? Icons.expand_less
+                                    : Icons.expand_more,
+                                size: 20,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Touros, Bois e Novilhos',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primaryDarkText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_extrasExpanded)
+                        for (final cat in _extraCategories)
+                          _CategoryCompositionRow(
+                            category: cat,
+                            qty: _qtys[cat]!,
+                            onQtyChanged: (v) =>
+                                setState(() => _qtys[cat] = v),
+                            breed: _breeds[cat],
+                            onBreedChanged: (b) =>
+                                setState(() => _breeds[cat] = b),
+                          ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _startNumCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Numerar a partir de',
+                          hintText: 'vazio = automático',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (v) => setState(
+                          () => _startNumber = int.tryParse(v.trim()),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final parsed = int.tryParse(v.trim());
+                          if (parsed == null || parsed <= 0) {
+                            return 'Informe um número inteiro positivo';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ],
                 ),
-                if (!_isEditing) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'Animais por categoria',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  ...kCategories.map(
-                    (cat) => _CategoryCompositionRow(
-                      category: cat,
-                      qty: _qtys[cat]!,
-                      onQtyChanged: (v) => setState(() => _qtys[cat] = v),
-                      breed: _breeds[cat],
-                      onBreedChanged: (b) =>
-                          setState(() => _breeds[cat] = b),
+              ),
+            ),
+            if (!_isEditing) ...[
+              const SizedBox(height: 12),
+              _LiveSummary(
+                totalAnimals: _totalAnimals,
+                totalUa: _totalUa,
+                startNumber: _startNumber,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  flex: 10,
+                  child: OutlinedButton(
+                    onPressed:
+                        _saving ? null : () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
+                    child: const Text('Cancelar'),
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _startNumCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Iniciar do número',
-                      border: OutlineInputBorder(),
-                      hintText: 'Ex: 101 (deixe vazio para auto)',
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 16,
+                  child: FilledButton(
+                    key: const ValueKey('lote_submit'),
+                    onPressed: _saving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return null;
-                      final parsed = int.tryParse(v.trim());
-                      if (parsed == null || parsed <= 0) {
-                        return 'Informe um número inteiro positivo';
-                      }
-                      return null;
-                    },
+                    child: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(_submitLabel),
                   ),
-                ],
+                ),
               ],
             ),
-          ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
+    );
+  }
+}
+
+/// Rodapé de resumo live (spec 4.16): N animais | X UA no lote | numeração.
+class _LiveSummary extends StatelessWidget {
+  const _LiveSummary({
+    required this.totalAnimals,
+    required this.totalUa,
+    required this.startNumber,
+  });
+
+  final int totalAnimals;
+  final double totalUa;
+  final int? startNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    final numbering = (startNumber != null && totalAnimals > 0)
+        ? '#$startNumber–#${startNumber! + totalAnimals - 1}'
+        : 'automática';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _SummaryCol(
+              value: '$totalAnimals',
+              label: totalAnimals == 1 ? 'animal' : 'animais',
+            ),
+          ),
+          Expanded(
+            child: _SummaryCol(
+              value: _fmtUa(totalUa),
+              label: 'UA no lote',
+            ),
+          ),
+          Expanded(
+            child: _SummaryCol(
+              value: numbering,
+              label: 'numeração',
+              valueSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryCol extends StatelessWidget {
+  const _SummaryCol({
+    required this.value,
+    required this.label,
+    this.valueSize = 17,
+  });
+
+  final String value;
+  final String label;
+  final double valueSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: monoStyle(
+            size: valueSize,
+            weight: valueSize >= 17 ? FontWeight.w700 : FontWeight.w600,
+            color: AppColors.primaryDarkText,
+          ),
         ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(_isEditing ? 'Salvar' : 'Criar lote'),
+        const SizedBox(height: 1),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11.5,
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );
   }
 }
 
-/// One row in the batch composition grid.
-///
-/// Layout: [CategoryLabel] [Decrement] [QtyField] [Increment] [BreedDropdown]
+/// Linha de composição por categoria (spec 4.16, 56h):
+/// label + stepper (− outline · display mono · + verde) + dropdown de raça.
 class _CategoryCompositionRow extends StatefulWidget {
   const _CategoryCompositionRow({
     required this.category,
@@ -278,47 +479,114 @@ class _CategoryCompositionRowState extends State<_CategoryCompositionRow> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+    final zeroed = widget.qty == 0;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 56),
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.divider)),
+      ),
       child: Row(
         children: [
           SizedBox(
-            width: 90,
-            child: Text(kCategoryLabelsPlural[widget.category]!),
+            width: 78,
+            child: Text(
+              kCategoryLabelsPlural[widget.category]!,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
+                color: zeroed ? AppColors.textTertiary : AppColors.ink,
+              ),
+            ),
           ),
-          IconButton(
-            key: ValueKey('qty_dec_${widget.category}'),
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            onPressed:
-                widget.qty > 0 ? () => widget.onQtyChanged(widget.qty - 1) : null,
-            icon: const Icon(Icons.remove),
-          ),
+          // Stepper − (outline)
           SizedBox(
-            width: 56,
+            width: 44,
+            height: 44,
+            child: OutlinedButton(
+              key: ValueKey('qty_dec_${widget.category}'),
+              onPressed: widget.qty > 0
+                  ? () => widget.onQtyChanged(widget.qty - 1)
+                  : null,
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(44, 44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
+              child: const Icon(Icons.remove, size: 20),
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Display editável (mono, bg #F1F4EC)
+          SizedBox(
+            width: 44,
+            height: 44,
             child: TextField(
               key: ValueKey('qty_field_${widget.category}'),
               controller: _qtyCtrl,
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
+              style: monoStyle(
+                size: 17,
+                weight: FontWeight.w700,
+                color: zeroed ? AppColors.textTertiary : AppColors.ink,
+              ),
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(3),
               ],
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 isDense: true,
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                filled: true,
+                fillColor:
+                    zeroed ? AppColors.surfaceSubtle : AppColors.surfaceVariant,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(11),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(11),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onChanged: _onTextChanged,
             ),
           ),
-          IconButton(
-            key: ValueKey('qty_inc_${widget.category}'),
-            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-            onPressed: widget.qty < 999
-                ? () => widget.onQtyChanged(widget.qty + 1)
-                : null,
-            icon: const Icon(Icons.add),
+          const SizedBox(width: 4),
+          // Stepper + (verde sólido; outline quando zerado)
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: zeroed
+                ? OutlinedButton(
+                    key: ValueKey('qty_inc_${widget.category}'),
+                    onPressed: () => widget.onQtyChanged(widget.qty + 1),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                    ),
+                    child: const Icon(Icons.add, size: 20),
+                  )
+                : FilledButton(
+                    key: ValueKey('qty_inc_${widget.category}'),
+                    onPressed: widget.qty < 999
+                        ? () => widget.onQtyChanged(widget.qty + 1)
+                        : null,
+                    style: FilledButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                    ),
+                    child: const Icon(Icons.add, size: 20),
+                  ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -326,14 +594,11 @@ class _CategoryCompositionRowState extends State<_CategoryCompositionRow> {
               initialValue: widget.breed,
               isExpanded: true,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 isDense: true,
               ),
-              hint: const Text('Raça (opcional)'),
+              hint: const Text('Raça'),
               items: [
                 const DropdownMenuItem<String?>(
                   value: null,

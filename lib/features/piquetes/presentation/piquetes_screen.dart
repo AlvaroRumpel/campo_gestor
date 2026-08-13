@@ -3,57 +3,121 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/campo_app_bar.dart';
+import '../../../core/widgets/ui.dart';
+import '../../../features/animais/data/animal_constants.dart';
+import '../../../features/animais/data/animal_model.dart';
+import '../../../features/animais/data/animal_repository.dart';
 import '../../../features/auth/data/property_repository.dart';
+import '../../../features/gastos/data/expense_repository.dart';
+import '../../../features/lotes/data/lote_repository.dart';
+import '../../../features/lotes/presentation/lotes_list_view.dart';
+import '../../../features/sanitario/data/sanitary_calculations.dart';
 import '../data/piquete_model.dart';
 import '../data/piquete_repository.dart';
 import 'paddock_form_dialog.dart';
 
-class PiquetesScreen extends ConsumerWidget {
+String _fmt1(double v) => v.toStringAsFixed(1).replaceAll('.', ',');
+
+/// /piquetes — segmented control alterna entre a lista de piquetes (spec 4.5)
+/// e a lista de lotes da propriedade (spec 4.6). Estado local, sem rota nova.
+class PiquetesScreen extends ConsumerStatefulWidget {
   const PiquetesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PiquetesScreen> createState() => _PiquetesScreenState();
+}
+
+class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
+  bool _showLots = false;
+
+  @override
+  Widget build(BuildContext context) {
     final paddocksAsync = ref.watch(paddockListProvider);
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);
+    final lotsAsync = ref.watch(loteWithPaddockListByPropertyProvider);
+    final animalsAsync = ref.watch(animalListByPropertyProvider);
 
     final canEdit = _canEdit(
       currentPropAsync.asData?.value,
       membersAsync.asData?.value,
     );
 
+    final paddockCount = paddocksAsync.asData?.value.length ?? 0;
+    final lotCount = lotsAsync.asData?.value.length ?? 0;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Piquetes')),
-      body: paddocksAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Text(
-            'Erro ao carregar piquetes.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ),
-        data: (paddocks) {
-          if (paddocks.isEmpty) {
-            return _EmptyState(canCreate: canEdit);
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: paddocks.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, i) => _PaddockCard(
-              paddock: paddocks[i],
-              canEdit: canEdit,
-              onEdit: () => _openForm(context, ref, paddock: paddocks[i]),
-              onDelete: () => _confirmDelete(context, ref, paddocks[i]),
+      appBar: const CampoAppBar(title: 'Piquetes'),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Piquetes',
+                    count: paddockCount,
+                    selected: !_showLots,
+                    onTap: () => setState(() => _showLots = false),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _SegmentButton(
+                    label: 'Lotes',
+                    count: lotCount,
+                    selected: _showLots,
+                    onTap: () => setState(() => _showLots = true),
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: _showLots
+                ? const LotesListView()
+                : paddocksAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => const Center(
+                      child: Text('Erro ao carregar piquetes.'),
+                    ),
+                    data: (paddocks) {
+                      if (paddocks.isEmpty) {
+                        return const EmptyState(
+                          icon: Icons.fence_outlined,
+                          title: 'Nenhum piquete cadastrado',
+                          message:
+                              'Adicione piquetes para começar a organizar os lotes da fazenda.',
+                        );
+                      }
+                      return ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 96),
+                        itemCount: paddocks.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, i) => _PaddockCard(
+                          paddock: paddocks[i],
+                          lotsAsync: lotsAsync,
+                          animalsAsync: animalsAsync,
+                          canEdit: canEdit,
+                          onEdit: () =>
+                              _openForm(context, paddock: paddocks[i]),
+                          onDelete: () => _confirmDelete(context, paddocks[i]),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
-      floatingActionButton: canEdit
-          ? FloatingActionButton(
-              onPressed: () => _openForm(context, ref),
-              tooltip: 'Novo piquete',
-              child: const Icon(Icons.add),
+      floatingActionButton: canEdit && !_showLots
+          ? FloatingActionButton.extended(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add, size: 22),
+              label: const Text('Piquete'),
             )
           : null,
     );
@@ -71,12 +135,8 @@ class PiquetesScreen extends ConsumerWidget {
     return role == 'veterinarian';
   }
 
-  Future<void> _openForm(
-    BuildContext context,
-    WidgetRef ref, {
-    Paddock? paddock,
-  }) async {
-    final result = await showDialog<bool>(
+  Future<void> _openForm(BuildContext context, {Paddock? paddock}) async {
+    final result = await showAdaptiveForm<bool>(
       context: context,
       builder: (_) => PaddockFormDialog(existing: paddock),
     );
@@ -85,11 +145,7 @@ class PiquetesScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _confirmDelete(
-    BuildContext context,
-    WidgetRef ref,
-    Paddock paddock,
-  ) async {
+  Future<void> _confirmDelete(BuildContext context, Paddock paddock) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -98,14 +154,15 @@ class PiquetesScreen extends ConsumerWidget {
           'Tem certeza que deseja remover "${paddock.name}"?',
         ),
         actions: [
-          TextButton(
+          OutlinedButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancelar'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.onDanger,
             ),
             child: const Text('Remover'),
           ),
@@ -119,37 +176,53 @@ class PiquetesScreen extends ConsumerWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.canCreate});
-  final bool canCreate;
+/// Botão do segmented control h42 r12 — label + contagem mono 11.5.
+class _SegmentButton extends StatelessWidget {
+  const _SegmentButton({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: selected ? null : Border.all(color: AppColors.chipBorder),
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.fence_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
             Text(
-              'Nenhum piquete cadastrado',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Adicione piquetes para começar a organizar os lotes da fazenda.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: selected ? AppColors.onGreen : AppColors.ink,
               ),
-              textAlign: TextAlign.center,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '$count',
+              style: monoStyle(
+                size: 11.5,
+                color: selected
+                    ? AppColors.onGreenSecondary
+                    : AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -158,47 +231,203 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _PaddockCard extends StatelessWidget {
+/// Card de piquete (spec 4.5): título + chip semáforo, 4 stats, barra de
+/// lotação e rodapé lotes/animais + gasto do mês.
+class _PaddockCard extends ConsumerWidget {
   const _PaddockCard({
     required this.paddock,
+    required this.lotsAsync,
+    required this.animalsAsync,
     required this.canEdit,
     required this.onEdit,
     required this.onDelete,
   });
+
   final Paddock paddock;
+  final AsyncValue<List<LotWithPaddockCount>> lotsAsync;
+  final AsyncValue<List<AnimalWithContext>> animalsAsync;
   final bool canEdit;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeAnimals = (animalsAsync.asData?.value ?? const [])
+        .where((c) => c.animal.deletedAt == null && c.paddockId == paddock.id)
+        .toList();
+    final uaAtual = calcTotalUa(activeAnimals.map((c) => c.animal));
+    final ratio = paddock.uaCapacity > 0 ? uaAtual / paddock.uaCapacity : 0.0;
+    final uaHa = paddock.areaHa > 0 ? uaAtual / paddock.areaHa : 0.0;
+    final over = ratio >= 1.0;
+    final lotCount = (lotsAsync.asData?.value ?? const [])
+        .where((l) => l.lot.paddockId == paddock.id)
+        .length;
+    final expenseAsync =
+        ref.watch(paddockMonthExpenseTotalProvider(paddock.id));
+
+    final (chipLabel, chipKind) = over
+        ? ('Superlotado', StatusKind.danger)
+        : ratio >= 0.9
+            ? ('No limite', StatusKind.warning)
+            : ('Folga', StatusKind.positive);
+
     return Card(
-      child: ListTile(
-        leading: const Icon(Icons.fence),
-        title: Text(paddock.name),
-        subtitle: Text(
-          '${paddock.areaHa.toStringAsFixed(1).replaceAll('.', ',')} ha · ${paddock.uaCapacity.toStringAsFixed(1).replaceAll('.', ',')} UA',
-        ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: () => context.go('/piquetes/${paddock.id}'),
-        trailing: canEdit
-            ? PopupMenuButton<String>(
-                onSelected: (v) {
-                  if (v == 'edit') onEdit();
-                  if (v == 'delete') onDelete();
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                  PopupMenuItem(
-                    value: 'delete',
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
                     child: Text(
-                      'Remover',
-                      style: TextStyle(color: theme.colorScheme.error),
+                      paddock.name,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
+                  StatusChip(chipLabel, kind: chipKind),
+                  if (canEdit)
+                    SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        iconSize: 20,
+                        onSelected: (v) {
+                          if (v == 'edit') onEdit();
+                          if (v == 'delete') onDelete();
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Editar')),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text(
+                              'Remover',
+                              style: TextStyle(color: AppColors.danger),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
-              )
-            : null,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _Stat(value: _fmt1(paddock.areaHa), label: 'hectares'),
+                  _Stat(value: _fmt1(uaAtual), label: 'UA atual'),
+                  _Stat(
+                    value: _fmt1(paddock.uaCapacity),
+                    label: 'capacidade',
+                    valueColor: AppColors.textTertiary,
+                  ),
+                  _Stat(
+                    value: _fmt1(uaHa),
+                    label: 'UA/ha',
+                    valueColor: over ? AppColors.danger : null,
+                    alignEnd: true,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              CapacityBar(current: uaAtual, capacity: paddock.uaCapacity),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.group_work_outlined,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '$lotCount ${lotCount == 1 ? 'lote' : 'lotes'} · '
+                      '${activeAnimals.length} ${activeAnimals.length == 1 ? 'animal' : 'animais'}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  ...expenseAsync.when(
+                    data: (total) => [
+                      Text(
+                        formatCurrencyBrl(total),
+                        style: monoStyle(size: 13, weight: FontWeight.w600),
+                      ),
+                      const Text(
+                        ' no mês',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                    loading: () => const [SizedBox.shrink()],
+                    error: (e, _) => const [
+                      Text(
+                        '—',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  const _Stat({
+    required this.value,
+    required this.label,
+    this.valueColor,
+    this.alignEnd = false,
+  });
+
+  final String value;
+  final String label;
+  final Color? valueColor;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment:
+            alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: monoStyle(
+              size: 16,
+              weight: FontWeight.w600,
+              color: valueColor ?? AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

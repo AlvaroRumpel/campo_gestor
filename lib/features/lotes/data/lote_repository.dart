@@ -236,6 +236,18 @@ final loteListByPropertyProvider = FutureProvider<List<Lot>>((ref) async {
   return enriched.map((e) => e.lot).toList();
 });
 
+/// Active lots with paddock name + active animal count for the "Lotes" list
+/// destination on /piquetes (spec 4.6). Reuses
+/// [LoteRepository.fetchLotsWithCountByProperty] (same query as the mover
+/// picker) — additive provider, no new repository method.
+final loteWithPaddockListByPropertyProvider =
+    FutureProvider<List<LotWithPaddockCount>>((ref) async {
+  final property = await ref.watch(currentPropertyProvider.future);
+  if (property == null) return const [];
+  final repo = ref.watch(loteRepositoryProvider);
+  return repo.fetchLotsWithCountByProperty(property.id);
+});
+
 /// Lot joined with its paddock name and active animal count for picker display (D-03, MOV-01).
 ///
 /// Built from the embedded-resource select in [LoteRepository.fetchLotsWithCountByProperty].

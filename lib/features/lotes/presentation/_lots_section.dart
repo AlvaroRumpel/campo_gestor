@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
@@ -66,7 +67,7 @@ class LotsSection extends ConsumerWidget {
 
   Future<void> _openEditDialog(
       BuildContext context, WidgetRef ref, Lot lot) async {
-    final ok = await showDialog<bool>(
+    final ok = await showAdaptiveForm<bool>(
       context: context,
       builder: (_) => LoteFormDialog(
         paddockId: paddockId,
@@ -85,35 +86,10 @@ class _EmptyLotsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.group_work_outlined,
-              size: 48,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhum lote neste piquete',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Crie um lote para começar a registrar animais.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return const EmptyState(
+      icon: Icons.group_work_outlined,
+      title: 'Nenhum lote neste piquete',
+      message: 'Crie um lote para começar a registrar animais.',
     );
   }
 }

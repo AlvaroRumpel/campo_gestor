@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/router/routes.dart';
+import '../../../core/widgets/campo_app_bar.dart';
+import '../../../core/widgets/ui.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../../../features/gastos/presentation/paddock_expense_summary_card.dart';
 import '../../../features/lotes/data/lote_repository.dart';
@@ -28,7 +32,16 @@ class PaddockDetailScreen extends ConsumerWidget {
     final propertyId = currentPropAsync.asData?.value?.id ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Piquete')),
+      appBar: DetailAppBar(
+        parentLabel: 'Piquetes',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(AppRoutes.piquetes);
+          }
+        },
+      ),
       body: paddockAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) =>
@@ -62,12 +75,12 @@ class PaddockDetailScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: canEdit
-          ? FloatingActionButton(
+          ? FloatingActionButton.extended(
               tooltip: 'Novo lote',
               onPressed: propertyId.isEmpty
                   ? null
                   : () async {
-                      final ok = await showDialog<bool>(
+                      final ok = await showAdaptiveForm<bool>(
                         context: context,
                         builder: (_) => LoteFormDialog(
                           paddockId: paddockId,
@@ -78,7 +91,8 @@ class PaddockDetailScreen extends ConsumerWidget {
                         ref.invalidate(loteListByPaddockProvider(paddockId));
                       }
                     },
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add, size: 22),
+              label: const Text('Lote'),
             )
           : null,
     );

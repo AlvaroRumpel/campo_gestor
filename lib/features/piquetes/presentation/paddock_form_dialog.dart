@@ -100,75 +100,103 @@ class _PaddockFormDialogState extends ConsumerState<PaddockFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(_isEditing ? 'Editar piquete' : 'Novo piquete'),
-      content: SizedBox(
-        width: 400,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Nome do piquete *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Nome é obrigatório' : null,
-                autofocus: true,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_saving)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: LinearProgressIndicator(),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _areaCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Área (ha) *',
-                  border: OutlineInputBorder(),
-                  hintText: 'Ex: 8,5',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                ],
-                validator: _validateDecimal,
+            Text(
+              _isEditing ? 'Editar piquete' : 'Novo piquete',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Nome do piquete *',
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _uaCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Capacidade (UA) *',
-                  border: OutlineInputBorder(),
-                  hintText: 'Ex: 12,0',
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                ],
-                validator: _validateDecimal,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Nome é obrigatório' : null,
+              autofocus: true,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _areaCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Área (ha) *',
+                hintText: 'Ex: 8,5',
               ),
-            ],
-          ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              validator: _validateDecimal,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _uaCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Capacidade (UA) *',
+                hintText: 'Ex: 12,0',
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+              validator: _validateDecimal,
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  flex: 10,
+                  child: OutlinedButton(
+                    onPressed:
+                        _saving ? null : () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 14,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(_isEditing ? 'Salvar' : 'Criar'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(_isEditing ? 'Salvar' : 'Criar'),
-        ),
-      ],
     );
   }
 }
