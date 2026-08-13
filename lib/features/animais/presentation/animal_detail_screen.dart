@@ -6,10 +6,14 @@ import 'package:intl/intl.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../auth/data/property_repository.dart';
 import '../../lotes/data/lote_repository.dart';
+import '../../reproducao/data/atf_model.dart';
+import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/dg_summary.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
@@ -126,45 +130,64 @@ class _AnimalDetailScreenState extends ConsumerState<AnimalDetailScreen> {
 
         return Scaffold(
           appBar: appBar,
-          body: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              _GreenHeader(animal: animal),
-              Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (!isActive) ...[
-                      _BaixaBanner(animal: animal),
-                      const SizedBox(height: 12),
-                    ],
-                    if (canEdit) ...[
-                      _ActionBar(
-                        isActive: isActive,
-                        onEdit: () => _onEdit(animal),
-                        onMover: () => _onMover(animal),
-                        onBaixa: () => _onBaixa(animal),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    _StateCard(animal: animal),
-                    const SizedBox(height: 12),
-                    AnimalTimelineFilterChips(
-                      value: _filter,
-                      onChanged: (f) => setState(() => _filter = f),
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= Breakpoints.rail) {
+                return _DesktopFicha(
+                  key: const Key('ficha-desktop'),
+                  animal: animal,
+                  canEdit: canEdit,
+                  filter: _filter,
+                  showAllEvents: _showAllEvents,
+                  onFilterChanged: (f) => setState(() => _filter = f),
+                  onShowAll: () => setState(() => _showAllEvents = true),
+                  onEdit: () => _onEdit(animal),
+                  onMover: () => _onMover(animal),
+                  onBaixa: () => _onBaixa(animal),
+                );
+              }
+              return ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _GreenHeader(animal: animal),
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!isActive) ...[
+                          _BaixaBanner(animal: animal),
+                          const SizedBox(height: 12),
+                        ],
+                        if (canEdit) ...[
+                          _ActionBar(
+                            isActive: isActive,
+                            onEdit: () => _onEdit(animal),
+                            onMover: () => _onMover(animal),
+                            onBaixa: () => _onBaixa(animal),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        _StateCard(animal: animal),
+                        const SizedBox(height: 12),
+                        AnimalTimelineFilterChips(
+                          value: _filter,
+                          onChanged: (f) => setState(() => _filter = f),
+                        ),
+                        const SizedBox(height: 10),
+                        AnimalTimelineCard(
+                          animal: animal,
+                          filter: _filter,
+                          showAll: _showAllEvents,
+                          onShowAll: () =>
+                              setState(() => _showAllEvents = true),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
-                    AnimalTimelineCard(
-                      animal: animal,
-                      filter: _filter,
-                      showAll: _showAllEvents,
-                      onShowAll: () => setState(() => _showAllEvents = true),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           ),
         );
       },
@@ -382,7 +405,9 @@ class _ActionBar extends StatelessWidget {
               onPressed: onBaixa,
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.zero,
-                side: const BorderSide(color: Color(0x4DA32D14)),
+                side: BorderSide(
+                  color: AppColors.danger.withValues(alpha: 0.30),
+                ),
                 foregroundColor: AppColors.danger,
               ),
               child: const Tooltip(
@@ -403,13 +428,58 @@ class _ActionBar extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _StateCard extends StatelessWidget {
-  const _StateCard({required this.animal});
+  const _StateCard({required this.animal, this.vertical = false});
 
   final Animal animal;
+
+  /// Empilha EC + observação em coluna, em vez do padrão lado a lado
+  /// (contexto desktop de 340px, Task 1 quick task 260813-q69). Nenhum
+  /// texto/rótulo/estilo muda — só o eixo.
+  final bool vertical;
 
   @override
   Widget build(BuildContext context) {
     final observation = animal.observation?.trim();
+    final ecWidget = animal.bodyCondition != null
+        // FittedBox: EcMeter tem largura fixa (~150px) e a coluna esmaga a
+        // 360px de viewport.
+        ? FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: EcMeter(score: animal.bodyCondition!),
+          )
+        : const Text('—', style: TextStyle(color: AppColors.textSecondary));
+    final observationWidget = Text(
+      observation == null || observation.isEmpty ? '—' : observation,
+      style: const TextStyle(
+        fontSize: 13.5,
+        height: 1.4,
+        color: AppColors.ink,
+      ),
+    );
+
+    if (vertical) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const OverlineLabel('Estado corporal'),
+              const SizedBox(height: 8),
+              ecWidget,
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              const OverlineLabel('Observação'),
+              const SizedBox(height: 6),
+              observationWidget,
+            ],
+          ),
+        ),
+      );
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -423,17 +493,7 @@ class _StateCard extends StatelessWidget {
                   children: [
                     const OverlineLabel('Estado corporal'),
                     const SizedBox(height: 8),
-                    if (animal.bodyCondition != null)
-                      // FittedBox: EcMeter tem largura fixa (~150px) e a
-                      // coluna esmaga a 360px de viewport.
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: EcMeter(score: animal.bodyCondition!),
-                      )
-                    else
-                      const Text('—',
-                          style: TextStyle(color: AppColors.textSecondary)),
+                    ecWidget,
                   ],
                 ),
               ),
@@ -444,16 +504,7 @@ class _StateCard extends StatelessWidget {
                   children: [
                     const OverlineLabel('Observação'),
                     const SizedBox(height: 6),
-                    Text(
-                      observation == null || observation.isEmpty
-                          ? '—'
-                          : observation,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        height: 1.4,
-                        color: AppColors.ink,
-                      ),
-                    ),
+                    observationWidget,
                   ],
                 ),
               ),
@@ -515,6 +566,480 @@ class _BaixaBanner extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Desktop (>= Breakpoints.rail, quick task 260813-q69) — header horizontal +
+// corpo em duas colunas (contexto 340px / timeline até 760px). Reusa a
+// timeline, o card de estado e os diálogos de ação já existentes; nenhuma
+// segunda implementação de eventos.
+// ---------------------------------------------------------------------------
+
+class _DesktopFicha extends StatelessWidget {
+  const _DesktopFicha({
+    super.key,
+    required this.animal,
+    required this.canEdit,
+    required this.filter,
+    required this.showAllEvents,
+    required this.onFilterChanged,
+    required this.onShowAll,
+    required this.onEdit,
+    required this.onMover,
+    required this.onBaixa,
+  });
+
+  final Animal animal;
+  final bool canEdit;
+  final AnimalTimelineFilter filter;
+  final bool showAllEvents;
+  final ValueChanged<AnimalTimelineFilter> onFilterChanged;
+  final VoidCallback onShowAll;
+  final VoidCallback onEdit;
+  final VoidCallback onMover;
+  final VoidCallback onBaixa;
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = animal.deletedAt == null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _WideHeader(
+          animal: animal,
+          canEdit: canEdit,
+          onEdit: onEdit,
+          onMover: onMover,
+          onBaixa: onBaixa,
+        ),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 340,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!isActive) ...[
+                        _BaixaBanner(animal: animal),
+                        const SizedBox(height: 12),
+                      ],
+                      _StateCard(animal: animal, vertical: true),
+                      const SizedBox(height: 12),
+                      _ReproCard(animal: animal),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 760),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          AnimalTimelineFilterChips(
+                            value: filter,
+                            onChanged: onFilterChanged,
+                          ),
+                          const SizedBox(height: 10),
+                          AnimalTimelineCard(
+                            animal: animal,
+                            filter: filter,
+                            showAll: showAllEvents,
+                            onShowAll: onShowAll,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Header verde horizontal do desktop: hero `#N` + categoria/raça + EC/desde
+/// à esquerda, badge de status repro + stats UA/Lote/Piquete + ações à
+/// direita — tudo em uma linha, quebrando em [Wrap] para não estourar perto
+/// de 1024px.
+class _WideHeader extends ConsumerWidget {
+  const _WideHeader({
+    required this.animal,
+    required this.canEdit,
+    required this.onEdit,
+    required this.onMover,
+    required this.onBaixa,
+  });
+
+  final Animal animal;
+  final bool canEdit;
+  final VoidCallback onEdit;
+  final VoidCallback onMover;
+  final VoidCallback onBaixa;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoryLabel = kCategoryLabels[animal.category] ?? animal.category;
+    final breed = animal.breed;
+    final categoryLine = breed == null || breed.trim().isEmpty
+        ? categoryLabel
+        : '$categoryLabel · $breed';
+    final ua = kUaWeights[animal.category] ?? 0.0;
+    final isActive = animal.deletedAt == null;
+
+    final reproStatusMap =
+        ref.watch(animalReproStatusByPropertyProvider).asData?.value ??
+            const <String, AnimalReproStatus>{};
+    final reproStatus =
+        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoAtf;
+
+    final lotAsync = ref.watch(loteWithPaddockByIdProvider(animal.lotId));
+    final lotData = lotAsync.asData?.value;
+
+    // "EC n/5 · na fazenda desde dd/MM/yyyy" — omite EC quando ausente.
+    final subtitleSpans = <InlineSpan>[
+      if (animal.bodyCondition != null)
+        TextSpan(children: [
+          const TextSpan(text: 'EC '),
+          TextSpan(
+            text: '${animal.bodyCondition}/5',
+            style: monoStyle(size: 13.5, color: AppColors.onGreenSecondary),
+          ),
+        ]),
+      TextSpan(children: [
+        const TextSpan(text: 'na fazenda desde '),
+        TextSpan(
+          text: _dateFmt.format(animal.createdAt.toLocal()),
+          style: monoStyle(size: 13.5, color: AppColors.onGreenSecondary),
+        ),
+      ]),
+    ];
+
+    return Container(
+      color: AppColors.primary,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '#${animal.number}',
+                  style: monoStyle(
+                    size: 52,
+                    weight: FontWeight.w600,
+                    color: AppColors.onGreen,
+                    height: 1.05,
+                  ),
+                ),
+                Text(
+                  categoryLine,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onGreen,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text.rich(
+                  TextSpan(
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      color: AppColors.onGreenSecondary,
+                    ),
+                    children: [
+                      for (var i = 0; i < subtitleSpans.length; i++) ...[
+                        if (i > 0) const TextSpan(text: ' · '),
+                        subtitleSpans[i],
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Flexible (não um Wrap "solto"): dentro de um Row, um filho
+          // não-flex recebe largura de main-axis ilimitada e nunca quebra
+          // sozinho — é preciso um flex para o Wrap ganhar uma largura
+          // máxima real e passar a quebrar linha perto de 1024px.
+          Flexible(
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                StatusChip(reproStatus.label, kind: reproStatus.chipKind),
+                _HeaderStat(label: 'UA', value: _fmtUa(ua)),
+                _HeaderStat(
+                  label: 'Lote',
+                  value: lotData?.lot.name ?? '—',
+                  mono: false,
+                  maxWidth: 150,
+                  onTap: lotData == null
+                      ? null
+                      : () =>
+                          context.go(AppRoutes.loteDetail(lotData.lot.id)),
+                ),
+                _HeaderStat(
+                  label: 'Piquete',
+                  value: lotData?.paddockName ?? '—',
+                  mono: false,
+                  maxWidth: 150,
+                  onTap: lotData == null
+                      ? null
+                      : () =>
+                          context.go('/piquetes/${lotData.lot.paddockId}'),
+                ),
+                if (canEdit)
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: onEdit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.onGreen,
+                          foregroundColor: AppColors.primary,
+                        ),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Editar'),
+                      ),
+                      if (isActive) ...[
+                        OutlinedButton.icon(
+                          onPressed: onMover,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.onGreen,
+                            side: BorderSide(
+                              color:
+                                  AppColors.onGreen.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          icon: const Icon(Icons.swap_horiz, size: 18),
+                          label: const Text('Mover'),
+                        ),
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: OutlinedButton(
+                            onPressed: onBaixa,
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              foregroundColor: AppColors.onGreen,
+                              side: BorderSide(
+                                color: AppColors.onGreen
+                                    .withValues(alpha: 0.45),
+                              ),
+                            ),
+                            child: const Tooltip(
+                              message: 'Dar baixa',
+                              child: Icon(Icons.arrow_downward,
+                                  size: 20, color: AppColors.onGreen),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "LABEL / valor" de uma stat do header desktop — [mono] estiliza o valor
+/// com [monoStyle] (UA); textos (lote/piquete) usam a fonte padrão. Navegável
+/// quando [onTap] é informado, mesma convenção do [GlassTile] mobile.
+/// [maxWidth], quando informado, trunca o valor com reticências — nomes de
+/// lote/piquete são texto livre e não podem crescer o header sem limite.
+class _HeaderStat extends StatelessWidget {
+  const _HeaderStat({
+    required this.label,
+    required this.value,
+    this.mono = true,
+    this.onTap,
+    this.maxWidth,
+  });
+
+  final String label;
+  final String value;
+  final bool mono;
+  final VoidCallback? onTap;
+  final double? maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget valueText = Text(
+      value,
+      overflow: TextOverflow.ellipsis,
+      maxLines: 1,
+      style: mono
+          ? monoStyle(
+              size: 15,
+              weight: FontWeight.w600,
+              color: AppColors.onGreen,
+            )
+          : const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onGreen,
+            ),
+    );
+    if (maxWidth != null) {
+      valueText = ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth!),
+        child: valueText,
+      );
+    }
+
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+            color: AppColors.onGreenSecondary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        valueText,
+      ],
+    );
+    if (onTap == null) return content;
+    return InkWell(onTap: onTap, child: content);
+  }
+}
+
+/// Card de reprodução da coluna de contexto desktop — o mesmo
+/// `reproductiveHistoryByAnimalProvider` que a timeline já observa (zero
+/// request extra) e o mesmo `animalReproStatusByPropertyProvider` do header.
+/// Não re-mapeia [DgResult]: quem comunica prenhe/vazia/duvidosa é o badge,
+/// que já vem pronto de [AnimalReproStatus].
+class _ReproCard extends ConsumerWidget {
+  const _ReproCard({required this.animal});
+
+  final Animal animal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reproStatusMap =
+        ref.watch(animalReproStatusByPropertyProvider).asData?.value ??
+            const <String, AnimalReproStatus>{};
+    final reproStatus =
+        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoAtf;
+
+    final historyAsync =
+        ref.watch(reproductiveHistoryByAnimalProvider(animal.id));
+    final entries =
+        historyAsync.asData?.value ?? const <ReproductiveHistoryEntry>[];
+    // O primeiro ciclo ativo, senão o primeiro da lista (ordenada por
+    // inseminação desc).
+    final entry = entries.isEmpty
+        ? null
+        : entries.firstWhere((e) => e.atfActive, orElse: () => entries.first);
+
+    return SectionCard(
+      title: 'Reprodução',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          StatusChip(reproStatus.label, kind: reproStatus.chipKind),
+          const SizedBox(height: 10),
+          if (entry == null)
+            const Text(
+              'Sem histórico reprodutivo.',
+              style: TextStyle(color: AppColors.textSecondary),
+            )
+          else ...[
+            Text(
+              'ATF ${entry.atfName} · '
+              '${entry.atfActive ? 'ciclo ativo' : 'ciclo encerrado'}',
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                children: [
+                  const TextSpan(text: 'insem. '),
+                  TextSpan(
+                    text: _dateFmt.format(entry.inseminationDate),
+                    style: monoStyle(size: 13, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            if (entry.bullName != null &&
+                entry.bullName!.trim().isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                'touro: ${entry.bullName}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 2),
+            entry.lastDgDate != null
+                ? Text.rich(
+                    TextSpan(
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      children: [
+                        const TextSpan(text: 'última DG '),
+                        TextSpan(
+                          text: _dateFmt.format(entry.lastDgDate!),
+                          style: monoStyle(
+                              size: 13, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  )
+                : const Text(
+                    'aguardando DG',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+          ],
         ],
       ),
     );
