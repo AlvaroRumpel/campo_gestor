@@ -399,7 +399,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('62% prenhez'), findsOneWidget);
+      // Redesign 4.9 splits the KPI: mono "62%" rich text + a separate
+      // "prenhez · <DGs feitos> de <composição>" line.
+      expect(find.text('62%'), findsOneWidget);
+      expect(find.text('prenhez · 50 de 50'), findsOneWidget);
     });
 
     testWidgets('status badge: inactive ATF renders Encerrado', (
@@ -440,8 +443,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('(3 animais)'), findsOneWidget);
-      expect(find.byType(ListTile), findsNWidgets(3));
+      expect(find.text('3 animais'), findsOneWidget);
+      // One merged composição/DG row per membership, 3 segment buttons each.
+      expect(find.byType(DgSegmentButton), findsNWidgets(9));
     });
 
     testWidgets(
@@ -542,7 +546,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(ChoiceChip), findsNWidgets(6));
+      expect(find.byType(DgSegmentButton), findsNWidgets(6));
     });
 
     testWidgets(
@@ -567,11 +571,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Reverting the `rows` filter in _DgSectionState.build makes this 6.
-      expect(find.byType(ChoiceChip), findsNWidgets(3));
+      expect(find.byType(DgSegmentButton), findsNWidgets(3));
     });
 
     testWidgets(
-        'G-05-2: "Registrar DG" is hidden entirely when every membership is '
+        'G-05-2: no DG row renders at all when every membership is '
         'an archived animal', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
@@ -584,7 +588,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Registrar DG'), findsNothing);
+      expect(find.byType(DgSegmentButton), findsNothing);
+      expect(find.text('Salvar DGs'), findsNothing);
     });
 
     testWidgets(
@@ -604,7 +609,7 @@ void main() {
         isNull,
       );
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Prenha').first);
+      await tester.tap(find.widgetWithText(DgSegmentButton, 'Prenhe').first);
       await tester.pumpAndSettle();
 
       expect(
@@ -631,7 +636,7 @@ void main() {
       // encerramento banner above the DG section, pushing the chip below
       // the fixed test viewport — same off-screen-tap brittleness the
       // 05-08 summary already documented for sibling-widget growth.
-      final chipFinder = find.widgetWithText(ChoiceChip, 'Não-prenha').first;
+      final chipFinder = find.widgetWithText(DgSegmentButton, 'Vazia').first;
       await tester.ensureVisible(chipFinder);
       await tester.pumpAndSettle();
       await tester.tap(chipFinder);
@@ -668,12 +673,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final chip0 = find.widgetWithText(ChoiceChip, 'Prenha').at(0);
+      final chip0 = find.widgetWithText(DgSegmentButton, 'Prenhe').at(0);
       await tester.ensureVisible(chip0);
       await tester.pumpAndSettle();
       await tester.tap(chip0);
       await tester.pumpAndSettle();
-      final chip1 = find.widgetWithText(ChoiceChip, 'Prenha').at(1);
+      final chip1 = find.widgetWithText(DgSegmentButton, 'Prenhe').at(1);
       await tester.ensureVisible(chip1);
       await tester.pumpAndSettle();
       await tester.tap(chip1);
@@ -714,7 +719,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Duvidosa').first);
+      await tester.tap(find.widgetWithText(DgSegmentButton, 'Duvidosa').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Adicionar observação').first);
       await tester.pumpAndSettle();
@@ -820,14 +825,14 @@ void main() {
       await tester.pumpAndSettle();
 
       final prenhaChip =
-          find.widgetWithText(ChoiceChip, 'Prenha').first;
+          find.widgetWithText(DgSegmentButton, 'Prenhe').first;
       final naoPrenhaChip =
-          find.widgetWithText(ChoiceChip, 'Não-prenha').first;
+          find.widgetWithText(DgSegmentButton, 'Vazia').first;
       await tester.ensureVisible(prenhaChip);
       await tester.pumpAndSettle();
 
-      expect(tester.widget<ChoiceChip>(prenhaChip).selected, isTrue);
-      expect(tester.widget<ChoiceChip>(naoPrenhaChip).selected, isFalse);
+      expect(tester.widget<DgSegmentButton>(prenhaChip).selected, isTrue);
+      expect(tester.widget<DgSegmentButton>(naoPrenhaChip).selected, isFalse);
     });
 
     testWidgets(
@@ -894,7 +899,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Duvidosa').first);
+      await tester.tap(find.widgetWithText(DgSegmentButton, 'Duvidosa').first);
       await tester.pumpAndSettle();
       final saveButtonFinder = find.widgetWithText(FilledButton, 'Salvar DGs');
       await tester.ensureVisible(saveButtonFinder);
@@ -908,7 +913,7 @@ void main() {
       );
       expect(
         tester
-            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Duvidosa').first)
+            .widget<DgSegmentButton>(find.widgetWithText(DgSegmentButton, 'Duvidosa').first)
             .selected,
         isTrue,
       );
@@ -921,7 +926,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Registrar DG'), findsNothing);
+      expect(find.byType(DgSegmentButton), findsNothing);
+      expect(find.text('Salvar DGs'), findsNothing);
     });
 
     testWidgets(
@@ -935,15 +941,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Registrar DG'), findsOneWidget);
+      expect(find.byType(DgSegmentButton), findsNWidgets(3));
       expect(find.text('Animais'), findsNothing);
 
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Prenha').first);
+      await tester.tap(find.widgetWithText(DgSegmentButton, 'Prenhe').first);
       await tester.pumpAndSettle();
 
       expect(
         tester
-            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Prenha').first)
+            .widget<DgSegmentButton>(find.widgetWithText(DgSegmentButton, 'Prenhe').first)
             .selected,
         isTrue,
       );
@@ -988,10 +994,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(ChoiceChip), findsNWidgets(600));
+      // Redesign: rows live directly in the page ListView, which builds
+      // lazily — only the rows inside the cache window are mounted, so an
+      // exact 600-button count is no longer observable (and eager-building
+      // 200 rows is exactly what the lazy list avoids). The load-bearing
+      // assertions below are unchanged: the screen builds, and the payload
+      // carries only the 3 changed rows.
+      expect(find.byType(DgSegmentButton), findsWidgets);
 
       for (var i = 0; i < 3; i++) {
-        final chip = find.widgetWithText(ChoiceChip, 'Prenha').at(i);
+        final chip = find.widgetWithText(DgSegmentButton, 'Prenhe').at(i);
         await tester.ensureVisible(chip);
         await tester.pumpAndSettle();
         await tester.tap(chip);
@@ -1165,28 +1177,28 @@ void main() {
       expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
       expect(find.byTooltip('Encerrar ATF'), findsNothing);
 
-      expect(find.text('Registrar DG'), findsOneWidget);
-      final chip = find.widgetWithText(ChoiceChip, 'Prenha').first;
+      expect(find.byType(DgSegmentButton), findsNWidgets(3));
+      final chip = find.widgetWithText(DgSegmentButton, 'Prenhe').first;
       await tester.ensureVisible(chip);
       await tester.pumpAndSettle();
       await tester.tap(chip);
       await tester.pumpAndSettle();
 
-      expect(tester.widget<ChoiceChip>(chip).selected, isTrue);
+      expect(tester.widget<DgSegmentButton>(chip).selected, isTrue);
     });
   });
 
   group('back control (G-05-1-nav)', () {
-    testWidgets('loading state renders a BackButton', (tester) async {
+    testWidgets('loading state renders a back control', (tester) async {
       await tester.pumpWidget(
         _buildScreen(atf: const AsyncValue.loading()),
       );
       await tester.pump();
 
-      expect(find.byType(BackButton), findsOneWidget);
+      expect(find.byTooltip('Voltar'), findsOneWidget);
     });
 
-    testWidgets('error state renders a BackButton', (tester) async {
+    testWidgets('error state renders a back control', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
           atf: AsyncValue.error(Exception('boom'), StackTrace.empty),
@@ -1194,25 +1206,25 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(BackButton), findsOneWidget);
+      expect(find.byTooltip('Voltar'), findsOneWidget);
     });
 
-    testWidgets('null-ATF state renders a BackButton', (tester) async {
+    testWidgets('null-ATF state renders a back control', (tester) async {
       await tester.pumpWidget(
         _buildScreen(atf: const AsyncValue.data(null)),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(BackButton), findsOneWidget);
+      expect(find.byTooltip('Voltar'), findsOneWidget);
     });
 
-    testWidgets('loaded-data state renders a BackButton', (tester) async {
+    testWidgets('loaded-data state renders a back control', (tester) async {
       await tester.pumpWidget(
         _buildScreen(atf: AsyncValue.data(_atf())),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(BackButton), findsOneWidget);
+      expect(find.byTooltip('Voltar'), findsOneWidget);
     });
 
     testWidgets(
@@ -1223,7 +1235,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(BackButton));
+      await tester.tap(find.byTooltip('Voltar'));
       await tester.pumpAndSettle();
 
       expect(find.text('reproducao-list'), findsOneWidget);

@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/campo_app_bar.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../auth/data/property_repository.dart';
 import '../data/atf_model.dart';
@@ -14,15 +17,15 @@ import '../data/dg_summary.dart';
 import 'atf_animal_selection_screen.dart';
 import 'encerrar_atf_dialog.dart';
 
-/// ATF detail screen (`/atf/:atfId`, root-level per D-02).
+/// ATF detail screen (`/atf/:atfId`, root-level per D-02) — redesign spec 4.9
+/// ("celular no brete"): green header with the % prenhez KPI, the DG session
+/// banner, ONE merged composição list where every animal row carries its
+/// three DG segment buttons, and a fixed save footer.
 ///
-/// This plan (05-04) built the shell + [AtfHeaderCard]. Plan 05-06 added
-/// [_CompositionSection] and the remove-animal flow. Plan 05-08 added the DG
-/// mass-entry section. Plan 05-09 added the encerramento banner and the
-/// AppBar "Encerrar ATF" action. Plan 05-11 added the AppBar back control
-/// (G-05-1-nav) — `/atf/:atfId` is a root-level GoRoute reached via
-/// `context.go(...)`, which leaves no Navigator history for Material's
-/// default AppBar back arrow to detect.
+/// The composição header count keeps counting ACTIVE memberships only, while
+/// the row list reads the UNFILTERED membership roster (minus archived
+/// animals, G-05-2) so a closed ATF still shows its full roster for DG
+/// correction (D-16).
 class AtfDetailScreen extends ConsumerWidget {
   const AtfDetailScreen({super.key, required this.atfId});
   final String atfId;
@@ -42,11 +45,11 @@ class AtfDetailScreen extends ConsumerWidget {
 
     return atfAsync.when(
       loading: () => Scaffold(
-        appBar: AppBar(title: const Text('ATF'), leading: _backButton(context)),
+        appBar: _appBar(context),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, st) => Scaffold(
-        appBar: AppBar(title: const Text('ATF'), leading: _backButton(context)),
+        appBar: _appBar(context),
         body: const Center(
           child: Text('Erro ao carregar. Verifique sua conexão e tente novamente.'),
         ),
@@ -54,7 +57,7 @@ class AtfDetailScreen extends ConsumerWidget {
       data: (atf) {
         if (atf == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('ATF'), leading: _backButton(context)),
+            appBar: _appBar(context),
             body: const Center(
               child: Text('Erro ao carregar. Verifique sua conexão e tente novamente.'),
             ),
@@ -87,56 +90,67 @@ class AtfDetailScreen extends ConsumerWidget {
             pendingMembers == 0;
 
         return Scaffold(
-          appBar: AppBar(
-            leading: _backButton(context),
-            title: Text(atf.name),
-            actions: [
-              if (showEncerrarAction)
-                IconButton(
-                  icon: const Icon(Icons.event_busy),
-                  tooltip: 'Encerrar ATF',
-                  onPressed: () => _showEncerrarDialog(
-                    context,
-                    atfId: atf.id,
-                    atfName: atf.name,
-                    pendingCount: pendingMembers,
+          appBar: _appBar(
+            context,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _GlassStatusPill(active: atf.active),
+                if (showEncerrarAction)
+                  IconButton(
+                    icon: const Icon(Icons.event_busy,
+                        color: AppColors.onGreen),
+                    tooltip: 'Encerrar ATF',
+                    onPressed: () => _showEncerrarDialog(
+                      context,
+                      atfId: atf.id,
+                      atfName: atf.name,
+                      pendingCount: pendingMembers,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
+          body: Column(
             children: [
               AtfHeaderCard(
                 atf: atf,
                 activeMemberships: activeMemberships,
                 dgRecords: dgRecords,
               ),
-              if (showBanner) ...[
-                const SizedBox(height: 16),
-                _EncerrarBanner(
-                  atfId: atf.id,
-                  atfName: atf.name,
-                  pendingCount: pendingMembers,
+              Expanded(
+                child: _AtfDgBody(
+                  atf: atf,
+                  activeMemberships: activeMemberships,
+                  memberships:
+                      allMembershipsAsync.asData?.value ?? const [],
+                  dgRecords: dgRecords,
+                  dgAnimalIds: dgAnimalIds,
+                  canEdit: canEdit,
+                  showEncerrarBanner: showBanner,
+                  pendingMembers: pendingMembers,
                 ),
-              ],
-              const SizedBox(height: 16),
-              _CompositionSection(
-                atf: atf,
-                activeMemberships: activeMemberships,
-                dgAnimalIds: dgAnimalIds,
-                canEdit: canEdit,
-              ),
-              const SizedBox(height: 16),
-              _DgSection(
-                atf: atf,
-                memberships: allMembershipsAsync.asData?.value ?? const [],
-                dgRecords: dgRecords,
-                canEdit: canEdit,
               ),
             ],
           ),
         );
+      },
+    );
+  }
+
+  PreferredSizeWidget _appBar(BuildContext context, {Widget? trailing}) {
+    return DetailAppBar(
+      parentLabel: 'Reprodução',
+      contextPill: trailing,
+      // `/atf/:atfId` is a root-level GoRoute reached via `context.go(...)`,
+      // which replaces the whole nav stack, so `canPop()` is false on
+      // arrival (G-05-1-nav). Falls back to the reproducao shell branch.
+      onBack: () {
+        if (context.canPop()) {
+          context.pop();
+          return;
+        }
+        context.go(AppRoutes.reproducao);
       },
     );
   }
@@ -154,37 +168,43 @@ class AtfDetailScreen extends ConsumerWidget {
   }
 }
 
-/// Back control for every [AtfDetailScreen] AppBar state (G-05-1-nav).
-///
-/// `/atf/:atfId` is a root-level `GoRoute` (router.dart) reached via
-/// `context.go(...)`, which replaces the whole nav stack, so
-/// `Navigator.canPop()` is false on arrival and Material's default AppBar
-/// back arrow never renders. Falls back to [AppRoutes.reproducao] — unlike
-/// `lote_detail_screen.dart` there is no parent-entity path to reconstruct,
-/// since the ATF list lives at the reproducao shell branch.
-Widget _backButton(BuildContext context) {
-  return BackButton(
-    onPressed: () {
-      if (context.canPop()) {
-        context.pop();
-        return;
-      }
-      context.go(AppRoutes.reproducao);
-    },
-  );
+/// Glass status badge on the green app bar ("Ativo" / "Encerrado", spec 3.1).
+class _GlassStatusPill extends StatelessWidget {
+  const _GlassStatusPill({required this.active});
+
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.glassPill,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        active ? 'Ativo' : 'Encerrado',
+        style: const TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w600,
+          color: AppColors.onGreen,
+        ),
+      ),
+    );
+  }
 }
 
 /// Opens [EncerrarAtfDialog] and shows the success confirmation
 /// (05-UI-SPEC section 5: "On success ... SnackBar: 'ATF encerrado.'").
-/// Provider invalidation happens inside the dialog itself (Task 1) — this
-/// helper only surfaces the confirmation once the dialog pops `true`.
+/// Provider invalidation happens inside the dialog itself — this helper only
+/// surfaces the confirmation once the dialog pops `true`.
 Future<void> _showEncerrarDialog(
   BuildContext context, {
   required String atfId,
   required String atfName,
   required int pendingCount,
 }) async {
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showAdaptiveForm<bool>(
     context: context,
     builder: (_) => EncerrarAtfDialog(
       atfId: atfId,
@@ -199,8 +219,8 @@ Future<void> _showEncerrarDialog(
   }
 }
 
-/// Header card: ATF name + status badge, key-value rows (implantação,
-/// inseminação, touro, observação), and the % prenhez indicator (REPR-04).
+/// Green header block (spec 4.9): ATF name, % prenhez KPI (REPR-04),
+/// implantação/inseminação dates, touro link (D-05/WR-01) and observação.
 class AtfHeaderCard extends StatelessWidget {
   const AtfHeaderCard({
     super.key,
@@ -215,83 +235,136 @@ class AtfHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final dateFmt = DateFormat('dd/MM/yyyy');
 
     final summary = summarizeDg(
       dgRecords,
       compositionCount: activeMemberships.length,
     );
-    final compositionCount = activeMemberships.length;
-    final progress = compositionCount == 0
-        ? 0.0
-        : (summary.total / compositionCount).clamp(0.0, 1.0);
+    final percent = summary.percent;
+    // A closed ATF has zero active memberships — never show "de 0" under a
+    // non-zero DG total.
+    final denominator = activeMemberships.length > summary.total
+        ? activeMemberships.length
+        : summary.total;
 
-    return Card(
-      color: colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      width: double.infinity,
+      color: AppColors.primary,
+      padding: const EdgeInsets.fromLTRB(14, 2, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            atf.name,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onGreen,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (percent == null)
+                const Text(
+                  '— · aguardando DG',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.onGreenSecondary,
+                  ),
+                )
+              else ...[
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '$percent',
+                        style: monoStyle(
+                          size: 30,
+                          weight: FontWeight.w700,
+                          color: AppColors.onGreen,
+                          height: 1,
+                        ),
+                      ),
+                      TextSpan(
+                        text: '%',
+                        style: monoStyle(
+                          size: 15,
+                          weight: FontWeight.w700,
+                          color: AppColors.onGreenSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Text(
+                    'prenhez · ${summary.total} de $denominator',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.onGreenSecondary,
+                    ),
+                  ),
+                ),
+              ],
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _DateLine(label: 'impl. ', value: dateFmt.format(atf.implantationDate)),
+                  const SizedBox(height: 2),
+                  _DateLine(label: 'insem. ', value: dateFmt.format(atf.inseminationDate)),
+                ],
+              ),
+            ],
+          ),
+          if (atf.bullName != null || atf.bullAnimalId != null) ...[
+            const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.favorite_border),
+                const Text(
+                  'touro: ',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.onGreenSecondary,
+                  ),
+                ),
+                Flexible(child: _buildBullValue(context)),
+              ],
+            ),
+          ],
+          if (atf.observation != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Observação',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.onGreenSecondary,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(atf.name, style: theme.textTheme.titleMedium),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                   child: Text(
-                    atf.active ? 'Ativo' : 'Encerrado',
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: colorScheme.onSurface),
+                    atf.observation!,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.onGreen,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            _KvRow(
-              label: 'Data de implantação',
-              value: Text(dateFmt.format(atf.implantationDate)),
-            ),
-            const SizedBox(height: 8),
-            _KvRow(
-              label: 'Data de inseminação',
-              value: Text(dateFmt.format(atf.inseminationDate)),
-            ),
-            const SizedBox(height: 8),
-            _KvRow(
-              label: 'Touro',
-              value: _buildBullValue(context),
-            ),
-            if (atf.observation != null) ...[
-              const SizedBox(height: 8),
-              _KvRow(
-                label: 'Observação',
-                value: Text(atf.observation!),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Text(
-              formatPrenhez(summary),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            LinearProgressIndicator(value: progress),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -306,340 +379,154 @@ class AtfHeaderCard extends StatelessWidget {
         onTap: () => context.go(AppRoutes.animalDetail(atf.bullAnimalId!)),
         child: Text(
           atf.bullName ?? 'Ver touro',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.gold,
             decoration: TextDecoration.underline,
+            decorationColor: AppColors.gold,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       );
     }
-    return Text(atf.bullName ?? '—');
+    return Text(
+      atf.bullName ?? '—',
+      style: const TextStyle(fontSize: 13, color: AppColors.onGreen),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 }
 
-/// Key-value row: label (fixed width 120) + expanded value widget.
-///
-/// Copied from `animal_detail_screen.dart`'s `_KvRow` rather than shared
-/// across features — matches the codebase's established duplication
-/// convention for this widget (A-KVROW-DUP).
-class _KvRow extends StatelessWidget {
-  const _KvRow({required this.label, required this.value});
+class _DateLine extends StatelessWidget {
+  const _DateLine({required this.label, required this.value});
 
   final String label;
-  final Widget value;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 120,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.6),
-                ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11.5,
+            color: AppColors.onGreenSecondary,
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(child: value),
+        Text(
+          value,
+          style: monoStyle(
+            size: 12.5,
+            weight: FontWeight.w600,
+            color: AppColors.onGreen,
+          ),
+        ),
       ],
     );
   }
 }
 
-/// Composition section (D-06/D-07/D-08, REPR-02): the active membership list
-/// plus the "+ Animais" affordance and the remove-animal flow.
-///
-/// Renders from already-resolved lists (mirrors [AtfHeaderCard]'s
-/// convention) rather than watching the providers itself — 05-UI-SPEC E5
-/// "loading/error inherited from the parent screen, no independent spinner".
-class _CompositionSection extends ConsumerWidget {
-  const _CompositionSection({
-    required this.atf,
-    required this.activeMemberships,
-    required this.dgAnimalIds,
-    required this.canEdit,
+/// One DG segment button (spec 4.9): Prenhe / Vazia / Duvidosa, h48 r12,
+/// result-colored when selected, white outline otherwise. Public so widget
+/// tests can pin the selected state per row.
+class DgSegmentButton extends StatelessWidget {
+  const DgSegmentButton({
+    super.key,
+    required this.result,
+    required this.selected,
+    this.onTap,
   });
 
-  final AtfBatch atf;
-  final List<AtfMembershipView> activeMemberships;
-
-  /// Animal ids with at least one DG for this ATF — hoisted once in
-  /// [AtfDetailScreen.build] and shared with the encerrar banner gate, the
-  /// AppBar pending count, and the banner's own dialog (G-05-3), so this
-  /// per-row `hasDg` check can never drift from those.
-  final Set<String> dgAnimalIds;
-  final bool canEdit;
-
-  void _openSelection(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            AtfAnimalSelectionScreen(atfId: atf.id, atfName: atf.name),
-      ),
-    );
-  }
-
-  Future<void> _confirmRemove(
-    BuildContext context,
-    WidgetRef ref,
-    AtfMembershipView membership,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => _RemoveAnimalConfirmDialog(
-        animalNumber: membership.animalNumber,
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await ref.read(atfRepositoryProvider).removeAnimalFromAtf(
-            atfBatchId: atf.id,
-            animalId: membership.animalId,
-          );
-      if (!context.mounted) return;
-      ref.invalidate(atfActiveMembershipsProvider(atf.id));
-      ref.invalidate(atfMembershipsProvider(atf.id));
-      ref.invalidate(atfListByPropertyProvider);
-      ref.invalidate(reproductiveHistoryByAnimalProvider(membership.animalId));
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao remover animal. Tente novamente.'),
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final showAddButton = atf.active && canEdit;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Composição', style: theme.textTheme.titleMedium),
-            const SizedBox(width: 8),
-            Text(
-              '(${activeMemberships.length} animais)',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            const Spacer(),
-            if (showAddButton)
-              OutlinedButton.icon(
-                onPressed: () => _openSelection(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Animais'),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (activeMemberships.isEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nenhum animal neste ATF.',
-                style: theme.textTheme.bodyMedium,
-              ),
-              if (showAddButton) ...[
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () => _openSelection(context),
-                  child: const Text('Adicionar animais'),
-                ),
-              ],
-            ],
-          )
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: activeMemberships.length,
-            itemBuilder: (context, i) {
-              final m = activeMemberships[i];
-              final hasDg = dgAnimalIds.contains(m.animalId);
-              final canRemove = atf.active && canEdit && !hasDg;
-              return ListTile(
-                title: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '#${m.animalNumber}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      TextSpan(
-                        text:
-                            ' · ${kCategoryLabels[m.animalCategory] ?? m.animalCategory}',
-                      ),
-                    ],
-                  ),
-                  style: theme.textTheme.bodyLarge,
-                ),
-                onTap: () => context.go(AppRoutes.animalDetail(m.animalId)),
-                trailing: canRemove
-                    ? IconButton(
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Remover do ATF',
-                        onPressed: () => _confirmRemove(context, ref, m),
-                      )
-                    : null,
-              );
-            },
-          ),
-      ],
-    );
-  }
-}
-
-/// Minimal confirm dialog for removing an animal from the ATF (D-08).
-///
-/// Unlike [BaixaDialog], this is a correction, not data loss — the confirm
-/// button keeps the default primary color rather than `colorScheme.error`.
-class _RemoveAnimalConfirmDialog extends StatelessWidget {
-  const _RemoveAnimalConfirmDialog({required this.animalNumber});
-
-  final int animalNumber;
+  final DgResult result;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Remover #$animalNumber do ATF?'),
-      content: const Text('O animal deixa de fazer parte deste ciclo.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Remover'),
-        ),
-      ],
-    );
-  }
-}
+    final (Color bg, Color fg) = switch (result) {
+      DgResult.pregnant => (AppColors.primary, AppColors.onGreen),
+      DgResult.notPregnant => (AppColors.danger, AppColors.onDanger),
+      DgResult.doubtful => (AppColors.accent, AppColors.onAccent),
+    };
 
-/// Encerramento suggestion banner (D-15, 05-UI-SPEC section 3): a suggestion,
-/// never an action taken on the vet's behalf. Rendered by the parent only
-/// when the ATF is active, the viewer is a veterinarian, the composition is
-/// non-empty, and every CURRENT member has a DG ([pendingCount] is zero) —
-/// the caller computes and gates on that condition; this widget only owns
-/// its own session-local dismissal state.
-///
-/// Dismissal does not persist: it is lost on any rebuild that recreates this
-/// widget (e.g. navigating away and back), by design (D-15's "reappears on
-/// the next visit" while the underlying condition still holds — A-BANNER-PERSIST).
-class _EncerrarBanner extends StatefulWidget {
-  const _EncerrarBanner({
-    required this.atfId,
-    required this.atfName,
-    required this.pendingCount,
-  });
-
-  final String atfId;
-  final String atfName;
-
-  /// Same per-current-member pending count the parent gated `showBanner` on
-  /// (G-05-3). Passed straight through to [_showEncerrarDialog] so the
-  /// confirm dialog can never disagree with the banner that summoned it —
-  /// unlike the hardcoded `0` this replaces, which trusted that gate instead
-  /// of reading the real number.
-  final int pendingCount;
-
-  @override
-  State<_EncerrarBanner> createState() => _EncerrarBannerState();
-}
-
-class _EncerrarBannerState extends State<_EncerrarBanner> {
-  bool _dismissed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (_dismissed) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.tertiaryContainer,
+    return Material(
+      color: selected ? bg : AppColors.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
+        side: selected
+            ? BorderSide.none
+            : const BorderSide(color: AppColors.outlineBorder),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Todos os animais têm DG registrado.',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: colorScheme.onTertiaryContainer),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 48,
+          alignment: Alignment.center,
+          child: Text(
+            result.label,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+              color: selected ? fg : AppColors.ink,
             ),
           ),
-          TextButton(
-            onPressed: () => _showEncerrarDialog(
-              context,
-              atfId: widget.atfId,
-              atfName: widget.atfName,
-              pendingCount: widget.pendingCount,
-            ),
-            child: const Text('Encerrar ATF'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            tooltip: 'Dispensar aviso',
-            onPressed: () => setState(() => _dismissed = true),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-/// DG mass-entry section (D-10, D-11, D-12, REPR-03, 05-UI-SPEC E6): the
-/// phone-in-the-corral surface — one session date, one row per animal, three
-/// chips per row, one batch save.
+/// Everything below the green header: DG session banner, encerramento
+/// suggestion banner, the merged composição + DG list (D-06..D-16, REPR-02,
+/// REPR-03) and the fixed save footer.
 ///
 /// Reads the UNFILTERED [memberships] list (`atfMembershipsProvider`, not the
 /// active-only one) so a closed ATF still shows its full roster for
 /// correction (D-16, RESEARCH Pattern 3) — that half of the "unfiltered"
 /// claim is about `active` and stays true. It is NOT true of archived
-/// animals: [_DgSectionState.build] filters out any membership whose
+/// animals: [build] filters out any membership whose
 /// [AtfMembershipView.animalDeleted] is true, so a baixa'd animal stops
 /// appearing as an editable row (G-05-2). Do not "simplify" this into a
 /// single filter on `active` — that would resurrect the D-16 regression
 /// this split exists to prevent. [canEdit] gates on role only, never on
 /// `atf.active` — DG correction stays possible after encerramento.
-class _DgSection extends ConsumerStatefulWidget {
-  const _DgSection({
+class _AtfDgBody extends ConsumerStatefulWidget {
+  const _AtfDgBody({
     required this.atf,
+    required this.activeMemberships,
     required this.memberships,
     required this.dgRecords,
+    required this.dgAnimalIds,
     required this.canEdit,
+    required this.showEncerrarBanner,
+    required this.pendingMembers,
   });
 
   final AtfBatch atf;
+  final List<AtfMembershipView> activeMemberships;
   final List<AtfMembershipView> memberships;
   final List<DgRecord> dgRecords;
+
+  /// Animal ids with at least one PERSISTED DG for this ATF — hoisted once in
+  /// [AtfDetailScreen.build] and shared with the encerrar banner gate, the
+  /// AppBar pending count, and the per-row remove gate (G-05-3), so they can
+  /// never drift from each other.
+  final Set<String> dgAnimalIds;
   final bool canEdit;
+  final bool showEncerrarBanner;
+  final int pendingMembers;
 
   @override
-  ConsumerState<_DgSection> createState() => _DgSectionState();
+  ConsumerState<_AtfDgBody> createState() => _AtfDgBodyState();
 }
 
-class _DgSectionState extends ConsumerState<_DgSection> {
+class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
   // dd/MM/yyyy pattern doesn't need locale symbol data — safe to create eagerly.
   final _dateFmt = DateFormat('dd/MM/yyyy');
   // yyyy-MM-dd, no timezone conversion — for the date-only exam_date field
@@ -647,7 +534,6 @@ class _DgSectionState extends ConsumerState<_DgSection> {
   final _dateOnlyFmt = DateFormat('yyyy-MM-dd');
 
   DateTime _sessionDate = DateTime.now();
-  late final TextEditingController _sessionDateCtrl;
 
   /// Staged (not-yet-saved) selection per animal id — separate from the
   /// "currently displayed" value so the changed-rows set stays computable
@@ -659,14 +545,7 @@ class _DgSectionState extends ConsumerState<_DgSection> {
   bool _saving = false;
 
   @override
-  void initState() {
-    super.initState();
-    _sessionDateCtrl = TextEditingController(text: _dateFmt.format(_sessionDate));
-  }
-
-  @override
   void dispose() {
-    _sessionDateCtrl.dispose();
     for (final c in _obsControllers.values) {
       c.dispose();
     }
@@ -718,10 +597,7 @@ class _DgSectionState extends ConsumerState<_DgSection> {
       locale: const Locale('pt', 'BR'),
     );
     if (picked != null && mounted) {
-      setState(() {
-        _sessionDate = picked;
-        _sessionDateCtrl.text = _dateFmt.format(picked);
-      });
+      setState(() => _sessionDate = picked);
     }
   }
 
@@ -747,6 +623,47 @@ class _DgSectionState extends ConsumerState<_DgSection> {
         _obsControllers.putIfAbsent(animalId, () => TextEditingController());
       }
     });
+  }
+
+  void _openSelection() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AtfAnimalSelectionScreen(
+          atfId: widget.atf.id,
+          atfName: widget.atf.name,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmRemove(AtfMembershipView membership) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => _RemoveAnimalConfirmDialog(
+        animalNumber: membership.animalNumber,
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(atfRepositoryProvider).removeAnimalFromAtf(
+            atfBatchId: widget.atf.id,
+            animalId: membership.animalId,
+          );
+      if (!mounted) return;
+      ref.invalidate(atfActiveMembershipsProvider(widget.atf.id));
+      ref.invalidate(atfMembershipsProvider(widget.atf.id));
+      ref.invalidate(atfListByPropertyProvider);
+      ref.invalidate(
+          reproductiveHistoryByAnimalProvider(membership.animalId));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao remover animal. Tente novamente.'),
+        ),
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -805,213 +722,452 @@ class _DgSectionState extends ConsumerState<_DgSection> {
     // still render for D-16 correction.
     final rows = widget.memberships.where((m) => !m.animalDeleted).toList();
 
-    // Hidden entirely when the ATF has no (non-archived) memberships at all
-    // (05-UI-SPEC E4).
-    if (rows.isEmpty) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
     final editable = widget.canEdit && !_saving;
-    final changedCount = _changedAnimalIds().length;
+    final changedIds = _changedAnimalIds();
+    final showAddButton = widget.atf.active && widget.canEdit;
+    final activeCount = widget.activeMemberships.length;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Registrar DG', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
-        TextFormField(
-          readOnly: true,
-          controller: _sessionDateCtrl,
-          decoration: InputDecoration(
-            labelText: 'Data da sessão',
-            border: const OutlineInputBorder(),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.calendar_today),
-              tooltip: 'Alterar data da sessão',
-              onPressed: editable ? _pickSessionDate : null,
+        if (widget.canEdit && rows.isNotEmpty)
+          _SessionBanner(
+            dateLabel: _dateFmt.format(_sessionDate),
+            onAlterar: editable ? _pickSessionDate : null,
+          ),
+        Expanded(
+          child: Container(
+            color: AppColors.surface,
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 16),
+              children: [
+                if (widget.showEncerrarBanner)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                    child: _EncerrarBanner(
+                      atfId: widget.atf.id,
+                      atfName: widget.atf.name,
+                      pendingCount: widget.pendingMembers,
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 8, 4),
+                  child: Row(
+                    children: [
+                      const OverlineLabel('Composição'),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$activeCount '
+                        '${activeCount == 1 ? 'animal' : 'animais'}',
+                        style: monoStyle(
+                          size: 12.5,
+                          weight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (showAddButton)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            shape: const StadiumBorder(),
+                            foregroundColor: AppColors.primaryDarkText,
+                          ),
+                          onPressed: _openSelection,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Animais'),
+                        ),
+                    ],
+                  ),
+                ),
+                if (rows.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Nenhum animal neste ATF.'),
+                        if (showAddButton) ...[
+                          const SizedBox(height: 10),
+                          OutlinedButton(
+                            onPressed: _openSelection,
+                            child: const Text('Adicionar animais'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  )
+                else
+                  for (final m in rows) _buildRow(m, editable, changedIds),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: rows.length,
-          itemBuilder: (context, i) {
-            final m = rows[i];
-            final selected = _staged[m.animalId] ?? _mostRecentDg(m.animalId);
-            final expanded = _expandedObservation.contains(m.animalId);
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: _DgChipRow(
-                membership: m,
-                selected: selected,
-                canEdit: editable,
-                observationExpanded: expanded,
-                observationController: _obsControllers[m.animalId],
-                onSelect: (r) => setState(() => _staged[m.animalId] = r),
-                onPickDate: () => _pickRowDate(m.animalId),
-                onToggleObservation: () => _toggleObservation(m.animalId),
+        if (widget.canEdit && rows.isNotEmpty)
+          _SaveFooter(
+            changedCount: changedIds.length,
+            saving: _saving,
+            onSave:
+                (changedIds.isEmpty || _saving) ? null : _save,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRow(
+    AtfMembershipView m,
+    bool editable,
+    Set<String> changedIds,
+  ) {
+    final selected = _staged[m.animalId] ?? _mostRecentDg(m.animalId);
+    final expanded = _expandedObservation.contains(m.animalId);
+    final hasDg = widget.dgAnimalIds.contains(m.animalId);
+    final canRemove =
+        widget.atf.active && widget.canEdit && m.active && !hasDg;
+    final changed = changedIds.contains(m.animalId);
+
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppColors.divider)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () =>
+                      context.go(AppRoutes.animalDetail(m.animalId)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '#${m.animalNumber}',
+                            style: monoStyle(
+                              size: 17,
+                              weight: FontWeight.w700,
+                            ),
+                          ),
+                          TextSpan(
+                            text:
+                                '  ${kCategoryLabels[m.animalCategory] ?? m.animalCategory}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ),
+              if (changed) ...[
+                const StatusChip('não salvo', kind: StatusKind.warning),
+                const SizedBox(width: 2),
+              ],
+              IconButton(
+                icon: const Icon(Icons.event, size: 20),
+                tooltip: 'Alterar data deste animal',
+                onPressed: editable ? () => _pickRowDate(m.animalId) : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.notes, size: 20),
+                tooltip: 'Adicionar observação',
+                onPressed:
+                    editable ? () => _toggleObservation(m.animalId) : null,
+              ),
+              if (canRemove)
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  tooltip: 'Remover do ATF',
+                  onPressed: () => _confirmRemove(m),
+                ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Row(
+              children: [
+                for (final r in DgResult.values) ...[
+                  if (r != DgResult.values.first) const SizedBox(width: 8),
+                  Expanded(
+                    child: DgSegmentButton(
+                      result: r,
+                      selected: selected == r,
+                      onTap: editable
+                          ? () => setState(() => _staged[m.animalId] = r)
+                          : null,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (expanded && _obsControllers[m.animalId] != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, right: 8),
+              child: TextFormField(
+                controller: _obsControllers[m.animalId],
+                enabled: editable,
                 // CR-01 (05-REVIEW.md): typing alone must recompute
                 // changedCount so "Salvar DGs" reflects an obs-only edit —
                 // without this the button stays stuck disabled since typing
                 // into the controller does not otherwise trigger a rebuild.
-                onObservationChanged: () => setState(() {}),
+                onChanged: (_) => setState(() {}),
+                // Obs box bg #F5F3EB (spec 4.9).
+                decoration: const InputDecoration(
+                  labelText: 'Observação',
+                  filled: true,
+                  fillColor: AppColors.background,
+                ),
+                minLines: 1,
+                maxLines: null,
               ),
-            );
-          },
-        ),
-        if (widget.canEdit) ...[
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: (changedCount == 0 || _saving) ? null : _save,
-              child: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Salvar DGs'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Orange DG session-date banner (spec 4.9): the date every staged DG uses
+/// unless the row has its own override via the per-row `event` icon.
+class _SessionBanner extends StatelessWidget {
+  const _SessionBanner({required this.dateLabel, this.onAlterar});
+
+  final String dateLabel;
+  final VoidCallback? onAlterar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.accentContainer,
+        border: Border(bottom: BorderSide(color: AppColors.accentBorder)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: Row(
+        children: [
+          const Icon(Icons.event_available,
+              size: 20, color: AppColors.accentDark),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const OverlineLabel(
+                  'Sessão de DG',
+                  color: AppColors.accentTextDark,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  dateLabel,
+                  style: monoStyle(size: 15, weight: FontWeight.w700),
+                ),
+              ],
             ),
           ),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 36),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              shape: const StadiumBorder(),
+              backgroundColor: Colors.transparent,
+              foregroundColor: AppColors.accentTextDark,
+              side: const BorderSide(color: Color(0x598A4413)),
+              textStyle: const TextStyle(
+                fontFamily: AppFonts.ui,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            onPressed: onAlterar,
+            child: const Text('Alterar'),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// Fixed save footer (spec 4.9): changed-rows count + "Salvar DGs".
+class _SaveFooter extends StatelessWidget {
+  const _SaveFooter({
+    required this.changedCount,
+    required this.saving,
+    required this.onSave,
+  });
+
+  final int changedCount;
+  final bool saving;
+  final VoidCallback? onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.divider)),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '$changedCount',
+                      style: monoStyle(size: 17, weight: FontWeight.w700),
+                    ),
+                    TextSpan(
+                      text:
+                          ' ${changedCount == 1 ? 'alteração' : 'alterações'}',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: onSave,
+                  child: saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar DGs'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Minimal confirm dialog for removing an animal from the ATF (D-08).
+///
+/// Unlike `BaixaDialog`, this is a correction, not data loss — the confirm
+/// button keeps the default primary color rather than `colorScheme.error`.
+class _RemoveAnimalConfirmDialog extends StatelessWidget {
+  const _RemoveAnimalConfirmDialog({required this.animalNumber});
+
+  final int animalNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Remover #$animalNumber do ATF?'),
+      content: const Text('O animal deixa de fazer parte deste ciclo.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Remover'),
+        ),
       ],
     );
   }
 }
 
-/// One DG entry row: animal number/category, three result chips, and the
-/// per-animal date-override / observation icon actions.
+/// Encerramento suggestion banner (D-15, 05-UI-SPEC section 3): a suggestion,
+/// never an action taken on the vet's behalf. Rendered by the parent only
+/// when the ATF is active, the viewer is a veterinarian, the composition is
+/// non-empty, and every CURRENT member has a DG ([pendingCount] is zero) —
+/// the caller computes and gates on that condition; this widget only owns
+/// its own session-local dismissal state.
 ///
-/// Reuses [AnimalEditDialog]'s EC `ChoiceChip` `Wrap` pattern with the
-/// DG-specific semantic color mapping (05-UI-SPEC `## Color`) and the raised
-/// 48px touch target (05-UI-SPEC `## Spacing Scale` mobile exception).
-class _DgChipRow extends StatelessWidget {
-  const _DgChipRow({
-    required this.membership,
-    required this.selected,
-    required this.canEdit,
-    required this.observationExpanded,
-    required this.observationController,
-    required this.onSelect,
-    required this.onPickDate,
-    required this.onToggleObservation,
-    required this.onObservationChanged,
+/// Dismissal does not persist: it is lost on any rebuild that recreates this
+/// widget (e.g. navigating away and back), by design (D-15's "reappears on
+/// the next visit" while the underlying condition still holds — A-BANNER-PERSIST).
+class _EncerrarBanner extends StatefulWidget {
+  const _EncerrarBanner({
+    required this.atfId,
+    required this.atfName,
+    required this.pendingCount,
   });
 
-  final AtfMembershipView membership;
-  final DgResult? selected;
-  final bool canEdit;
-  final bool observationExpanded;
-  final TextEditingController? observationController;
-  final ValueChanged<DgResult> onSelect;
-  final VoidCallback onPickDate;
-  final VoidCallback onToggleObservation;
-  final VoidCallback onObservationChanged;
+  final String atfId;
+  final String atfName;
 
-  Color _selectedBg(ColorScheme cs, DgResult r) => switch (r) {
-        DgResult.pregnant => cs.primaryContainer,
-        DgResult.notPregnant => cs.errorContainer,
-        DgResult.doubtful => cs.tertiaryContainer,
-      };
+  /// Same per-current-member pending count the parent gated `showBanner` on
+  /// (G-05-3). Passed straight through to [_showEncerrarDialog] so the
+  /// confirm dialog can never disagree with the banner that summoned it.
+  final int pendingCount;
 
-  Color _selectedFg(ColorScheme cs, DgResult r) => switch (r) {
-        DgResult.pregnant => cs.onPrimaryContainer,
-        DgResult.notPregnant => cs.onErrorContainer,
-        DgResult.doubtful => cs.onTertiaryContainer,
-      };
+  @override
+  State<_EncerrarBanner> createState() => _EncerrarBannerState();
+}
+
+class _EncerrarBannerState extends State<_EncerrarBanner> {
+  bool _dismissed = false;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    if (_dismissed) return const SizedBox.shrink();
 
-    Widget buildChip(DgResult r) {
-      final isSelected = selected == r;
-      return ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 48),
-        child: ChoiceChip(
-          label: Text(
-            r.label,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: isSelected
-                  ? _selectedFg(colorScheme, r)
-                  : colorScheme.onSurface,
-            ),
-          ),
-          selected: isSelected,
-          showCheckmark: false,
-          selectedColor: _selectedBg(colorScheme, r),
-          side: isSelected ? null : BorderSide(color: colorScheme.outline),
-          onSelected: canEdit ? (_) => onSelect(r) : null,
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return WarningBanner(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+        child: Row(
           children: [
-            SizedBox(
-              width: 90,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '#${membership.animalNumber}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      TextSpan(
-                        text: ' · ${kCategoryLabels[membership.animalCategory] ?? membership.animalCategory}',
-                      ),
-                    ],
-                  ),
-                  style: theme.textTheme.bodyLarge,
+            const Icon(Icons.pending_actions,
+                size: 20, color: AppColors.accentDark),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Todos os animais têm DG registrado.',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: AppColors.accentTextDark,
                 ),
               ),
             ),
-            Expanded(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: DgResult.values.map(buildChip).toList(),
+            TextButton(
+              onPressed: () => _showEncerrarDialog(
+                context,
+                atfId: widget.atfId,
+                atfName: widget.atfName,
+                pendingCount: widget.pendingCount,
               ),
+              child: const Text('Encerrar ATF'),
             ),
             IconButton(
-              icon: const Icon(Icons.event),
-              tooltip: 'Alterar data deste animal',
-              onPressed: canEdit ? onPickDate : null,
-            ),
-            IconButton(
-              icon: const Icon(Icons.notes),
-              tooltip: 'Adicionar observação',
-              onPressed: canEdit ? onToggleObservation : null,
+              icon: const Icon(Icons.close, size: 20),
+              tooltip: 'Dispensar aviso',
+              onPressed: () => setState(() => _dismissed = true),
             ),
           ],
         ),
-        if (observationExpanded && observationController != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: TextFormField(
-              controller: observationController,
-              enabled: canEdit,
-              onChanged: (_) => onObservationChanged(),
-              decoration: const InputDecoration(
-                labelText: 'Observação',
-                border: OutlineInputBorder(),
-              ),
-              minLines: 1,
-              maxLines: null,
-            ),
-          ),
-        const Divider(height: 16),
-      ],
+      ),
     );
   }
 }

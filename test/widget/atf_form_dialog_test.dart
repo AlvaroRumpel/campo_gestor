@@ -2,6 +2,7 @@
 // Covers: blank-form validation, date-order validation, bull validation,
 // the external-semen reveal, both valid-submission bull paths, and a
 // repository failure leaving the dialog open.
+import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
@@ -167,7 +168,9 @@ Widget _buildApp({
       home: Scaffold(
         body: Builder(
           builder: (ctx) => ElevatedButton(
-            onPressed: () => showDialog<String>(
+            // Mirrors the app's own call site (reproducao_screen.dart):
+            // sheet-style content hosted via showAdaptiveForm.
+            onPressed: () => showAdaptiveForm<String>(
               context: ctx,
               builder: (_) => const AtfFormDialog(propertyId: 'prop-1'),
             ),

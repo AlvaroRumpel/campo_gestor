@@ -18,9 +18,9 @@ String _bullLabel(AnimalWithContext aw) => aw.animal.breed != null
 
 /// Creation-only dialog for a new LoteATF (REPR-01, D-01, D-05).
 ///
-/// Follows `LoteFormDialog`'s AlertDialog shell exactly: `LinearProgressIndicator`
-/// title while saving, `SizedBox(width: 480)` + `Form` + `SingleChildScrollView`
-/// content, `TextButton`/`FilledButton` action pair.
+/// Sheet-style content shown via `showAdaptiveForm` (redesign): title 20/700,
+/// theme inputs, footer Cancelar outline + "Criar ATF" filled h52 r14, with a
+/// `LinearProgressIndicator` on top while saving — mirrors `LoteFormDialog`.
 ///
 /// Create-only — no edit path ships this phase, since `atf_batches` has no
 /// UPDATE RLS policy (05-RESEARCH.md assumption A3).
@@ -158,130 +158,161 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
         .toList()
       ..sort((a, b) => a.animal.number.compareTo(b.animal.number));
 
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : const Text('Novo ATF'),
-      content: SizedBox(
-        width: 480,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _nameCtrl,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do ATF *',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Nome do ATF é obrigatório'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _implantationCtrl,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Data de implantação *',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: _pickImplantationDate,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_saving)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: LinearProgressIndicator(),
+              ),
+            const Text(
+              'Novo ATF',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 14),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _nameCtrl,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do ATF *',
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Nome do ATF é obrigatório'
+                          : null,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _inseminationCtrl,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: 'Data de inseminação *',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: _pickInseminationDate,
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _implantationCtrl,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Data de implantação *',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.calendar_today),
+                          onPressed: _pickImplantationDate,
+                        ),
+                      ),
                     ),
-                  ),
-                  validator: (v) {
-                    if (!_sameOrAfter(_inseminationDate, _implantationDate)) {
-                      return 'Data de inseminação deve ser igual ou posterior à data de implantação';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String?>(
-                  initialValue: _selectedBull,
-                  decoration: const InputDecoration(
-                    labelText: 'Touro',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    ...touros.map((aw) {
-                      return DropdownMenuItem<String?>(
-                        value: aw.animal.id,
-                        child: Text(_bullLabel(aw)),
-                      );
-                    }),
-                    const DropdownMenuItem<String?>(
-                      value: kOtherBull,
-                      child: Text('Outro / sêmen externo'),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _inseminationCtrl,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Data de inseminação *',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.calendar_today),
+                          onPressed: _pickInseminationDate,
+                        ),
+                      ),
+                      validator: (v) {
+                        if (!_sameOrAfter(
+                            _inseminationDate, _implantationDate)) {
+                          return 'Data de inseminação deve ser igual ou posterior à data de implantação';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String?>(
+                      initialValue: _selectedBull,
+                      decoration: const InputDecoration(
+                        labelText: 'Touro',
+                      ),
+                      items: [
+                        ...touros.map((aw) {
+                          return DropdownMenuItem<String?>(
+                            value: aw.animal.id,
+                            child: Text(_bullLabel(aw)),
+                          );
+                        }),
+                        const DropdownMenuItem<String?>(
+                          value: kOtherBull,
+                          child: Text('Outro / sêmen externo'),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _selectedBull = v),
+                      validator: (v) => v == null
+                          ? 'Selecione um touro ou informe sêmen externo'
+                          : null,
+                    ),
+                    if (_selectedBull == kOtherBull) ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _bullNameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome do touro / identificação do sêmen',
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Selecione um touro ou informe sêmen externo'
+                            : null,
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _obsCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Observação',
+                      ),
+                      maxLines: 3,
                     ),
                   ],
-                  onChanged: (v) => setState(() => _selectedBull = v),
-                  validator: (v) => v == null
-                      ? 'Selecione um touro ou informe sêmen externo'
-                      : null,
                 ),
-                if (_selectedBull == kOtherBull) ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _bullNameCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome do touro / identificação do sêmen',
-                      border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  flex: 10,
+                  child: OutlinedButton(
+                    onPressed: _saving
+                        ? null
+                        : () => Navigator.pop<String>(context, null),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Selecione um touro ou informe sêmen externo'
-                        : null,
+                    child: const Text('Cancelar'),
                   ),
-                ],
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _obsCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Observação',
-                    border: OutlineInputBorder(),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 16,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Criar ATF'),
                   ),
-                  maxLines: 3,
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed:
-              _saving ? null : () => Navigator.pop<String>(context, null),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Criar ATF'),
-        ),
-      ],
     );
   }
 }

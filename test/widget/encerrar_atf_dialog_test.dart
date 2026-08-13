@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:campo_gestor/core/services/supabase_service.dart';
+import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
 import 'package:campo_gestor/features/reproducao/presentation/encerrar_atf_dialog.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,9 @@ Widget _buildHost({
         body: Builder(
           builder: (context) => Center(
             child: TextButton(
-              onPressed: () => showDialog<bool>(
+              // Mirrors the app's own call site (atf_detail_screen.dart):
+              // sheet-style content hosted via showAdaptiveForm.
+              onPressed: () => showAdaptiveForm<bool>(
                 context: context,
                 builder: (_) => EncerrarAtfDialog(
                   atfId: atfId,
@@ -82,8 +85,7 @@ Future<void> _openDialog(WidgetTester tester) async {
 
 void main() {
   group('EncerrarAtfDialog (REPR-03, REPR-04, 05-UI-SPEC section 5/E7)', () {
-    testWidgets('body prose renders and the dialog content is 400 wide',
-        (tester) async {
+    testWidgets('body prose and both footer actions render', (tester) async {
       await tester.pumpWidget(_buildHost());
       await _openDialog(tester);
 
@@ -95,10 +97,10 @@ void main() {
         ),
         findsOneWidget,
       );
-      final sizedBox = tester.widgetList<SizedBox>(find.byType(SizedBox)).firstWhere(
-            (s) => s.width == 400,
-          );
-      expect(sizedBox.width, 400);
+      // Redesign: fixed 400px content was replaced by showAdaptiveForm's
+      // responsive shell; the footer action pair is the stable structure.
+      expect(find.widgetWithText(OutlinedButton, 'Cancelar'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Encerrar'), findsOneWidget);
     });
 
     testWidgets(
@@ -136,7 +138,7 @@ void main() {
               body: Builder(
                 builder: (context) => TextButton(
                   onPressed: () async {
-                    final confirmed = await showDialog<bool>(
+                    final confirmed = await showAdaptiveForm<bool>(
                       context: context,
                       builder: (_) => const EncerrarAtfDialog(
                         atfId: 'atf-9',

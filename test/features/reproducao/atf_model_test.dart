@@ -91,8 +91,9 @@ void main() {
     });
 
     test('DgResult.label is the pt-BR display text', () {
-      expect(DgResult.pregnant.label, 'Prenha');
-      expect(DgResult.notPregnant.label, 'Não-prenha');
+      // Redesign spec vocabulary: Prenhe / Vazia / Duvidosa.
+      expect(DgResult.pregnant.label, 'Prenhe');
+      expect(DgResult.notPregnant.label, 'Vazia');
       expect(DgResult.doubtful.label, 'Duvidosa');
     });
 

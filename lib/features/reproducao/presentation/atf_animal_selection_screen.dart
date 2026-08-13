@@ -3,12 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../lotes/data/lote_model.dart';
 import '../../lotes/data/lote_repository.dart';
 import '../data/atf_repository.dart';
 
-/// Animal selection screen for adding animals to an ATF (REPR-02, D-06..D-09).
+/// Animal selection screen for adding animals to an ATF (REPR-02, D-06..D-09)
+/// — redesign spec 4.17: green header with close + "LOTE BASE" glass tile,
+/// info strip, pre-checked lot list, "Avulsos de outros lotes" search
+/// section, fixed footer.
 ///
 /// Pushed via `Navigator.push`, not a GoRoute — transient selection workflow
 /// with no deep-link requirement (05-UI-SPEC section 4). Two data sources
@@ -97,6 +102,39 @@ class _AtfAnimalSelectionScreenState
     });
   }
 
+  Future<void> _openLotPicker(
+    List<Lot> lots,
+    List<EligibleAnimal> eligible,
+  ) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: OverlineLabel('Lote base'),
+            ),
+            for (final lot in lots)
+              ListTile(
+                title: Text(lot.name),
+                selected: lot.id == _selectedLotId,
+                trailing: lot.id == _selectedLotId
+                    ? const Icon(Icons.check_circle,
+                        size: 22, color: AppColors.primary)
+                    : null,
+                onTap: () => Navigator.pop(ctx, lot.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && mounted) {
+      _onLotChanged(picked, eligible);
+    }
+  }
+
   void _toggle(String animalId, bool? checked) {
     setState(() {
       if (checked == true) {
@@ -147,30 +185,84 @@ class _AtfAnimalSelectionScreenState
     final eligibleAsync =
         ref.watch(eligibleAnimalsForAtfProvider(widget.atfId));
     final lotsAsync = ref.watch(loteListByPropertyProvider);
+    final lots = lotsAsync.asData?.value ?? const <Lot>[];
+    final lotNames = {for (final l in lots) l.id: l.name};
+    final eligible = eligibleAsync.asData?.value ?? const <EligibleAnimal>[];
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: _onClosePressed,
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Adicionar animais'),
-            Text(widget.atfName, style: theme.textTheme.bodySmall),
-          ],
-        ),
-      ),
-      body: eligibleAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(
-          child: Text(
-            'Erro ao carregar. Verifique sua conexão e tente novamente.',
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            color: AppColors.primary,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 2, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.close,
+                              color: AppColors.onGreen),
+                          tooltip: 'Fechar',
+                          onPressed: _onClosePressed,
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Adicionar animais',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onGreen,
+                                ),
+                              ),
+                              Text(
+                                '${widget.atfName} · só vacas e novilhas',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.onGreenSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: GlassTile(
+                        label: 'Lote base',
+                        value: lotNames[_selectedLotId] ?? 'Selecionar lote',
+                        onTap: () => _openLotPicker(lots, eligible),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        data: (eligible) => _buildBody(theme, eligible, lotsAsync),
+          Expanded(
+            child: eligibleAsync.when(
+              loading: () =>
+                  const Center(child: CircularProgressIndicator()),
+              error: (e, _) => const Center(
+                child: Text(
+                  'Erro ao carregar. Verifique sua conexão e tente novamente.',
+                ),
+              ),
+              data: (eligible) => _buildBody(theme, eligible, lotNames),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -178,7 +270,7 @@ class _AtfAnimalSelectionScreenState
   Widget _buildBody(
     ThemeData theme,
     List<EligibleAnimal> eligible,
-    AsyncValue<List<Lot>> lotsAsync,
+    Map<String, String> lotNames,
   ) {
     // D-09 defense-in-depth: the repository already restricts eligible
     // animals to vaca/novilha, but both picker sections re-check the
@@ -203,83 +295,88 @@ class _AtfAnimalSelectionScreenState
       return true;
     }).toList();
 
+    final selectedLotName = lotNames[_selectedLotId];
+
     return Column(
       children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              lotsAsync.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (e, _) => const Text(
-                  'Erro ao carregar. Verifique sua conexão e tente novamente.',
-                ),
-                data: (lots) => DropdownButtonFormField<String>(
-                  initialValue: _selectedLotId,
-                  decoration: const InputDecoration(
-                    labelText: 'Lote base',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final lot in lots)
-                      DropdownMenuItem(value: lot.id, child: Text(lot.name)),
-                  ],
-                  onChanged: (id) => _onLotChanged(id, eligible),
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (_selectedLotId != null && lotAnimals.isEmpty)
-                Text(
-                  'Nenhuma vaca ou novilha neste lote.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: lotAnimals.length,
-                  itemBuilder: (context, i) => _buildRow(theme, lotAnimals[i]),
-                ),
-              const Divider(height: 32),
-              Text('Avulsos', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              SearchBar(
-                controller: _searchCtrl,
-                hintText: 'Buscar por número...',
-                leading: const Icon(Icons.search),
-                onChanged: _onSearchChanged,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilterChip(
-                    label: const Text('Todas'),
-                    selected: _categoryFilter == null,
-                    onSelected: (_) => setState(() => _categoryFilter = null),
-                    showCheckmark: false,
-                  ),
-                  for (final c in _eligibleCategories)
-                    FilterChip(
-                      label: Text(kCategoryLabels[c]!),
-                      selected: _categoryFilter == c,
-                      onSelected: (sel) =>
-                          setState(() => _categoryFilter = sel ? c : null),
-                      showCheckmark: false,
+        if (selectedLotName != null)
+          StatsStrip(
+            child: Row(
+              children: [
+                const Icon(Icons.done_all,
+                    size: 18, color: AppColors.primaryDarkText),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Elegíveis do $selectedLotName já vêm marcados',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.primaryDarkText,
                     ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: avulsos.length,
-                itemBuilder: (context, i) => _buildRow(theme, avulsos[i]),
-              ),
-            ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: Container(
+            color: AppColors.surface,
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 16),
+              children: [
+                if (_selectedLotId != null && lotAnimals.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                    child: Text(
+                      'Nenhuma vaca ou novilha neste lote.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  )
+                else
+                  for (final e in lotAnimals) _buildRow(e),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(14, 18, 14, 8),
+                  child: OverlineLabel('Avulsos de outros lotes'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: SearchBar(
+                    controller: _searchCtrl,
+                    hintText: 'Buscar por número',
+                    leading: const Icon(Icons.search),
+                    onChanged: _onSearchChanged,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilterChip(
+                        label: const Text('Todas'),
+                        selected: _categoryFilter == null,
+                        onSelected: (_) =>
+                            setState(() => _categoryFilter = null),
+                        showCheckmark: false,
+                      ),
+                      for (final c in _eligibleCategories)
+                        FilterChip(
+                          label: Text(kCategoryLabels[c]!),
+                          selected: _categoryFilter == c,
+                          onSelected: (sel) => setState(
+                              () => _categoryFilter = sel ? c : null),
+                          showCheckmark: false,
+                        ),
+                    ],
+                  ),
+                ),
+                for (final e in avulsos)
+                  _buildRow(e, originLabel: lotNames[e.animal.lotId]),
+              ],
+            ),
           ),
         ),
         _buildBottomBar(theme),
@@ -287,51 +384,123 @@ class _AtfAnimalSelectionScreenState
     );
   }
 
-  Widget _buildRow(ThemeData theme, EligibleAnimal e) {
+  Widget _buildRow(EligibleAnimal e, {String? originLabel}) {
+    final blocked = e.blockedByAtfName != null;
     final catLabel = kCategoryLabels[e.animal.category] ?? e.animal.category;
-    final title = e.blockedByAtfName != null
-        ? '#${e.animal.number} · $catLabel — já em ${e.blockedByAtfName}'
-        : '#${e.animal.number} · $catLabel';
     return CheckboxListTile(
       value: _selectedIds.contains(e.animal.id),
-      enabled: e.blockedByAtfName == null,
-      onChanged: e.blockedByAtfName == null
-          ? (checked) => _toggle(e.animal.id, checked)
+      enabled: !blocked,
+      onChanged: blocked ? null : (checked) => _toggle(e.animal.id, checked),
+      controlAffinity: ListTileControlAffinity.leading,
+      visualDensity: VisualDensity.compact,
+      tileColor: blocked ? AppColors.surfaceSubtle : null,
+      title: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '#${e.animal.number}',
+              style: monoStyle(
+                size: 15.5,
+                weight: FontWeight.w700,
+                color: blocked ? AppColors.textTertiary : AppColors.ink,
+              ),
+            ),
+            TextSpan(
+              text: '  $catLabel',
+              style: TextStyle(
+                fontSize: 14,
+                color: blocked
+                    ? AppColors.textTertiary
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+      subtitle: blocked
+          ? Text(
+              'já está no ${e.blockedByAtfName}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.accentTextDark,
+              ),
+            )
           : null,
-      title: Text(title),
+      secondary: blocked
+          ? const Icon(Icons.lock_outline,
+              size: 18, color: AppColors.textTertiary)
+          : (originLabel != null
+              ? Text(
+                  originLabel,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              : null),
     );
   }
 
   Widget _buildBottomBar(ThemeData theme) {
     final count = _selectedIds.length;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.divider)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: SafeArea(
+        top: false,
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                count == 0
-                    ? 'Selecione ao menos 1 animal'
-                    : '$count selecionados',
-                style: theme.textTheme.bodyMedium,
-              ),
-            ),
-            FilledButton(
-              onPressed: (_saving || count == 0) ? null : _confirm,
-              child: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+              child: count == 0
+                  ? const Text(
+                      'Selecione ao menos 1 animal',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
                     )
-                  : const Text('Adicionar animais'),
+                  : Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$count',
+                            style: monoStyle(
+                                size: 17, weight: FontWeight.w700),
+                          ),
+                          const TextSpan(
+                            text: ' selecionados',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: (_saving || count == 0) ? null : _confirm,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Adicionar ao ATF'),
+                ),
+              ),
             ),
           ],
         ),

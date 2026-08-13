@@ -92,8 +92,11 @@ Widget _buildScreen({
   );
 }
 
+/// Opens the "LOTE BASE" glass tile's bottom-sheet picker and taps [lotName].
+/// The tile shows 'Selecionar lote' until a lot is picked, so the first tap
+/// is unambiguous in every test (each test selects at most once).
 Future<void> _selectLot(WidgetTester tester, String lotName) async {
-  await tester.tap(find.byType(DropdownButtonFormField<String>));
+  await tester.tap(find.text('Selecionar lote'));
   await tester.pumpAndSettle();
   await tester.tap(find.text(lotName).last);
   await tester.pumpAndSettle();
@@ -161,7 +164,7 @@ void main() {
 
       await _selectLot(tester, 'Lote A');
 
-      final rowFinder = find.textContaining('já em ATF Outono');
+      final rowFinder = find.textContaining('já está no ATF Outono');
       expect(rowFinder, findsOneWidget);
       final tile = tester.widget<CheckboxListTile>(
         find.ancestor(
@@ -208,7 +211,7 @@ void main() {
 
       // Pre-checked by choosing the lot (D-06) — button should already be enabled.
       var btn = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Adicionar animais'),
+        find.widgetWithText(FilledButton, 'Adicionar ao ATF'),
       );
       expect(btn.onPressed, isNotNull);
 
@@ -216,7 +219,7 @@ void main() {
       await tester.pumpAndSettle();
 
       btn = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Adicionar animais'),
+        find.widgetWithText(FilledButton, 'Adicionar ao ATF'),
       );
       expect(btn.onPressed, isNull);
     });
@@ -233,7 +236,7 @@ void main() {
       await tester.pumpAndSettle();
       await _selectLot(tester, 'Lote A');
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar animais'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar ao ATF'));
       await tester.pumpAndSettle();
 
       expect(repo.capturedAtfBatchId, 'atf-1');
@@ -253,7 +256,7 @@ void main() {
       await tester.pumpAndSettle();
       await _selectLot(tester, 'Lote A');
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar animais'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar ao ATF'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AtfAnimalSelectionScreen), findsOneWidget);

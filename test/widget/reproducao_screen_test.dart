@@ -99,7 +99,7 @@ void main() {
     });
 
     testWidgets(
-        'only encerrados, toggle off: renders "Nenhum ATF ativo"; flipping the toggle reveals the cards',
+        'only encerrados, "Ativos" selected: renders "Nenhum ATF ativo"; tapping the "Encerrados" chip reveals the cards',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
@@ -110,12 +110,14 @@ void main() {
 
       expect(find.text('Nenhum ATF ativo'), findsOneWidget);
       expect(
-        find.text("Ative 'Mostrar encerrados' para ver o histórico."),
+        find.text("Toque em 'Encerrados' para ver o histórico."),
         findsOneWidget,
       );
       expect(find.text('ATF Primavera'), findsNothing);
 
-      await tester.tap(find.byType(Switch));
+      // textContaining matches both the chip's Text.rich and its inner
+      // RichText — same widget on screen, so tapping the first is enough.
+      await tester.tap(find.textContaining('Encerrados').first);
       await tester.pumpAndSettle();
 
       expect(find.text('ATF Primavera'), findsOneWidget);

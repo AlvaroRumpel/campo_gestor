@@ -39,10 +39,10 @@ enum DgResult {
         DgResult.doubtful => 'doubtful',
       };
 
-  /// Display label in pt-BR.
+  /// Display label in pt-BR (redesign spec 3.4: Prenhe / Vazia / Duvidosa).
   String get label => switch (this) {
-        DgResult.pregnant => 'Prenha',
-        DgResult.notPregnant => 'Não-prenha',
+        DgResult.pregnant => 'Prenhe',
+        DgResult.notPregnant => 'Vazia',
         DgResult.doubtful => 'Duvidosa',
       };
 
