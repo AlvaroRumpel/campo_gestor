@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/campo_app_bar.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../auth/data/property_repository.dart';
 import '../../lotes/data/lote_repository.dart';
@@ -36,17 +39,11 @@ class AplicacaoDetailScreen extends ConsumerWidget {
 
     return appAsync.when(
       loading: () => Scaffold(
-        appBar: AppBar(
-          title: const Text('Aplicação'),
-          leading: _backButton(context),
-        ),
+        appBar: _appBar(context),
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, st) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Aplicação'),
-          leading: _backButton(context),
-        ),
+        appBar: _appBar(context),
         body: const Center(
           child: Text(
             'Erro ao carregar. Verifique sua conexão e tente novamente.',
@@ -56,10 +53,7 @@ class AplicacaoDetailScreen extends ConsumerWidget {
       data: (app) {
         if (app == null) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Aplicação'),
-              leading: _backButton(context),
-            ),
+            appBar: _appBar(context),
             body: const Center(child: Text('Aplicação não encontrada.')),
           );
         }
@@ -83,22 +77,17 @@ class AplicacaoDetailScreen extends ConsumerWidget {
           membersAsync.asData?.value,
         );
 
-        final theme = Theme.of(context);
-
         return Scaffold(
-          appBar: AppBar(
-            leading: _backButton(context),
-            title: Text(app.doseName),
-          ),
+          appBar: _appBar(context),
           body: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             children: [
               _AplicacaoHeaderCard(
                 app: app,
                 reversalRow: reversalRow,
                 canEdit: canEdit,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               if (app.skippedCount > 0) ...[
                 Text(
                   Intl.plural(
@@ -107,16 +96,32 @@ class AplicacaoDetailScreen extends ConsumerWidget {
                     other:
                         '${app.skippedCount} animais desmarcados nesta aplicação.',
                   ),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
               ],
               _CompositionListSection(entries: app.compositionSnapshot),
             ],
           ),
         );
+      },
+    );
+  }
+
+  /// Back resolves to `/sanitario` when there is no push stack (D-19
+  /// resolved-fallback, mirrors `LoteDetailScreen`).
+  PreferredSizeWidget _appBar(BuildContext context) {
+    return DetailAppBar(
+      parentLabel: 'Sanitário',
+      onBack: () {
+        if (context.canPop()) {
+          context.pop();
+          return;
+        }
+        context.go(AppRoutes.sanitario);
       },
     );
   }
@@ -131,26 +136,11 @@ class AplicacaoDetailScreen extends ConsumerWidget {
   }
 }
 
-/// Back control (D-19 resolved-fallback, mirrors `LoteDetailScreen`): this
-/// route has three possible origins (global list, lote section, animal
-/// ficha), so it cannot assume `Navigator.canPop()` is always true.
-Widget _backButton(BuildContext context) {
-  return BackButton(
-    onPressed: () {
-      if (context.canPop()) {
-        context.pop();
-        return;
-      }
-      context.go(AppRoutes.sanitario);
-    },
-  );
-}
-
-/// Header card: dose name + status badge, key-value rows (lote, data,
+/// Header card: dose name + status chip, key-value rows (lote, data,
 /// dosagem, custo, observação, reversal links) and the totals line. Every
 /// value below reads the frozen row — never the animal's, lot's or dose's
 /// current state (D-03, D-04) — except the existence/archived check that
-/// decides whether the lote row is tappable.
+/// decides whether the lote row is tappable. Numbers render in mono.
 class _AplicacaoHeaderCard extends ConsumerWidget {
   const _AplicacaoHeaderCard({
     required this.app,
@@ -164,53 +154,45 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final lot = ref.watch(loteByIdProvider(app.lotId)).asData?.value;
 
     final showEstornoAction = canEdit && !app.isReversal && reversalRow == null;
 
-    final totalsParts = <String>[
-      Intl.plural(
-        app.animalCount.abs(),
-        one: '1 animal',
-        other: '${app.animalCount.abs()} animais',
-      ),
-      '${formatUa(app.totalUa.abs())} UA',
-      formatVolumeMl(app.totalVolume.abs()),
-      if (app.totalCost != null) formatCurrencyBrl(app.totalCost!.abs()),
-    ];
-
     return Card(
-      color: colorScheme.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.medical_services_outlined),
+                const Icon(
+                  Icons.medical_services_outlined,
+                  color: AppColors.textSecondary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(app.doseName, style: theme.textTheme.titleMedium),
-                ),
-                const Spacer(),
-                if (reversalRow != null)
-                  _StatusChip(
-                    label: 'Estornada',
-                    background: colorScheme.errorContainer,
-                    foreground: colorScheme.onErrorContainer,
-                  )
-                else if (app.isReversal)
-                  _StatusChip(
-                    label: 'Estorno',
-                    background: colorScheme.surfaceContainerHigh,
-                    foreground: colorScheme.onSurface,
+                  child: Text(
+                    app.doseName,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      decoration: reversalRow != null
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: reversalRow != null
+                          ? AppColors.textTertiary
+                          : AppColors.ink,
+                    ),
                   ),
+                ),
+                if (reversalRow != null)
+                  const StatusChip('Estornada', kind: StatusKind.danger)
+                else if (app.isReversal)
+                  const StatusChip('Estorno', kind: StatusKind.neutral),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             _KvRow(
               label: 'Lote',
               value: (lot != null && lot.deletedAt == null)
@@ -218,23 +200,27 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
                       onTap: () => context.go(AppRoutes.loteDetail(lot.id)),
                       child: Text(
                         app.lotName,
-                        style: TextStyle(
-                          color: colorScheme.primary,
+                        style: const TextStyle(
+                          color: AppColors.primaryDarkText,
                           decoration: TextDecoration.underline,
                         ),
                       ),
                     )
                   : Text(
                       app.lotName,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.6),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
                       ),
                     ),
             ),
             const SizedBox(height: 8),
             _KvRow(
               label: 'Data da aplicação',
-              value: Text(_dateFmt.format(app.appliedAt)),
+              value: Text(
+                _dateFmt.format(app.appliedAt),
+                style: monoStyle(size: 14, weight: FontWeight.w600),
+              ),
             ),
             const SizedBox(height: 8),
             _KvRow(
@@ -242,6 +228,7 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
               value: Text(
                 '${_dosageFmt.format(app.dosagePerKg)} mL/kg '
                 '(${_dosageFmt.format(app.dosagePerUa)} mL/UA)',
+                style: monoStyle(size: 14),
               ),
             ),
             if (app.costPerKg != null) ...[
@@ -251,6 +238,7 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
                 value: Text(
                   '${formatCurrencyBrl(app.costPerKg!)}/kg '
                   '(${formatCurrencyBrl(app.costPerUa!)}/UA)',
+                  style: monoStyle(size: 14),
                 ),
               ),
             ],
@@ -266,10 +254,10 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
                   onTap: () => context.go(
                     AppRoutes.aplicacaoDetail(app.reversesApplicationId!),
                   ),
-                  child: Text(
+                  child: const Text(
                     'Ver aplicação original',
                     style: TextStyle(
-                      color: colorScheme.primary,
+                      color: AppColors.primaryDarkText,
                       decoration: TextDecoration.underline,
                     ),
                   ),
@@ -283,34 +271,45 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
                 value: InkWell(
                   onTap: () =>
                       context.go(AppRoutes.aplicacaoDetail(reversalRow!.id)),
-                  child: Text(
-                    '${_dateFmt.format(reversalRow!.createdAt.toLocal())} · Ver estorno',
-                    style: TextStyle(
-                      color: colorScheme.primary,
-                      decoration: TextDecoration.underline,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: _dateFmt.format(
+                            reversalRow!.createdAt.toLocal(),
+                          ),
+                          style: monoStyle(
+                            size: 14,
+                            weight: FontWeight.w600,
+                            color: AppColors.primaryDarkText,
+                          ),
+                        ),
+                        const TextSpan(
+                          text: ' · Ver estorno',
+                          style: TextStyle(
+                            color: AppColors.primaryDarkText,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ],
             const SizedBox(height: 12),
-            Text(
-              totalsParts.join(' · '),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.primary,
-              ),
-            ),
+            _TotalsLine(app: app),
             if (showEstornoAction) ...[
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
                 child: OutlinedButton.icon(
                   onPressed: () => _confirmEstorno(context, ref),
-                  icon: const Icon(Icons.undo),
-                  label: const Text('Estornar aplicação'),
+                  icon: const Icon(Icons.undo, size: 20),
+                  label: const Text('Estornar'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.error,
+                    foregroundColor: AppColors.danger,
+                    side: const BorderSide(color: AppColors.danger),
                   ),
                 ),
               ),
@@ -327,6 +326,7 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
       builder: (_) => EstornarAplicacaoDialog(
         applicationId: app.id,
         doseName: app.doseName,
+        appliedAt: app.appliedAt,
         lotId: app.lotId,
       ),
     );
@@ -343,32 +343,47 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
   }
 }
 
-/// Small rounded status badge — mutually exclusive with its sibling, matches
-/// `AtfHeaderCard`'s inline `Container` badge shape.
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({
-    required this.label,
-    required this.background,
-    required this.foreground,
-  });
+/// Totals line with the frozen aggregates, numbers mono, labels plain.
+class _TotalsLine extends StatelessWidget {
+  const _TotalsLine({required this.app});
 
-  final String label;
-  final Color background;
-  final Color foreground;
+  final SanitaryApplication app;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: foreground),
+    final valueStyle = monoStyle(
+      size: 14.5,
+      weight: FontWeight.w700,
+      color: AppColors.primaryDarkText,
+    );
+    const labelStyle = TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: AppColors.primaryDarkText,
+    );
+    return Text.rich(
+      TextSpan(
+        style: labelStyle,
+        children: [
+          TextSpan(text: '${app.animalCount.abs()}', style: valueStyle),
+          TextSpan(
+            text:
+                ' ${Intl.plural(app.animalCount.abs(), one: 'animal', other: 'animais')} · ',
+          ),
+          TextSpan(text: formatUa(app.totalUa.abs()), style: valueStyle),
+          const TextSpan(text: ' UA · '),
+          TextSpan(
+            text: formatVolumeMl(app.totalVolume.abs()),
+            style: valueStyle,
+          ),
+          if (app.totalCost != null) ...[
+            const TextSpan(text: ' · '),
+            TextSpan(
+              text: formatCurrencyBrl(app.totalCost!.abs()),
+              style: valueStyle,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -391,14 +406,7 @@ class _KvRow extends StatelessWidget {
       children: [
         SizedBox(
           width: 120,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
+          child: OverlineLabel(label),
         ),
         const SizedBox(width: 8),
         Expanded(child: value),
@@ -417,53 +425,63 @@ class _CompositionListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Composição', style: theme.textTheme.titleMedium),
-            const SizedBox(width: 8),
-            Text(
-              '(${Intl.plural(entries.length, one: '1 animal', other: '${entries.length} animais')})',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
+    return SectionCard(
+      title: 'Composição',
+      trailing: Text(
+        Intl.plural(
+          entries.length,
+          one: '1 animal',
+          other: '${entries.length} animais',
         ),
-        const SizedBox(height: 8),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: entries.length,
-          itemBuilder: (context, i) {
-            final e = entries[i];
-            return ListTile(
-              onTap: () => context.go(AppRoutes.animalDetail(e.animalId)),
-              title: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '#${e.number}',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextSpan(
-                      text:
-                          ' · ${kCategoryLabels[e.category] ?? e.category} · '
-                          '${formatUa(e.ua)} UA',
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                  ],
+        style: monoStyle(size: 13, color: AppColors.textSecondary),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: entries.length,
+        itemBuilder: (context, i) {
+          final e = entries[i];
+          return InkWell(
+            onTap: () => context.go(AppRoutes.animalDetail(e.animalId)),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: i == 0 ? Colors.transparent : AppColors.divider,
+                  ),
                 ),
               ),
-            );
-          },
-        ),
-      ],
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 52,
+                    child: Text(
+                      '#${e.number}',
+                      style: monoStyle(size: 16, weight: FontWeight.w700),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      kCategoryLabels[e.category] ?? e.category,
+                      style: const TextStyle(fontSize: 14.5),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    '${formatUa(e.ua)} UA',
+                    style: monoStyle(
+                      size: 12.5,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

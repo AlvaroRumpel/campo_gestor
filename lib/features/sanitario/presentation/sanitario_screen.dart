@@ -5,6 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/campo_app_bar.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../auth/data/property_repository.dart';
 import '../../lotes/data/lote_model.dart';
@@ -17,6 +20,7 @@ import '../data/sanitary_application_repository.dart';
 import '../data/sanitary_calculations.dart';
 import 'aplicacao_form_dialog.dart';
 import 'dose_form_dialog.dart';
+import 'registrar_aplicacao_screen.dart';
 
 final _dateFmt = DateFormat('dd/MM/yyyy');
 
@@ -27,10 +31,11 @@ final _dateFmt = DateFormat('dd/MM/yyyy');
 final NumberFormat _dosageFmt = NumberFormat('#,##0.##', 'pt_BR');
 
 /// The sanitary module's whole two-tab shell (`/sanitario` shell branch,
-/// D-16) — replaces the Phase 0 placeholder. Tab 1 is the global
-/// applications list (SANI-04); Tab 2 is the dose cadastro (SANI-01). Both
-/// FAB actions and the filter/toggle state below live on this single widget
-/// so every child reads one source (D-26, D-29).
+/// D-16), redesigned per spec 4.11: `CampoAppBar` + segmented control
+/// "Aplicações"/"Doses" (local state). Tab 1 is the global applications
+/// list (SANI-04); Tab 2 is the dose cadastro (SANI-01). Both FAB actions
+/// and the filter/toggle state below live on this single widget so every
+/// child reads one source (D-26, D-29).
 class SanitarioScreen extends ConsumerStatefulWidget {
   const SanitarioScreen({super.key});
 
@@ -38,20 +43,17 @@ class SanitarioScreen extends ConsumerStatefulWidget {
   ConsumerState<SanitarioScreen> createState() => _SanitarioScreenState();
 }
 
-class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
+  /// 0 = Aplicações, 1 = Doses (segmented control, spec 4.11).
+  int _tab = 0;
 
   /// Tracks the last-seeded raw query string (not a one-shot bool) so a
   /// second in-branch navigation with different `lote`/`animal` params
   /// (e.g. `Ver todas` from a different ficha) reseeds the filters instead
   /// of being silently dropped — this screen's `State` survives navigation
   /// within its `StatefulShellBranch` (WR-01). `GoRouterState.of(context)`
-  /// cannot be read in `initState` (Flutter's `State.initState` docs
-  /// explicitly forbid `dependOnInheritedWidgetOfExactType` there —
-  /// `didChangeDependencies`/`build` is the earliest safe point), so
-  /// seeding happens in `build` instead, synchronously before the tree is
-  /// returned.
+  /// cannot be read in `initState`, so seeding happens in `build`,
+  /// synchronously before the tree is returned.
   String? _lastSeededQuery;
 
   // Applications tab filters (D-26) — held here so both the filter row and
@@ -64,21 +66,6 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
 
   // Doses tab.
   bool _showArchived = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this)
-      ..addListener(() {
-        if (mounted) setState(() {});
-      });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 
   bool _canEdit(
     SelectedProperty? current,
@@ -105,34 +92,27 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
     final animal = queryParameters['animal'];
     if (lote != null) _lotFilterId = lote;
     if (animal != null) _animalFilterId = animal;
-    if (lote != null || animal != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _tabController.animateTo(0);
-      });
-    }
+    if (lote != null || animal != null) _tab = 0;
   }
 
-  Future<void> _openApplicationDialog() async {
-    // The dialog pops itself before pushing the selection screen, so its own
-    // future always completes with null — the count arrives through
-    // onRegistered instead (06-11). Awaiting showDialog here would silently
-    // drop the D-24 SnackBar.
-    await showDialog<void>(
-      context: context,
-      builder: (_) => AplicacaoFormDialog(
-        onRegistered: (count) {
-          if (!mounted) return;
-          ref.invalidate(sanitaryApplicationListByPropertyProvider);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(sanitaryRegisteredMessage(count))),
-          );
-        },
+  /// Redesigned entry point (spec 4.10): pushes the single-screen
+  /// registration flow directly — no header dialog hop anymore.
+  Future<void> _openRegistrarAplicacao() async {
+    final count = await Navigator.of(context, rootNavigator: true).push<int>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const RegistrarAplicacaoScreen(),
       ),
+    );
+    if (count == null || !mounted) return;
+    ref.invalidate(sanitaryApplicationListByPropertyProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(sanitaryRegisteredMessage(count))),
     );
   }
 
-  Future<void> _openDoseDialog({Dose? existing}) async {
-    final saved = await showDialog<bool>(
+  Future<void> _openDoseForm({Dose? existing}) async {
+    final saved = await showAdaptiveForm<bool>(
       context: context,
       builder: (_) => DoseFormDialog(existing: existing),
     );
@@ -170,17 +150,17 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
 
   Widget? _buildFab(bool canEdit, SelectedProperty? property) {
     if (!canEdit || property == null) return null;
-    if (_tabController.index == 0) {
-      return FloatingActionButton(
-        tooltip: 'Registrar aplicação',
-        onPressed: _openApplicationDialog,
-        child: const Icon(Icons.medical_services),
+    if (_tab == 0) {
+      return FloatingActionButton.extended(
+        onPressed: _openRegistrarAplicacao,
+        icon: const Icon(Icons.add),
+        label: const Text('Aplicação'),
       );
     }
-    return FloatingActionButton(
-      tooltip: 'Nova dose',
-      onPressed: () => _openDoseDialog(),
-      child: const Icon(Icons.add),
+    return FloatingActionButton.extended(
+      onPressed: () => _openDoseForm(),
+      icon: const Icon(Icons.add),
+      label: const Text('Dose'),
     );
   }
 
@@ -194,16 +174,36 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
     final canEdit = _canEdit(currentProperty, membersAsync.asData?.value);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sanitário'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [Tab(text: 'Aplicações'), Tab(text: 'Doses')],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildApplicationsTab(), _buildDosesTab(canEdit)],
+      appBar: const CampoAppBar(title: 'Sanitário'),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 0, label: Text('Aplicações')),
+                  ButtonSegment(value: 1, label: Text('Doses')),
+                ],
+                selected: {_tab},
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                ),
+                onSelectionChanged: (s) => setState(() => _tab = s.first),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _tab == 0
+                ? _buildApplicationsTab()
+                : _buildDosesTab(canEdit),
+          ),
+        ],
       ),
       floatingActionButton: _buildFab(canEdit, currentProperty),
     );
@@ -261,16 +261,29 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
 
               if (sorted.isEmpty) {
                 return rows.isEmpty
-                    ? const _EmptyNoApplicationsState()
-                    : const _EmptyFilteredApplicationsState();
+                    ? const EmptyState(
+                        icon: Icons.medical_services_outlined,
+                        title: 'Nenhuma aplicação registrada',
+                        message:
+                            'Registre uma aplicação sanitária em um lote.',
+                      )
+                    : const EmptyState(
+                        icon: Icons.medical_services_outlined,
+                        title: 'Nenhuma aplicação encontrada',
+                        message: 'Tente ajustar os filtros.',
+                      );
               }
 
               final reversedIds = reversedApplicationIds(rows);
               return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(14, 4, 14, 88),
                 itemCount: sorted.length,
-                itemBuilder: (context, i) => _AplicacaoCard(
-                  app: sorted[i],
-                  isReversed: reversedIds.contains(sorted[i].id),
+                itemBuilder: (context, i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _AplicacaoCard(
+                    app: sorted[i],
+                    isReversed: reversedIds.contains(sorted[i].id),
+                  ),
                 ),
               );
             },
@@ -286,63 +299,52 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
     final lots = lotsAsync.asData?.value ?? const <Lot>[];
     final doses = dosesAsync.asData?.value ?? const <Dose>[];
 
-    final lotValue = lots.any((l) => l.id == _lotFilterId)
-        ? _lotFilterId
-        : null;
-    final doseValue = doses.any((d) => d.id == _doseFilterId)
-        ? _doseFilterId
-        : null;
+    final selectedLot =
+        lots.where((l) => l.id == _lotFilterId).firstOrNull;
+    final selectedDose =
+        doses.where((d) => d.id == _doseFilterId).firstOrNull;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Row(
         children: [
-          DropdownButton<String?>(
-            value: lotValue,
-            hint: const Text('Todos os lotes'),
-            underline: const SizedBox(),
-            items: [
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text('Todos os lotes'),
-              ),
-              for (final l in lots)
-                DropdownMenuItem<String?>(value: l.id, child: Text(l.name)),
-            ],
-            onChanged: (v) => setState(() => _lotFilterId = v),
+          _FilterChipButton(
+            label: selectedLot?.name ?? 'Todos os lotes',
+            active: selectedLot != null,
+            onTap: () => _pickFilterOption<Lot>(
+              title: 'Lote',
+              allLabel: 'Todos os lotes',
+              options: lots,
+              labelOf: (l) => l.name,
+              onSelected: (l) => setState(() => _lotFilterId = l?.id),
+            ),
           ),
           const SizedBox(width: 8),
-          DropdownButton<String?>(
-            value: doseValue,
-            hint: const Text('Todas as doses'),
-            underline: const SizedBox(),
-            items: [
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text('Todas as doses'),
-              ),
-              for (final d in doses)
-                DropdownMenuItem<String?>(value: d.id, child: Text(d.name)),
-            ],
-            onChanged: (v) => setState(() => _doseFilterId = v),
+          _FilterChipButton(
+            label: selectedDose?.name ?? 'Todas as doses',
+            active: selectedDose != null,
+            onTap: () => _pickFilterOption<Dose>(
+              title: 'Dose',
+              allLabel: 'Todas as doses',
+              options: doses,
+              labelOf: (d) => d.name,
+              onSelected: (d) => setState(() => _doseFilterId = d?.id),
+            ),
           ),
           const SizedBox(width: 8),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.date_range),
-            label: Text(
-              _dateRangeFilter == null
-                  ? 'Período'
-                  : '${_dateFmt.format(_dateRangeFilter!.start)} - '
-                        '${_dateFmt.format(_dateRangeFilter!.end)}',
-            ),
-            onPressed: _pickDateRange,
+          _FilterChipButton(
+            label: _dateRangeFilter == null
+                ? 'Período'
+                : '${_dateFmt.format(_dateRangeFilter!.start)} - '
+                    '${_dateFmt.format(_dateRangeFilter!.end)}',
+            active: _dateRangeFilter != null,
+            mono: _dateRangeFilter != null,
+            onTap: _pickDateRange,
+            onClear: _dateRangeFilter == null
+                ? null
+                : () => setState(() => _dateRangeFilter = null),
           ),
-          if (_dateRangeFilter != null)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => setState(() => _dateRangeFilter = null),
-            ),
           if (_animalFilterId != null) ...[
             const SizedBox(width: 8),
             _buildAnimalFilterChip(),
@@ -352,14 +354,57 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
     );
   }
 
+  /// Bottom-sheet option picker shared by the lote/dose filter chips —
+  /// the "all" row clears the filter (null).
+  Future<void> _pickFilterOption<T>({
+    required String title,
+    required String allLabel,
+    required List<T> options,
+    required String Function(T) labelOf,
+    required void Function(T?) onSelected,
+  }) async {
+    final picked = await showModalBottomSheet<_FilterChoice<T>>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Text(
+                title,
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+            ),
+            ListTile(
+              title: Text(allLabel),
+              onTap: () =>
+                  Navigator.pop(ctx, const _FilterChoice(null)),
+            ),
+            for (final option in options)
+              ListTile(
+                title: Text(labelOf(option)),
+                onTap: () => Navigator.pop(ctx, _FilterChoice(option)),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && mounted) onSelected(picked.value);
+  }
+
   Widget _buildAnimalFilterChip() {
     final animal = ref
         .watch(animalByIdProvider(_animalFilterId!))
         .asData
         ?.value;
-    return Chip(
-      label: Text(animal != null ? '#${animal.number}' : 'Animal'),
-      onDeleted: () => setState(() => _animalFilterId = null),
+    return _FilterChipButton(
+      label: animal != null ? '#${animal.number}' : 'Animal',
+      active: true,
+      mono: animal != null,
+      onTap: () {},
+      onClear: () => setState(() => _animalFilterId = null),
     );
   }
 
@@ -377,7 +422,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
   }
 
   // ---------------------------------------------------------------------
-  // Doses tab (SANI-01)
+  // Doses tab (SANI-01, spec 4.11)
   // ---------------------------------------------------------------------
 
   Widget _buildDosesTab(bool canEdit) {
@@ -402,15 +447,26 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
               ),
             ),
             data: (doses) {
-              if (doses.isEmpty) return const _EmptyDosesState();
+              if (doses.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.science_outlined,
+                  title: 'Nenhuma dose cadastrada',
+                  message:
+                      'Cadastre uma dose para registrar aplicações sanitárias.',
+                );
+              }
               return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(14, 4, 14, 88),
                 itemCount: doses.length,
-                itemBuilder: (context, i) => _DoseCard(
-                  dose: doses[i],
-                  canEdit: canEdit,
-                  kgPerUa: kgPerUa,
-                  onEdit: () => _openDoseDialog(existing: doses[i]),
-                  onArchiveToggle: () => _toggleArchive(doses[i]),
+                itemBuilder: (context, i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _DoseCard(
+                    dose: doses[i],
+                    canEdit: canEdit,
+                    kgPerUa: kgPerUa,
+                    onEdit: () => _openDoseForm(existing: doses[i]),
+                    onArchiveToggle: () => _toggleArchive(doses[i]),
+                  ),
                 ),
               );
             },
@@ -426,13 +482,101 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
     required ValueChanged<bool> onChanged,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Text(label),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
           Switch(value: value, onChanged: onChanged),
         ],
+      ),
+    );
+  }
+}
+
+/// Wrapper so the sheet can distinguish "picked the all/clear row" (value
+/// null) from "dismissed the sheet" (result null).
+class _FilterChoice<T> {
+  const _FilterChoice(this.value);
+  final T? value;
+}
+
+/// Stadium dropdown-chip used by the applications filter row: label +
+/// expand_more (or close when clearable), green-tinted when active.
+class _FilterChipButton extends StatelessWidget {
+  const _FilterChipButton({
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.onClear,
+    this.mono = false,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+  final bool mono;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: active ? AppColors.positiveChipBg : AppColors.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: AppColors.chipBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: mono
+                  ? monoStyle(
+                      size: 13,
+                      weight: FontWeight.w600,
+                      color: active
+                          ? AppColors.primaryDarkText
+                          : AppColors.ink,
+                    )
+                  : TextStyle(
+                      fontSize: 13,
+                      fontWeight:
+                          active ? FontWeight.w600 : FontWeight.w400,
+                      color: active
+                          ? AppColors.primaryDarkText
+                          : AppColors.ink,
+                    ),
+            ),
+            const SizedBox(width: 4),
+            if (onClear != null)
+              InkWell(
+                onTap: onClear,
+                child: const Icon(
+                  Icons.close,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
+              )
+            else
+              const Icon(
+                Icons.expand_more,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -442,10 +586,11 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen>
 // Applications tab widgets
 // ---------------------------------------------------------------------------
 
-/// One application row (mirrors `_AtfCard`'s structure). Trailing badge is
-/// mutually exclusive: "Estornada" when [isReversed] (this row has itself
-/// been reversed), "Estorno" when the row is a reversal of another, or
-/// neither.
+/// One application card: dose name (riscado quando estornada — nunca
+/// removida da lista, regra transversal 4) + "dd/MM/yyyy · lote · N animais
+/// · X UA · R$ Y" com números em mono. Trailing chip is mutually exclusive:
+/// "Estornada" when [isReversed] (this row has itself been reversed),
+/// "Estorno" when the row is a reversal of another, or neither.
 class _AplicacaoCard extends StatelessWidget {
   const _AplicacaoCard({required this.app, required this.isReversed});
 
@@ -454,47 +599,47 @@ class _AplicacaoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final titleColor = isReversed ? AppColors.textTertiary : AppColors.ink;
+    final subColor =
+        isReversed ? AppColors.textTertiary : AppColors.textSecondary;
 
-    final parts = <String>[
-      _dateFmt.format(app.appliedAt),
-      app.lotName,
-      Intl.plural(
-        app.animalCount.abs(),
-        one: '1 animal',
-        other: '${app.animalCount.abs()} animais',
-        locale: 'pt_BR',
-      ),
-      '${formatUa(app.totalUa.abs())} UA',
-    ];
-    var subtitle = parts.join(' · ');
-    if (app.totalCost != null) {
-      subtitle = '$subtitle · ${formatCurrencyBrl(app.totalCost!.abs())}';
-    }
+    TextSpan monoSpan(String text) => TextSpan(
+          text: text,
+          style: monoStyle(size: 13, weight: FontWeight.w600, color: subColor),
+        );
 
-    Widget? badge;
+    final subtitle = TextSpan(
+      style: TextStyle(fontSize: 13, color: subColor),
+      children: [
+        monoSpan(_dateFmt.format(app.appliedAt)),
+        TextSpan(text: ' · ${app.lotName} · '),
+        monoSpan('${app.animalCount.abs()}'),
+        TextSpan(
+          text:
+              ' ${Intl.plural(app.animalCount.abs(), one: 'animal', other: 'animais', locale: 'pt_BR')} · ',
+        ),
+        monoSpan(formatUa(app.totalUa.abs())),
+        const TextSpan(text: ' UA'),
+        if (app.totalCost != null) ...[
+          const TextSpan(text: ' · '),
+          monoSpan(formatCurrencyBrl(app.totalCost!.abs())),
+        ],
+      ],
+    );
+
+    Widget? chip;
     if (isReversed) {
-      badge = _Badge(
-        label: 'Estornada',
-        background: colorScheme.errorContainer,
-        foreground: colorScheme.onErrorContainer,
-      );
+      chip = const StatusChip('Estornada', kind: StatusKind.danger);
     } else if (app.isReversal) {
-      badge = _Badge(
-        label: 'Estorno',
-        background: colorScheme.surfaceContainerHigh,
-        foreground: colorScheme.onSurface,
-      );
+      chip = const StatusChip('Estorno', kind: StatusKind.neutral);
     }
 
     return Card(
-      color: colorScheme.surfaceContainerHighest,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: () => context.go(AppRoutes.aplicacaoDetail(app.id)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -503,22 +648,23 @@ class _AplicacaoCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       app.doseName,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                        decoration:
+                            isReversed ? TextDecoration.lineThrough : null,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (badge != null) ...[const SizedBox(width: 8), badge],
+                  if (chip != null) ...[const SizedBox(width: 8), chip],
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
+              const SizedBox(height: 5),
+              Text.rich(
                 subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -530,90 +676,16 @@ class _AplicacaoCard extends StatelessWidget {
   }
 }
 
-class _EmptyNoApplicationsState extends StatelessWidget {
-  const _EmptyNoApplicationsState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.medical_services_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhuma aplicação registrada',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Registre uma aplicação sanitária em um lote.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyFilteredApplicationsState extends StatelessWidget {
-  const _EmptyFilteredApplicationsState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.medical_services_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhuma aplicação encontrada',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tente ajustar os filtros.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Doses tab widgets
+// Doses tab widgets (spec 4.11)
 // ---------------------------------------------------------------------------
 
-/// One dose row. Computed per-UA figures (primary-tinted) always come from
-/// `dosagePerUa`/`costPerUa` (`sanitary_calculations.dart`) — never restated
-/// inline (D-13). Cost chips are entirely absent when the dose has no known
-/// cost (D-11).
+/// One dose card: nome 16.5/700 + ícones edit/archive; princípio ativo 13
+/// secundário; tiles DOSAGEM e CUSTO (bg bone r10) com o valor por UA
+/// computado via `dosagePerUa`/`costPerUa` (`sanitary_calculations.dart`) —
+/// never restated inline (D-13). The CUSTO tile is entirely absent when the
+/// dose has no known cost (D-11). Archived: opacity 0.5 + chip "Arquivada"
+/// + unarchive icon.
 class _DoseCard extends StatelessWidget {
   const _DoseCard({
     required this.dose,
@@ -631,99 +703,94 @@ class _DoseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final isArchived = dose.isArchived;
     final dosageUa = dosagePerUa(dose.dosagePerKg, kgPerUa);
     final costUa = costPerUa(dose.costPerKg, kgPerUa);
-    final computedStyle = theme.textTheme.bodyMedium?.copyWith(
-      color: colorScheme.primary,
-    );
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Opacity(
-        opacity: isArchived ? 0.38 : 1.0,
+        opacity: isArchived ? 0.5 : 1.0,
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      dose.name,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (dose.activeIngredient != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        dose.activeIngredient!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${_dosageFmt.format(dose.dosagePerKg)} mL/kg',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        Text(
-                          '${_dosageFmt.format(dosageUa)} mL/UA',
-                          style: computedStyle,
-                        ),
-                        if (dose.costPerKg != null) ...[
-                          Text(
-                            '${formatCurrencyBrl(dose.costPerKg!)}/kg',
-                            style: theme.textTheme.bodyMedium,
+                          dose.name,
+                          style: const TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w700,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (dose.activeIngredient != null) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            '${formatCurrencyBrl(costUa!)}/UA',
-                            style: computedStyle,
+                            dose.activeIngredient!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ],
                     ),
-                  ],
-                ),
-              ),
-              if (isArchived) ...[
-                const SizedBox(width: 8),
-                _Badge(
-                  label: 'Arquivada',
-                  background: colorScheme.surfaceContainerHigh,
-                  foreground: colorScheme.onSurface,
-                ),
-              ],
-              if (canEdit) ...[
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  tooltip: 'Editar dose',
-                  onPressed: onEdit,
-                ),
-                IconButton(
-                  icon: Icon(
-                    isArchived
-                        ? Icons.unarchive_outlined
-                        : Icons.archive_outlined,
                   ),
-                  tooltip: isArchived ? 'Reativar dose' : 'Arquivar dose',
-                  onPressed: onArchiveToggle,
-                ),
-              ],
+                  if (isArchived) ...[
+                    const SizedBox(width: 8),
+                    const StatusChip('Arquivada', kind: StatusKind.neutral),
+                  ],
+                  if (canEdit) ...[
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 20),
+                      tooltip: 'Editar dose',
+                      onPressed: onEdit,
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        isArchived
+                            ? Icons.unarchive_outlined
+                            : Icons.archive_outlined,
+                        size: 20,
+                      ),
+                      tooltip: isArchived ? 'Reativar dose' : 'Arquivar dose',
+                      onPressed: onArchiveToggle,
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DoseInfoTile(
+                      label: 'Dosagem',
+                      base: '${_dosageFmt.format(dose.dosagePerKg)} mL/kg',
+                      computed: '${_dosageFmt.format(dosageUa)} mL/UA',
+                    ),
+                  ),
+                  if (dose.costPerKg != null) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _DoseInfoTile(
+                        label: 'Custo',
+                        base: '${formatCurrencyBrl(dose.costPerKg!)}/kg',
+                        computed: '${formatCurrencyBrl(costUa!)}/UA',
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),
@@ -732,75 +799,43 @@ class _DoseCard extends StatelessWidget {
   }
 }
 
-class _EmptyDosesState extends StatelessWidget {
-  const _EmptyDosesState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.science_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhuma dose cadastrada',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Cadastre uma dose para registrar aplicações sanitárias.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Shared
-// ---------------------------------------------------------------------------
-
-/// Small rounded status badge — same shape as `_HistoryBadge` in
-/// `sanitary_history_section.dart` (private-per-file duplication is this
-/// codebase's established convention for this exact widget).
-class _Badge extends StatelessWidget {
-  const _Badge({
+/// Tile bone r10 do card de dose: overline + valor base mono + valor por UA
+/// mono 700 verde.
+class _DoseInfoTile extends StatelessWidget {
+  const _DoseInfoTile({
     required this.label,
-    required this.background,
-    required this.foreground,
+    required this.base,
+    required this.computed,
   });
 
   final String label;
-  final Color background;
-  final Color foreground;
+  final String base;
+  final String computed;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
       decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(
-        label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: foreground),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          OverlineLabel(label),
+          const SizedBox(height: 4),
+          Text(base, style: monoStyle(size: 14, weight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text(
+            computed,
+            style: monoStyle(
+              size: 14,
+              weight: FontWeight.w700,
+              color: AppColors.primaryDarkText,
+            ),
+          ),
+        ],
       ),
     );
   }

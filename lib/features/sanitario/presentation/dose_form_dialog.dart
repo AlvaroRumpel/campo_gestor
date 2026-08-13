@@ -9,9 +9,10 @@ import '../data/kg_per_ua_resolver.dart';
 import '../data/sanitary_application_exception.dart';
 import '../data/sanitary_calculations.dart';
 
-/// Dialog for creating or editing a dose (SANI-01). [existing] present means
-/// edit mode — controllers seed from the passed row; absent means create
-/// mode. One widget, one code path.
+/// Form content for creating or editing a dose (SANI-01) — shown via
+/// `showAdaptiveForm` (bottom sheet <600px, dialog 480px acima). [existing]
+/// present means edit mode — controllers seed from the passed row; absent
+/// means create mode. One widget, one code path. Pops with `true` on save.
 ///
 /// The two "(calculado)" fields are disabled `TextFormField`s whose
 /// controllers are rewritten on every keystroke of their editable
@@ -159,20 +160,27 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
     final computedStyle = theme.textTheme.bodyMedium
         ?.copyWith(color: theme.colorScheme.primary);
 
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : Text(_isEditing ? 'Editar dose' : 'Nova dose'),
-      content: SizedBox(
-        width: 480,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_saving)
+                const LinearProgressIndicator()
+              else
+                Text(
+                  _isEditing ? 'Editar dose' : 'Nova dose',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              TextFormField(
                   controller: _nameCtrl,
                   autofocus: true,
                   decoration: const InputDecoration(
@@ -250,43 +258,74 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                   },
                 ),
                 if (costUa != null) ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _costUaCtrl,
-                    enabled: false,
-                    style: computedStyle,
-                    decoration: const InputDecoration(
-                      labelText: 'Custo por UA (calculado)',
-                      border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _costUaCtrl,
+                  enabled: false,
+                  style: computedStyle,
+                  decoration: const InputDecoration(
+                    labelText: 'Custo por UA (calculado)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _errorMessage!,
+                  style:
+                      TextStyle(color: theme.colorScheme.error, fontSize: 12),
+                ),
+              ],
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 10,
+                    child: SizedBox(
+                      height: 52,
+                      child: OutlinedButton(
+                        onPressed: _saving
+                            ? null
+                            : () => Navigator.pop(context, false),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 14,
+                    child: SizedBox(
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: _saving ? null : _submit,
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _saving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Salvar dose'),
+                      ),
                     ),
                   ),
                 ],
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
-      actions: [
-        if (_errorMessage != null)
-          Text(
-            _errorMessage!,
-            style: TextStyle(color: theme.colorScheme.error, fontSize: 12),
-          ),
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Salvar dose'),
-        ),
-      ],
     );
   }
 }

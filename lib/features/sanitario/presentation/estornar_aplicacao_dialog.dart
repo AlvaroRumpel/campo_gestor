@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../data/sanitary_application_exception.dart';
 import '../data/sanitary_application_repository.dart';
 
-/// Estorno confirmation dialog (D-27..D-31) — the one destructive-toned
-/// action in this phase. Mirrors [BaixaDialog]'s required-reason
-/// confirmation template: form key, validator, progress indicator in the
-/// title slot, action pair, saving flag.
+final _dateFmt = DateFormat('dd/MM/yyyy');
+
+/// Estorno confirmation dialog (D-27..D-31, spec 4.20) — the one
+/// destructive-toned action in this module. 480px dialog anatomy: undo icon
+/// in a danger container, título "Estornar X de dd/MM/yyyy?", body
+/// explaining the mirror record, required "MOTIVO DO ESTORNO *" input
+/// (danger border when empty), Cancelar outline + "Estornar aplicação"
+/// danger filled.
 ///
 /// Errors render inline (D-36) — this dialog never shows a SnackBar; success
 /// is the caller's job ([AplicacaoDetailScreen] shows it after this dialog
@@ -19,11 +25,15 @@ class EstornarAplicacaoDialog extends ConsumerStatefulWidget {
     super.key,
     required this.applicationId,
     required this.doseName,
+    required this.appliedAt,
     required this.lotId,
   });
 
   final String applicationId;
   final String doseName;
+
+  /// The frozen application date — part of the título per spec 4.20.
+  final DateTime appliedAt;
 
   /// Needed to resolve the existing reversal row when the RPC reports this
   /// application was already estornada (D-31 race) — the by-lot provider is
@@ -85,19 +95,41 @@ class _EstornarAplicacaoDialogState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return AlertDialog(
       title: _saving
           ? const LinearProgressIndicator()
-          : Text(
-              'Estornar aplicação "${widget.doseName}"?',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerContainer,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(
+                    Icons.undo,
+                    size: 21,
+                    color: AppColors.danger,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Estornar ${widget.doseName} de '
+                    '${_dateFmt.format(widget.appliedAt)}?',
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ),
+              ],
             ),
       content: SizedBox(
-        width: 400,
+        width: 480,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -105,19 +137,18 @@ class _EstornarAplicacaoDialogState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Esta ação cria um novo registro que anula os efeitos '
-                  'desta aplicação no histórico. Ambos os registros ficam '
-                  'permanentes — esta ação não pode ser desfeita.',
-                  style: theme.textTheme.bodyMedium,
+                const Text(
+                  'O registro original não é apagado: o estorno cria um '
+                  'lançamento espelho, os dois ficam ligados e os efeitos '
+                  'desta aplicação saem do histórico. Ambos os registros '
+                  'ficam permanentes — esta ação não pode ser desfeita.',
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _motivoCtrl,
                   maxLines: 3,
                   decoration: const InputDecoration(
-                    labelText: 'Motivo do estorno *',
-                    border: OutlineInputBorder(),
+                    labelText: 'MOTIVO DO ESTORNO *',
                   ),
                   validator: (value) => (value == null || value.trim().isEmpty)
                       ? 'Informe o motivo do estorno'
@@ -137,14 +168,14 @@ class _EstornarAplicacaoDialogState
         ),
       ),
       actions: [
-        TextButton(
+        OutlinedButton(
           onPressed: _saving ? null : () => Navigator.pop(context, false),
           child: const Text('Cancelar'),
         ),
         FilledButton(
           style: FilledButton.styleFrom(
-            backgroundColor: colorScheme.error,
-            foregroundColor: colorScheme.onError,
+            backgroundColor: AppColors.danger,
+            foregroundColor: AppColors.onDanger,
           ),
           onPressed: _saving ? null : _submit,
           child: _saving
@@ -153,7 +184,7 @@ class _EstornarAplicacaoDialogState
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Estornar'),
+              : const Text('Estornar aplicação'),
         ),
       ],
     );
@@ -177,7 +208,6 @@ class _ErrorSlot extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     String? reversalId;
     if (error.reason == SanitaryApplicationErrorReason.alreadyReversed) {
       final siblings =
@@ -193,9 +223,7 @@ class _ErrorSlot extends ConsumerWidget {
       children: [
         Text(
           error.message,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.error,
-          ),
+          style: const TextStyle(fontSize: 13.5, color: AppColors.danger),
         ),
         if (reversalId != null)
           Align(
