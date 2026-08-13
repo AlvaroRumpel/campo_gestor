@@ -8,6 +8,7 @@ import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
+import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
 import 'package:campo_gestor/features/reproducao/presentation/atf_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -109,6 +110,12 @@ class _FakeAtfRepository implements AtfRepository {
 
   @override
   Future<void> closeAtf(String atfBatchId) async {}
+
+  @override
+  Future<Map<String, AnimalReproStatus>> fetchAnimalReproStatusByProperty(
+    String propertyId,
+  ) async =>
+      {};
 }
 
 // ---------------------------------------------------------------------------

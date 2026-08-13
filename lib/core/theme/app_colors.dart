@@ -54,6 +54,8 @@ abstract final class AppColors {
   static const Color positiveChipBg = Color(0x1F3D5435); // rgba(61,84,53,0.12)
   static const Color navPillBg = Color(0x243D5435); // rgba .14
   static const Color neutralChipBg = Color(0x1423281E); // rgba .08
+  static const Color rowHover = Color(0xFFEFF1E8); // linha de tabela desktop
+  static const Color rowSelected = Color(0xFFE7EDDF); // linha de tabela desktop
 
   // Glass (sobre header verde)
   static const Color glassCard = Color(0x1FF5F3EB); // .12

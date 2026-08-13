@@ -1,3 +1,4 @@
+import '../../../core/widgets/ui.dart';
 import 'dg_record_model.dart';
 
 /// Result of aggregating a list of [DgRecord]s into the % prenhez indicator
@@ -81,4 +82,71 @@ String formatPrenhez(DgSummary summary) {
   final pendenteWord = summary.pending == 1 ? 'pendente' : 'pendentes';
   return '$percent% prenhez (${summary.pregnant}/${summary.total} DG · '
       '${summary.pending} $pendenteWord)';
+}
+
+/// Per-animal reproductive status (Task 1, quick task 260813-p10) — the
+/// single source shared by AnimaisTableView and AnimalDetailPanel via
+/// [label]/[chipKind], so tabela and painel never drift on the status switch.
+enum AnimalReproStatus {
+  prenhe,
+  vazia,
+  duvidosa,
+  dgPendente,
+  foraDoAtf;
+
+  /// Display label in pt-BR.
+  String get label => switch (this) {
+        AnimalReproStatus.prenhe => 'Prenhe',
+        AnimalReproStatus.vazia => 'Vazia',
+        AnimalReproStatus.duvidosa => 'Duvidosa',
+        AnimalReproStatus.dgPendente => 'DG pendente',
+        AnimalReproStatus.foraDoAtf => 'Fora do ATF',
+      };
+
+  /// [StatusChip] kind pairing for the shared status chip.
+  StatusKind get chipKind => switch (this) {
+        AnimalReproStatus.prenhe => StatusKind.positive,
+        AnimalReproStatus.vazia => StatusKind.danger,
+        AnimalReproStatus.duvidosa => StatusKind.warning,
+        AnimalReproStatus.dgPendente => StatusKind.neutral,
+        AnimalReproStatus.foraDoAtf => StatusKind.neutral,
+      };
+}
+
+/// Reduces active ATF memberships + DG records into a per-animal
+/// reproductive status (Task 1, quick task 260813-p10). Pure — no Supabase
+/// dependency.
+///
+/// For each entry in [activeMemberships], selects the [dgRecords] matching
+/// its `(animalId, atfBatchId)` pair and keeps the [isLaterDg] winner — the
+/// same exam-date tie-break [AtfRepository.fetchReproductiveHistory] uses,
+/// so the two never drift. No matching DG yields
+/// [AnimalReproStatus.dgPendente]. An animal absent from [activeMemberships]
+/// is absent from the result map — the consumer applies
+/// [AnimalReproStatus.foraDoAtf] as the default.
+Map<String, AnimalReproStatus> reduceAnimalReproStatus({
+  required List<({String animalId, String atfBatchId})> activeMemberships,
+  required List<DgRecord> dgRecords,
+}) {
+  final result = <String, AnimalReproStatus>{};
+  for (final membership in activeMemberships) {
+    DgRecord? winner;
+    for (final dg in dgRecords) {
+      if (dg.animalId != membership.animalId ||
+          dg.atfBatchId != membership.atfBatchId) {
+        continue;
+      }
+      if (winner == null || isLaterDg(dg, winner)) {
+        winner = dg;
+      }
+    }
+    final dgResult = winner == null ? null : DgResult.fromDb(winner.result);
+    result[membership.animalId] = switch (dgResult) {
+      null => AnimalReproStatus.dgPendente,
+      DgResult.pregnant => AnimalReproStatus.prenhe,
+      DgResult.notPregnant => AnimalReproStatus.vazia,
+      DgResult.doubtful => AnimalReproStatus.duvidosa,
+    };
+  }
+  return result;
 }

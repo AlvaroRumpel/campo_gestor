@@ -377,6 +377,43 @@ class AtfRepository {
       'p_atf_batch_id': atfBatchId,
     });
   }
+
+  /// Reproductive status per animal for [propertyId] (Task 1, quick task
+  /// 260813-p10) — the desktop table + detail panel status source.
+  ///
+  /// Two queries, mirroring [fetchAtfSummaries]'s idiom: one for active
+  /// memberships, one for DG records, both filtered by `property_id`
+  /// directly (no per-ATF fan-out). Reduction delegated to
+  /// [reduceAnimalReproStatus] — the ONE place the DG tie-break rule lives.
+  Future<Map<String, AnimalReproStatus>> fetchAnimalReproStatusByProperty(
+    String propertyId,
+  ) async {
+    final membershipRows = await _service.client
+        .from('animal_atf_memberships')
+        .select('animal_id, atf_batch_id')
+        .eq('property_id', propertyId)
+        .eq('active', true);
+    final activeMemberships = (membershipRows as List).map((row) {
+      final map = row as Map<String, dynamic>;
+      return (
+        animalId: map['animal_id'] as String,
+        atfBatchId: map['atf_batch_id'] as String,
+      );
+    }).toList();
+
+    final dgRows = await _service.client
+        .from('dg_records')
+        .select()
+        .eq('property_id', propertyId);
+    final dgRecords = (dgRows as List)
+        .map((r) => DgRecord.fromJson(r as Map<String, dynamic>))
+        .toList();
+
+    return reduceAnimalReproStatus(
+      activeMemberships: activeMemberships,
+      dgRecords: dgRecords,
+    );
+  }
 }
 
 final atfRepositoryProvider = Provider<AtfRepository>(
@@ -426,6 +463,17 @@ final reproductiveHistoryByAnimalProvider =
         (ref, animalId) async {
   final repo = ref.watch(atfRepositoryProvider);
   return repo.fetchReproductiveHistory(animalId);
+});
+
+/// Reproductive status per animal for the active property (Task 1, quick
+/// task 260813-p10) — the AnimaisTableView + AnimalDetailPanel status
+/// source. Resolves the active property internally. Returns {} when none.
+final animalReproStatusByPropertyProvider =
+    FutureProvider<Map<String, AnimalReproStatus>>((ref) async {
+  final property = await ref.watch(currentPropertyProvider.future);
+  if (property == null) return const {};
+  final repo = ref.watch(atfRepositoryProvider);
+  return repo.fetchAnimalReproStatusByProperty(property.id);
 });
 
 /// Eligible animals for the animal-selection picker (D-06/D-07/D-09).
