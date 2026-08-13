@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../auth/data/property_repository.dart';
@@ -15,10 +16,31 @@ import '../../piquetes/data/piquete_repository.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
+import 'animais_filters.dart';
+import 'animais_table_view.dart';
+import 'animal_detail_panel.dart';
 import 'animal_form_dialog.dart';
 
+/// Seleção efêmera de tela (mestre-detalhe desktop, Task 3, quick task
+/// 260813-p10) — não persistida, some ao trocar de tela. `Notifier` puro
+/// (não `StateProvider`, movido para `legacy.dart` no Riverpod 3.x e não
+/// usado em nenhum outro provider deste projeto).
+class _SelectedAnimalIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void select(String? id) => state = id;
+}
+
+final _selectedAnimalIdProvider =
+    NotifierProvider<_SelectedAnimalIdNotifier, String?>(
+  _SelectedAnimalIdNotifier.new,
+);
+
 /// Lista densa de animais (spec 4.3): filtros + faixa de totais + lista
-/// branca agrupada por piquete/lote com linhas densas (spec 3.9).
+/// branca agrupada por piquete/lote com linhas densas (spec 3.9) em
+/// <1024px. A partir de [Breakpoints.rail], tabela densa +
+/// [AnimalDetailPanel] mestre-detalhe (Task 3, quick task 260813-p10).
 class AnimaisScreen extends ConsumerStatefulWidget {
   const AnimaisScreen({super.key});
 
@@ -32,6 +54,7 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
   String? _lotId; // null = 'Todos os lotes'
   String? _paddockId; // null = 'Todos os piquetes'
   bool _showArchived = false;
+  bool _sortDescending = false;
   Timer? _debounce;
   final _searchCtrl = TextEditingController();
 
@@ -63,6 +86,11 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
 
   /// Non-category filters (search, archived toggle, lote, piquete) — shared
   /// by the visible list and by the per-category chip counts.
+  ///
+  /// Task 3 (260813-p10): a busca desktop também casa por nome de lote — a
+  /// regra D-17 de match exato por número segue intocada, e um match por
+  /// lote respeita o toggle de arquivados normalmente (só o número exato o
+  /// ignora).
   bool _passesBaseFilters(AnimalWithContext aw) {
     final a = aw.animal;
     // D-17: an exact-number search bypasses the archived toggle — a
@@ -72,8 +100,11 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
     if (!_showArchived && a.deletedAt != null && !isExactNumberMatch) {
       return false;
     }
-    if (_query.isNotEmpty && !a.number.toString().contains(_query)) {
-      return false;
+    if (_query.isNotEmpty) {
+      final matchesNumber = a.number.toString().contains(_query);
+      final matchesLot =
+          aw.lotName.toLowerCase().contains(_query.toLowerCase());
+      if (!matchesNumber && !matchesLot) return false;
     }
     if (_lotId != null && a.lotId != _lotId) return false;
     if (_paddockId != null && aw.paddockId != _paddockId) return false;
@@ -97,173 +128,249 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
     final currentProperty = currentPropAsync.asData?.value;
     final canEdit = _canEdit(currentProperty, membersAsync.asData?.value);
 
-    return Scaffold(
-      appBar: const CampoAppBar(title: 'Animais'),
-      floatingActionButton: (canEdit && currentProperty != null)
-          ? FloatingActionButton.extended(
-              onPressed: () => _openCreateForm(currentProperty),
-              icon: const Icon(Icons.add, size: 22),
-              label: const Text('Animal'),
-            )
-          : null,
-      body: animalsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) =>
-            const Center(child: Text('Erro ao carregar animais.')),
-        data: (animals) {
-          // Build deduplicated lot map from animal context
-          final allLots = <String, String>{};
-          for (final aw in animals) {
-            allLots[aw.animal.lotId] = aw.lotName;
-          }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= Breakpoints.rail;
 
-          final base = animals.where(_passesBaseFilters).toList();
+        return Scaffold(
+          appBar: const CampoAppBar(title: 'Animais'),
+          floatingActionButton:
+              (!isDesktop && canEdit && currentProperty != null)
+                  ? FloatingActionButton.extended(
+                      onPressed: () => _openCreateForm(currentProperty),
+                      icon: const Icon(Icons.add, size: 22),
+                      label: const Text('Animal'),
+                    )
+                  : null,
+          body: animalsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, st) =>
+                const Center(child: Text('Erro ao carregar animais.')),
+            data: (animals) {
+              // Build deduplicated lot map from animal context
+              final allLots = <String, String>{};
+              for (final aw in animals) {
+                allLots[aw.animal.lotId] = aw.lotName;
+              }
 
-          // Per-category counts on the base filters (spec 3.5: "Vaca 98").
-          final categoryCounts = <String, int>{};
-          for (final aw in base) {
-            categoryCounts.update(
-              aw.animal.category,
-              (n) => n + 1,
-              ifAbsent: () => 1,
-            );
-          }
+              final base = animals.where(_passesBaseFilters).toList();
 
-          final filtered = base
-              .where((aw) => _category == null || aw.animal.category == _category)
-              .toList()
-            ..sort((a, b) => a.animal.number.compareTo(b.animal.number));
+              // Per-category counts on the base filters (spec 3.5: "Vaca 98").
+              final categoryCounts = <String, int>{};
+              for (final aw in base) {
+                categoryCounts.update(
+                  aw.animal.category,
+                  (n) => n + 1,
+                  ifAbsent: () => 1,
+                );
+              }
 
-          final totalUa = calcTotalUa(filtered.map((aw) => aw.animal));
-          final paddocks = paddocksAsync.asData?.value ?? const <Paddock>[];
+              final filtered = base
+                  .where(
+                      (aw) => _category == null || aw.animal.category == _category)
+                  .toList()
+                ..sort((a, b) => _sortDescending
+                    ? b.animal.number.compareTo(a.animal.number)
+                    : a.animal.number.compareTo(b.animal.number));
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Bloco de filtros (spec 4.3)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-                child: Column(
+              final totalUa = calcTotalUa(filtered.map((aw) => aw.animal));
+              final paddocks =
+                  paddocksAsync.asData?.value ?? const <Paddock>[];
+
+              if (!isDesktop) {
+                // <1024px: byte-a-byte o comportamento atual, sem alteração.
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextField(
-                      controller: _searchCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: 'Buscar número',
-                        prefixIcon: const Icon(Icons.search,
-                            size: 22, color: AppColors.textSecondary),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  setState(() => _query = '');
-                                },
-                                icon: const Icon(Icons.close, size: 20),
-                              ),
-                      ),
-                      onChanged: _onSearchChanged,
-                    ),
-                    const SizedBox(height: 8),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+                    // Bloco de filtros (spec 4.3)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _CategoryChip(
-                            label: 'Todas',
-                            count: base.length,
-                            selected: _category == null,
-                            onSelected: (_) => setState(() => _category = null),
-                          ),
-                          for (final c in kCategories) ...[
-                            const SizedBox(width: 8),
-                            _CategoryChip(
-                              label: kCategoryLabels[c]!,
-                              count: categoryCounts[c] ?? 0,
-                              selected: _category == c,
-                              onSelected: (sel) =>
-                                  setState(() => _category = sel ? c : null),
+                          TextField(
+                            controller: _searchCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              hintText: 'Buscar número',
+                              prefixIcon: const Icon(Icons.search,
+                                  size: 22, color: AppColors.textSecondary),
+                              suffixIcon: _query.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      onPressed: () {
+                                        _searchCtrl.clear();
+                                        setState(() => _query = '');
+                                      },
+                                      icon: const Icon(Icons.close, size: 20),
+                                    ),
                             ),
-                          ],
+                            onChanged: _onSearchChanged,
+                          ),
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _CategoryChip(
+                                  label: 'Todas',
+                                  count: base.length,
+                                  selected: _category == null,
+                                  onSelected: (_) =>
+                                      setState(() => _category = null),
+                                ),
+                                for (final c in kCategories) ...[
+                                  const SizedBox(width: 8),
+                                  _CategoryChip(
+                                    label: kCategoryLabels[c]!,
+                                    count: categoryCounts[c] ?? 0,
+                                    selected: _category == c,
+                                    onSelected: (sel) => setState(
+                                        () => _category = sel ? c : null),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              FilterMenuChip(
+                                addLabel: '+ Lote',
+                                selectedLabel:
+                                    _lotId == null ? null : allLots[_lotId],
+                                entries: allLots,
+                                onSelected: (id) =>
+                                    setState(() => _lotId = id),
+                                onCleared: () =>
+                                    setState(() => _lotId = null),
+                              ),
+                              const SizedBox(width: 8),
+                              FilterMenuChip(
+                                addLabel: '+ Piquete',
+                                selectedLabel: _paddockId == null
+                                    ? null
+                                    : paddocks
+                                        .where((p) => p.id == _paddockId)
+                                        .map((p) => p.name)
+                                        .firstOrNull,
+                                entries: {
+                                  for (final p in paddocks) p.id: p.name
+                                },
+                                onSelected: (id) =>
+                                    setState(() => _paddockId = id),
+                                onCleared: () =>
+                                    setState(() => _paddockId = null),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _FilterMenuChip(
-                          addLabel: '+ Lote',
-                          selectedLabel:
-                              _lotId == null ? null : allLots[_lotId],
-                          entries: allLots,
-                          onSelected: (id) => setState(() => _lotId = id),
-                          onCleared: () => setState(() => _lotId = null),
-                        ),
-                        const SizedBox(width: 8),
-                        _FilterMenuChip(
-                          addLabel: '+ Piquete',
-                          selectedLabel: _paddockId == null
-                              ? null
-                              : paddocks
-                                  .where((p) => p.id == _paddockId)
-                                  .map((p) => p.name)
-                                  .firstOrNull,
-                          entries: {for (final p in paddocks) p.id: p.name},
-                          onSelected: (id) => setState(() => _paddockId = id),
-                          onCleared: () => setState(() => _paddockId = null),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Faixa de totais + toggle arquivados (spec 3.9)
-              StatsStrip(
-                child: Row(
-                  children: [
-                    Text(
-                      '${filtered.length} animais · ${_fmtUa(totalUa)} UA',
-                      style: monoStyle(size: 13, weight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      'arquivados',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.textSecondary,
+                    // Faixa de totais + toggle arquivados (spec 3.9)
+                    StatsStrip(
+                      child: Row(
+                        children: [
+                          Text(
+                            '${filtered.length} animais · ${_fmtUa(totalUa)} UA',
+                            style:
+                                monoStyle(size: 13, weight: FontWeight.w600),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            'arquivados',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Switch(
+                            value: _showArchived,
+                            onChanged: (v) =>
+                                setState(() => _showArchived = v),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Switch(
-                      value: _showArchived,
-                      onChanged: (v) => setState(() => _showArchived = v),
+                    // Lista branca agrupada
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? animals.isEmpty
+                              ? const EmptyState(
+                                  icon: Icons.pets_outlined,
+                                  title: 'Nenhum animal cadastrado',
+                                  message:
+                                      'Crie um lote no piquete para registrar os animais da fazenda.',
+                                )
+                              : const EmptyState(
+                                  icon: Icons.search_off,
+                                  title: 'Nenhum animal encontrado',
+                                  message:
+                                      'Tente ajustar os filtros ou a busca por número.',
+                                )
+                          : _GroupedAnimalList(items: filtered),
                     ),
                   ],
-                ),
-              ),
-              // Lista branca agrupada
-              Expanded(
-                child: filtered.isEmpty
-                    ? animals.isEmpty
-                        ? const EmptyState(
-                            icon: Icons.pets_outlined,
-                            title: 'Nenhum animal cadastrado',
-                            message:
-                                'Crie um lote no piquete para registrar os animais da fazenda.',
-                          )
-                        : const EmptyState(
-                            icon: Icons.search_off,
-                            title: 'Nenhum animal encontrado',
-                            message:
-                                'Tente ajustar os filtros ou a busca por número.',
-                          )
-                    : _GroupedAnimalList(items: filtered),
-              ),
-            ],
-          );
-        },
-      ),
+                );
+              }
+
+              // >=1024px: tabela densa + painel lateral mestre-detalhe.
+              final selectedId = ref.watch(_selectedAnimalIdProvider);
+              final selected = filtered
+                  .where((aw) => aw.animal.id == selectedId)
+                  .firstOrNull;
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: AnimaisTableView(
+                      filtered: filtered,
+                      base: base,
+                      propertyAnimals: animals,
+                      allLots: allLots,
+                      paddocks: paddocks,
+                      query: _query,
+                      category: _category,
+                      lotId: _lotId,
+                      paddockId: _paddockId,
+                      showArchived: _showArchived,
+                      onQueryChanged: _onSearchChanged,
+                      onCategoryChanged: (c) => setState(() => _category = c),
+                      onLotChanged: (id) => setState(() => _lotId = id),
+                      onPaddockChanged: (id) =>
+                          setState(() => _paddockId = id),
+                      onShowArchivedChanged: (v) =>
+                          setState(() => _showArchived = v),
+                      canEdit: canEdit,
+                      selectedId: selected?.animal.id,
+                      onSelect: (id) => ref
+                          .read(_selectedAnimalIdProvider.notifier)
+                          .select(id),
+                      onCreate: currentProperty == null
+                          ? () {}
+                          : () => _openCreateForm(currentProperty),
+                      sortDescending: _sortDescending,
+                      onToggleSort: () =>
+                          setState(() => _sortDescending = !_sortDescending),
+                    ),
+                  ),
+                  if (selected != null)
+                    AnimalDetailPanel(
+                      key: ValueKey(selected.animal.id),
+                      item: selected,
+                      canEdit: canEdit,
+                      onClose: () => ref
+                          .read(_selectedAnimalIdProvider.notifier)
+                          .select(null),
+                    ),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -271,7 +378,7 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
 String _fmtUa(double ua) => ua.toStringAsFixed(1).replaceAll('.', ',');
 
 // ---------------------------------------------------------------------------
-// Private widgets
+// Private widgets (mobile <1024px — inalterados, Task 3, 260813-p10)
 // ---------------------------------------------------------------------------
 
 /// Filter chip de categoria com contagem embutida em mono (spec 3.5).
@@ -321,91 +428,6 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-/// Chip de filtro lote/piquete: "+ Lote" abre menu; selecionado vira chip
-/// removível "Lote A ✕" (spec 3.5).
-class _FilterMenuChip extends StatelessWidget {
-  const _FilterMenuChip({
-    required this.addLabel,
-    required this.selectedLabel,
-    required this.entries,
-    required this.onSelected,
-    required this.onCleared,
-  });
-
-  final String addLabel;
-  final String? selectedLabel;
-  final Map<String, String> entries;
-  final ValueChanged<String> onSelected;
-  final VoidCallback onCleared;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = selectedLabel;
-    if (label != null) {
-      // Chip removível — tap remove o filtro.
-      return InkWell(
-        onTap: onCleared,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          height: 34,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: const Color(0x1A3D5435),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryDarkText,
-                ),
-              ),
-              const SizedBox(width: 5),
-              const Icon(Icons.close,
-                  size: 16, color: AppColors.primaryDarkText),
-            ],
-          ),
-        ),
-      );
-    }
-    return PopupMenuButton<String>(
-      tooltip: addLabel,
-      onSelected: onSelected,
-      itemBuilder: (context) => [
-        for (final e in entries.entries)
-          PopupMenuItem<String>(value: e.key, child: Text(e.value)),
-      ],
-      child: Container(
-        height: 34,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.chipBorder),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              addLabel,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const Icon(Icons.expand_more,
-                size: 16, color: AppColors.textSecondary),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Item da lista achatada: cabeçalho de grupo ou linha de animal.
 class _ListEntry {
   const _ListEntry.header(this.headerTitle, this.headerCount, this.headerUa)
@@ -431,7 +453,7 @@ class _GroupedAnimalList extends StatelessWidget {
     // Agrupa por piquete+lote, ordena grupos por nome.
     final groups = <String, List<AnimalWithContext>>{};
     for (final aw in items) {
-      groups.putIfAbsent('${aw.paddockName} ${aw.lotName}', () => [])
+      groups.putIfAbsent('${aw.paddockName} ${aw.lotName}', () => [])
           .add(aw);
     }
     final keys = groups.keys.toList()..sort();
