@@ -42,6 +42,7 @@ abstract final class AppColors {
   static const Color textTertiary = Color(0x7323281E); // ~0.45
   static const Color onGreen = Color(0xFFF5F3EB);
   static const Color onGreenSecondary = Color(0xB3F5F3EB); // ~0.7
+  static const Color onGreenMuted = Color(0xCCF5F3EB); // ~0.8, item de nav inativo sobre verde
   static const Color gold = Color(0xFFE8CE9A); // destaque em header verde
 
   // Bordas / tracks
