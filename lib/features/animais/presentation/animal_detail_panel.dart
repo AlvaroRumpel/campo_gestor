@@ -262,7 +262,9 @@ class _AnimalDetailPanelState extends ConsumerState<AnimalDetailPanel> {
                         onPressed: _onBaixa,
                         style: OutlinedButton.styleFrom(
                           padding: EdgeInsets.zero,
-                          side: const BorderSide(color: Color(0x4DA32D14)),
+                          side: BorderSide(
+                            color: AppColors.danger.withValues(alpha: 0.30),
+                          ),
                           foregroundColor: AppColors.danger,
                         ),
                         child: const Tooltip(
