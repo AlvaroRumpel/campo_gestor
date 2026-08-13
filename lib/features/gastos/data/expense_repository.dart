@@ -41,6 +41,23 @@ class ExpenseRepository {
         .toList();
   }
 
+  /// Active (non-deleted) expenses for the whole property — the dashboard's
+  /// month-aggregate source. Additive method (redesign wave): mirrors
+  /// [fetchExpensesByPaddock]'s query shape with a property filter; never
+  /// includes archived rows because no dashboard figure counts them.
+  Future<List<Expense>> fetchExpensesByProperty(String propertyId) async {
+    final rows = await _service.client
+        .from('expenses')
+        .select()
+        .eq('property_id', propertyId)
+        .isFilter('deleted_at', null)
+        .order('expense_date', ascending: false)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((r) => Expense.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Create an expense. Blank [description] is sent as null, never an empty
   /// string — the nullable column is what lets the "omit the row" rendering
   /// rule downstream work (D-04), mirroring `createDose`'s handling of
