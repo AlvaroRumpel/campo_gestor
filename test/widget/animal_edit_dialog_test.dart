@@ -127,7 +127,7 @@ void main() {
       await tester.pumpWidget(_buildDialog());
       await tester.pump();
 
-      expect(find.widgetWithText(TextButton, 'Cancelar'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Cancelar'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Salvar'), findsOneWidget);
     });
   });

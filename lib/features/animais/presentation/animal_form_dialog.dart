@@ -2,23 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../lotes/data/lote_repository.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_repository.dart';
 
-/// Dialog for creating an individual animal in an existing lot.
+/// Formulário de criação de animal — conteúdo para [showAdaptiveForm]
+/// (bottom sheet <600px / dialog 480px).
 ///
-/// Auto-fills the [Número] field by calling [AnimalRepository.generateAnimalNumber]
-/// on init, but the user may overwrite it (D-07).
+/// Auto-preenche o Número via [AnimalRepository.generateAnimalNumber] (D-07),
+/// mas o usuário pode sobrescrever. Quando [lotId] é null (FAB da lista de
+/// animais), mostra um seletor de lote obrigatório; quando vem preenchido
+/// (ficha do lote), o lote é fixo e o campo não aparece.
 ///
-/// Submits via [AnimalRepository.createAnimal]. On [AnimalNumberConflictException]
-/// shows the D-07 SnackBar. On success pops with `true`.
+/// Submete via [AnimalRepository.createAnimal]. Em
+/// [AnimalNumberConflictException] mostra o SnackBar D-07. Em sucesso faz pop
+/// com `true`.
 class AnimalFormDialog extends ConsumerStatefulWidget {
   const AnimalFormDialog({
     super.key,
-    required this.lotId,
+    this.lotId,
     required this.propertyId,
   });
-  final String lotId;
+  final String? lotId;
   final String propertyId;
 
   @override
@@ -30,6 +36,7 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
   String? _category;
   String? _breed;
   int? _bodyCondition;
+  String? _selectedLotId;
   final _numberCtrl = TextEditingController();
   final _observationCtrl = TextEditingController();
   bool _saving = false;
@@ -38,6 +45,7 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
   @override
   void initState() {
     super.initState();
+    _selectedLotId = widget.lotId;
     _fetchAutoNumber();
   }
 
@@ -79,6 +87,13 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
       );
       return;
     }
+    final lotId = _selectedLotId;
+    if (lotId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione o lote do animal')),
+      );
+      return;
+    }
     final number = int.tryParse(_numberCtrl.text.trim());
     if (number == null || number <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +106,7 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
     try {
       await ref.read(animalRepositoryProvider).createAnimal(
             propertyId: widget.propertyId,
-            lotId: widget.lotId,
+            lotId: lotId,
             category: _category!,
             number: number,
             breed: _breed,
@@ -100,7 +115,7 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
                 ? null
                 : _observationCtrl.text.trim(),
           );
-      ref.invalidate(animalListByLotProvider(widget.lotId));
+      ref.invalidate(animalListByLotProvider(lotId));
       ref.invalidate(animalListByPropertyProvider);
       if (mounted) Navigator.pop(context, true);
     } on AnimalNumberConflictException catch (e) {
@@ -120,129 +135,207 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : const Text('Novo animal'),
-      content: SizedBox(
-        width: 400,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
         child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: _category,
-                  decoration: const InputDecoration(
-                    labelText: 'Categoria *',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final c in kCategories)
-                      DropdownMenuItem(
-                        value: c,
-                        child: Text(kCategoryLabels[c]!),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _category = v),
-                  validator: (v) =>
-                      v == null ? 'Selecione a categoria do animal' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _numberCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Número *',
-                    border: const OutlineInputBorder(),
-                    hintText: _loadingNumber ? 'Carregando…' : 'Auto-gerado',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Informe o número';
-                    }
-                    final n = int.tryParse(v.trim());
-                    if (n == null || n <= 0) {
-                      return 'Informe um número inteiro positivo';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String?>(
-                  initialValue: _breed,
-                  decoration: const InputDecoration(
-                    labelText: 'Raça',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    const DropdownMenuItem<String?>(
-                      value: null,
-                      child: Text('— Sem raça'),
-                    ),
-                    for (final b in kBreeds)
-                      DropdownMenuItem<String?>(
-                        value: b,
-                        child: Text(b),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _breed = v),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Estado corporal',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    for (final n in const [1, 2, 3, 4, 5])
-                      ChoiceChip(
-                        label: SizedBox(
-                          width: 28,
-                          child: Center(child: Text('$n')),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Novo animal',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (widget.lotId == null) ...[
+                        _LotDropdown(
+                          value: _selectedLotId,
+                          onChanged: (v) =>
+                              setState(() => _selectedLotId = v),
                         ),
-                        selected: _bodyCondition == n,
-                        onSelected: (sel) =>
-                            setState(() => _bodyCondition = sel ? n : null),
+                        const SizedBox(height: 14),
+                      ],
+                      DropdownButtonFormField<String>(
+                        initialValue: _category,
+                        decoration: const InputDecoration(
+                          labelText: 'Categoria *',
+                        ),
+                        items: [
+                          for (final c in kCategories)
+                            DropdownMenuItem(
+                              value: c,
+                              child: Text(kCategoryLabels[c]!),
+                            ),
+                        ],
+                        onChanged: (v) => setState(() => _category = v),
+                        validator: (v) => v == null
+                            ? 'Selecione a categoria do animal'
+                            : null,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _observationCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Observação',
-                    border: OutlineInputBorder(),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _numberCtrl,
+                        style: monoStyle(size: 15.5, weight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          labelText: 'Número *',
+                          hintText:
+                              _loadingNumber ? 'Carregando…' : 'Auto-gerado',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Informe o número';
+                          }
+                          final n = int.tryParse(v.trim());
+                          if (n == null || n <= 0) {
+                            return 'Informe um número inteiro positivo';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<String?>(
+                        initialValue: _breed,
+                        decoration: const InputDecoration(labelText: 'Raça'),
+                        items: [
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('— Sem raça'),
+                          ),
+                          for (final b in kBreeds)
+                            DropdownMenuItem<String?>(
+                              value: b,
+                              child: Text(b),
+                            ),
+                        ],
+                        onChanged: (v) => setState(() => _breed = v),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text(
+                        'ESTADO CORPORAL',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          for (final n in const [1, 2, 3, 4, 5])
+                            ChoiceChip(
+                              label: SizedBox(
+                                width: 28,
+                                child: Center(
+                                  child: Text(
+                                    '$n',
+                                    style: monoStyle(
+                                      size: 14,
+                                      weight: FontWeight.w600,
+                                      color: _bodyCondition == n
+                                          ? AppColors.onGreen
+                                          : AppColors.ink,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              selected: _bodyCondition == n,
+                              onSelected: (sel) => setState(
+                                  () => _bodyCondition = sel ? n : null),
+                              showCheckmark: false,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: _observationCtrl,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Observação',
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 10,
+                    child: OutlinedButton(
+                      onPressed:
+                          _saving ? null : () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 14,
+                    child: FilledButton(
+                      onPressed: _saving ? null : _submit,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Adicionar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Adicionar'),
-        ),
+    );
+  }
+}
+
+/// Seletor de lote (obrigatório quando o formulário abre sem lote fixo).
+class _LotDropdown extends ConsumerWidget {
+  const _LotDropdown({required this.value, required this.onChanged});
+
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lotsAsync = ref.watch(loteListByPropertyProvider);
+    final lots = lotsAsync.asData?.value ?? const [];
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: const InputDecoration(labelText: 'Lote *'),
+      items: [
+        for (final lot in lots)
+          DropdownMenuItem(value: lot.id, child: Text(lot.name)),
       ],
+      onChanged: onChanged,
+      validator: (v) => v == null ? 'Selecione o lote do animal' : null,
     );
   }
 }

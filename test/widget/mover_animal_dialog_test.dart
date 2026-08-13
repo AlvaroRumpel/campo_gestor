@@ -2,6 +2,7 @@
 // Wave 0 stubs. Implementation lands in Plan 04-02 (MoverAnimalDialog).
 // Decisions enforced: D-02 (lot picker), D-03 (item format), D-05 (SnackBar copy).
 import 'package:campo_gestor/core/services/supabase_service.dart';
+import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/animais/presentation/mover_animal_dialog.dart';
@@ -96,9 +97,9 @@ Widget _buildDialog({Animal? animal}) {
 }
 
 /// Host that mirrors AnimalDetailScreen's onMover: opens the dialog via
-/// showDialog, and on a non-null pop result shows the parent's SnackBar
-/// copy — so submit-flow tests can assert the whole tap -> confirm ->
-/// SnackBar path rather than the dialog in isolation (IN-01).
+/// showAdaptiveForm (the production path), and on a non-null pop result shows
+/// the parent's SnackBar copy — so submit-flow tests can assert the whole
+/// tap -> confirm -> SnackBar path rather than the dialog in isolation (IN-01).
 Widget _buildHost(_FakeAnimalRepo repo, {Animal? animal}) {
   return ProviderScope(
     overrides: [
@@ -121,7 +122,7 @@ Widget _buildHost(_FakeAnimalRepo repo, {Animal? animal}) {
           builder: (context) => Center(
             child: ElevatedButton(
               onPressed: () async {
-                final result = await showDialog<Map<String, String>>(
+                final result = await showAdaptiveForm<Map<String, String>>(
                   context: context,
                   builder: (_) =>
                       MoverAnimalDialog(animal: animal ?? _sampleAnimal),
@@ -160,7 +161,7 @@ void main() {
       await tester.pumpWidget(_buildDialog());
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(TextButton, 'Cancelar'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Cancelar'), findsOneWidget);
       expect(
         find.widgetWithText(FilledButton, 'Confirmar movimentação'),
         findsOneWidget,

@@ -104,15 +104,12 @@ Widget _buildDialogWithContainer(ProviderContainer container) {
 
 void main() {
   group('BaixaDialog (ANIM-04)', () {
-    testWidgets('renders title "Confirmar baixa do animal #<N>?"',
+    testWidgets('renders title "Dar baixa no #<N>" (spec 4.15)',
         (tester) async {
       await tester.pumpWidget(_buildDialog());
       await tester.pump();
 
-      expect(
-        find.text('Confirmar baixa do animal #42?'),
-        findsOneWidget,
-      );
+      expect(find.text('Dar baixa no #42'), findsOneWidget);
     });
 
     testWidgets('renders 3 motivo options labeled "Venda", "Morte", "Descarte"',

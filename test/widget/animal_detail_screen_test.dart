@@ -1,18 +1,22 @@
-// MOV-01, SC-3 — AnimalDetailScreen: "Mover animal" button gate.
-// Wave 0 stubs. AnimalInfoCard.onMover parameter lands in Plan 04-02.
-// Asserts: button absent when canEdit=false; present when isActive && canEdit.
+// MOV-01, SC-3, REPR-05, SANI-05 — AnimalDetailScreen (ficha timeline).
+// Redesign spec 4.4: green header + action bar (vet only) + state card +
+// merged reproductive/sanitary timeline (spec 3.11).
+// Asserts: action gating by role/archived state; timeline merge, ordering,
+// estorno strikethrough, navigation; baixa banner content.
 import 'dart:async';
 
+import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/animais/presentation/animal_detail_screen.dart';
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
-import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
+import 'package:campo_gestor/features/sanitario/data/sanitary_application_model.dart';
+import 'package:campo_gestor/features/sanitario/data/sanitary_application_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,6 +85,39 @@ final _atfInverno = ReproductiveHistoryEntry(
 );
 
 // ---------------------------------------------------------------------------
+// Sample sanitary applications (SANI-05, D-25)
+// ---------------------------------------------------------------------------
+
+SanitaryApplication _app({
+  required String id,
+  required String doseName,
+  required DateTime appliedAt,
+  String? reversesApplicationId,
+  String? notes,
+}) =>
+    SanitaryApplication(
+      id: id,
+      propertyId: 'prop-1',
+      lotId: 'lot-A',
+      lotName: 'Lote A',
+      paddockId: 'pad-1',
+      paddockName: 'Piquete 3',
+      doseId: 'dose-1',
+      doseName: doseName,
+      dosagePerKg: 1,
+      dosagePerUa: 400,
+      appliedAt: appliedAt,
+      appliedBy: 'user-1',
+      animalCount: 12,
+      totalUa: 10,
+      totalVolume: 4000,
+      skippedCount: 0,
+      reversesApplicationId: reversesApplicationId,
+      notes: notes,
+      createdAt: appliedAt,
+    );
+
+// ---------------------------------------------------------------------------
 // Widget builder
 // ---------------------------------------------------------------------------
 //
@@ -94,6 +131,8 @@ Widget _buildScreen({
   required String role,
   Future<List<ReproductiveHistoryEntry>> Function(String animalId)?
       historyBuilder,
+  Future<List<SanitaryApplication>> Function(String animalId)?
+      sanitaryBuilder,
   Future<LotWithPaddockName?> Function(String lotId)? lotWithPaddockBuilder,
 }) {
   final membership = role == 'veterinarian' ? _vetMembership : _readerMembership;
@@ -101,9 +140,16 @@ Widget _buildScreen({
     overrides: [
       animalByIdProvider.overrideWith((ref, id) async => animal),
       memberPropertiesProvider.overrideWith((ref) async => [membership]),
-      if (historyBuilder != null)
-        reproductiveHistoryByAnimalProvider
-            .overrideWith((ref, id) => historyBuilder(id)),
+      reproductiveHistoryByAnimalProvider.overrideWith(
+        (ref, id) => historyBuilder == null
+            ? Future.value(const <ReproductiveHistoryEntry>[])
+            : historyBuilder(id),
+      ),
+      sanitaryHistoryByAnimalProvider.overrideWith(
+        (ref, id) => sanitaryBuilder == null
+            ? Future.value(const <SanitaryApplication>[])
+            : sanitaryBuilder(id),
+      ),
       if (lotWithPaddockBuilder != null)
         loteWithPaddockByIdProvider
             .overrideWith((ref, id) => lotWithPaddockBuilder(id)),
@@ -118,55 +164,17 @@ Widget _buildScreen({
   );
 }
 
-/// AnimalInfoCard mounted directly, inside the same ListView(padding: 16)
-/// shell the real ficha uses — not the whole AnimalDetailScreen.
-///
-/// Used only by the width-breakpoint tests (D-21, SC-5). Isolating
-/// AnimalInfoCard keeps those tests scoped to what this plan's Task 2
-/// actually changed (_KvRow + the lote/piquete rows) and away from
-/// `sanitary_history_section.dart`'s header row, which has its own
-/// pre-existing RenderFlex overflow at narrow widths (D-37 locks that file
-/// — this plan cannot touch it; see SUMMARY "Known Issues").
-Widget _buildInfoCard({
-  required Animal animal,
-  bool canEdit = true,
-  Future<LotWithPaddockName?> Function(String lotId)? lotWithPaddockBuilder,
-}) {
-  return ProviderScope(
-    overrides: [
-      if (lotWithPaddockBuilder != null)
-        loteWithPaddockByIdProvider
-            .overrideWith((ref, id) => lotWithPaddockBuilder(id)),
-    ],
-    child: MaterialApp(
-      home: Scaffold(
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            AnimalInfoCard(
-              animal: animal,
-              canEdit: canEdit,
-              onEdit: () {},
-              onBaixa: () {},
-              onMover: () {},
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
 // ---------------------------------------------------------------------------
-// Router harness (A-NAV-TEST) — asserts the reproductive history row tap
-// navigates to the /atf/:atfId path, mirroring lote_detail_screen_test.dart's
-// GoRouter harness for the back-button navigation assertion.
+// Router harness (A-NAV-TEST) — asserts timeline event taps navigate to
+// /atf/:atfId and /aplicacoes/:id.
 // ---------------------------------------------------------------------------
 
 Widget _buildRoutedScreen({
   required Animal animal,
-  required Future<List<ReproductiveHistoryEntry>> Function(String animalId)
+  Future<List<ReproductiveHistoryEntry>> Function(String animalId)?
       historyBuilder,
+  Future<List<SanitaryApplication>> Function(String animalId)?
+      sanitaryBuilder,
 }) {
   final router = GoRouter(
     initialLocation: '/animais/${animal.id}',
@@ -182,14 +190,28 @@ Widget _buildRoutedScreen({
           body: Text('atf-detail-${state.pathParameters['atfId']}'),
         ),
       ),
+      GoRoute(
+        path: '/aplicacoes/:id',
+        builder: (context, state) => Scaffold(
+          body: Text('aplicacao-detail-${state.pathParameters['id']}'),
+        ),
+      ),
     ],
   );
   return ProviderScope(
     overrides: [
       animalByIdProvider.overrideWith((ref, id) async => animal),
       memberPropertiesProvider.overrideWith((ref) async => [_vetMembership]),
-      reproductiveHistoryByAnimalProvider
-          .overrideWith((ref, id) => historyBuilder(id)),
+      reproductiveHistoryByAnimalProvider.overrideWith(
+        (ref, id) => historyBuilder == null
+            ? Future.value(const <ReproductiveHistoryEntry>[])
+            : historyBuilder(id),
+      ),
+      sanitaryHistoryByAnimalProvider.overrideWith(
+        (ref, id) => sanitaryBuilder == null
+            ? Future.value(const <SanitaryApplication>[])
+            : sanitaryBuilder(id),
+      ),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -200,55 +222,111 @@ Widget _buildRoutedScreen({
 // ---------------------------------------------------------------------------
 
 void main() {
-  // AnimalInfoCard formats dates with DateFormat(..., 'pt_BR'); locale data
-  // must be initialized once before pumping any widget that reaches it.
+  // Dates are formatted with pt-BR pickers downstream; locale data must be
+  // initialized once before pumping any widget that reaches it.
   setUpAll(() async {
     await initializeDateFormatting('pt_BR', null);
   });
 
-  group('AnimalDetailScreen — Mover animal button (MOV-01, SC-3)', () {
-    testWidgets('shows Mover animal button when active && canEdit',
+  group('AnimalDetailScreen — ações (MOV-01, SC-3, T-3-21/22)', () {
+    testWidgets('shows Editar/Mover/dar baixa when active && vet',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(animal: _activeAnimal, role: 'veterinarian'),
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.widgetWithText(OutlinedButton, 'Mover animal'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(FilledButton, 'Editar'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Mover'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_downward), findsOneWidget);
     });
 
-    testWidgets('hides Mover animal button when role is reader',
+    testWidgets('hides all action buttons when role is reader',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(animal: _activeAnimal, role: 'reader'),
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.widgetWithText(OutlinedButton, 'Mover animal'),
-        findsNothing,
-      );
+      expect(find.widgetWithText(FilledButton, 'Editar'), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, 'Mover'), findsNothing);
+      expect(find.byIcon(Icons.arrow_downward), findsNothing);
     });
 
-    testWidgets('hides Mover animal button when animal is archived',
+    testWidgets('hides Mover and dar baixa when animal is archived',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(animal: _archivedAnimal, role: 'veterinarian'),
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.widgetWithText(OutlinedButton, 'Mover animal'),
-        findsNothing,
-      );
+      // Editar stays available for the vet; the active-only actions go away.
+      expect(find.widgetWithText(FilledButton, 'Editar'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Mover'), findsNothing);
+      expect(find.byIcon(Icons.arrow_downward), findsNothing);
     });
   });
 
-  group('AnimalDetailScreen — Histórico Reprodutivo (REPR-05, D-14, 05-UI-SPEC E8)', () {
-    testWidgets('empty: renders "Nenhum ATF registrado para este animal."',
+  group('AnimalDetailScreen — header verde (spec 4.4)', () {
+    testWidgets('renders hero number, category, UA badge and glass tiles',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          animal: _activeAnimal,
+          role: 'veterinarian',
+          lotWithPaddockBuilder: (id) async => LotWithPaddockName(
+            lot: Lot(
+              id: 'lot-A',
+              propertyId: 'prop-1',
+              paddockId: 'pad-1',
+              name: 'Lote A',
+              createdAt: DateTime(2025, 1, 1),
+            ),
+            paddockName: 'Piquete Norte',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('#9'), findsOneWidget);
+      expect(find.text('Vaca'), findsOneWidget);
+      // vaca = 1.0 UA (kUaWeights), comma decimal
+      expect(find.text('1,0'), findsOneWidget);
+      expect(find.text('UA'), findsOneWidget);
+      expect(find.text('LOTE'), findsOneWidget);
+      expect(find.text('PIQUETE'), findsOneWidget);
+      expect(find.text('Lote A'), findsOneWidget);
+      expect(find.text('Piquete Norte'), findsOneWidget);
+    });
+
+    testWidgets(
+        'lote+piquete read failing does not hide the animal\'s own header',
+        (tester) async {
+      final animal = _activeAnimal.copyWith(
+        breed: 'Nelore',
+        bodyCondition: 3,
+        observation: 'Manso.',
+      );
+      await tester.pumpWidget(
+        _buildScreen(
+          animal: animal,
+          role: 'veterinarian',
+          lotWithPaddockBuilder: (id) async => throw Exception('boom'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('#9'), findsOneWidget);
+      expect(find.text('LOTE'), findsOneWidget);
+      expect(find.text('PIQUETE'), findsOneWidget);
+      // EC and observação are set, so the only "—" fallbacks come from the
+      // two failed glass tiles.
+      expect(find.text('—'), findsNWidgets(2));
+    });
+  });
+
+  group('AnimalDetailScreen — timeline reprodutiva (REPR-05, spec 3.11)', () {
+    testWidgets('empty history: timeline still shows the cadastro event',
         (tester) async {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
@@ -257,30 +335,28 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Nenhum ATF registrado para este animal.'),
-        findsOneWidget,
-      );
+      expect(find.text('Cadastrado no rebanho'), findsOneWidget);
+      expect(find.textContaining('DG —'), findsNothing);
     });
 
     testWidgets(
-        'loading: renders a section-local spinner while the rest of the ficha still renders',
+        'loading: renders a card-local spinner while the header still renders',
         (tester) async {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
         role: 'veterinarian',
-        historyBuilder: (id) => Completer<List<ReproductiveHistoryEntry>>().future,
+        historyBuilder: (id) =>
+            Completer<List<ReproductiveHistoryEntry>>().future,
       ));
       await tester.pump();
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.text('Número'), findsOneWidget);
-      expect(find.text('Histórico Sanitário'), findsOneWidget);
+      expect(find.text('#9'), findsOneWidget);
     });
 
     testWidgets(
-        'error: renders "Erro ao carregar histórico reprodutivo." and the info card stays present',
+        'error: renders "Erro ao carregar histórico reprodutivo." with retry, header stays',
         (tester) async {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
@@ -293,11 +369,12 @@ void main() {
         find.text('Erro ao carregar histórico reprodutivo.'),
         findsOneWidget,
       );
-      expect(find.text('Número'), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
+      expect(find.text('#9'), findsOneWidget);
     });
 
     testWidgets(
-        'populated: renders one row per entry, in the order supplied (insemination date descending)',
+        'populated: one event per entry, newest first, with result chips',
         (tester) async {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
@@ -309,16 +386,27 @@ void main() {
       expect(find.textContaining('ATF Primavera'), findsOneWidget);
       expect(find.textContaining('ATF Inverno'), findsOneWidget);
       expect(find.textContaining('ATF Outono'), findsOneWidget);
+      // Timeline chip labels (spec 4.4): Prenhe (solid) / Vazia (danger).
+      expect(find.text('Prenhe'), findsOneWidget);
+      expect(find.text('Vazia'), findsOneWidget);
 
-      final primaveraY = tester.getTopLeft(find.textContaining('ATF Primavera')).dy;
+      // Ordering: Primavera DG (10/2026) > Inverno insem (07/2026) >
+      // Outono DG (05/2026).
+      final primaveraY =
+          tester.getTopLeft(find.textContaining('ATF Primavera')).dy;
       final invernoY = tester.getTopLeft(find.textContaining('ATF Inverno')).dy;
       final outonoY = tester.getTopLeft(find.textContaining('ATF Outono')).dy;
       expect(primaveraY, lessThan(invernoY));
       expect(invernoY, lessThan(outonoY));
+
+      // Cadastro event renders last.
+      final cadastroY =
+          tester.getTopLeft(find.text('Cadastrado no rebanho')).dy;
+      expect(outonoY, lessThan(cadastroY));
     });
 
     testWidgets(
-        'partial: an entry with no DG yet renders "aguardando DG" and no result Chip',
+        'partial: an entry with no DG yet renders "aguardando DG" and no chip',
         (tester) async {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
@@ -327,36 +415,12 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('aguardando DG'), findsOneWidget);
+      expect(find.textContaining('aguardando DG'), findsOneWidget);
+      expect(find.text('Prenhe'), findsNothing);
+      expect(find.text('Vazia'), findsNothing);
     });
 
-    testWidgets(
-        'read-only: the section renders no ChoiceChip and no button (D-13)',
-        (tester) async {
-      await tester.pumpWidget(_buildScreen(
-        animal: _activeAnimal,
-        role: 'veterinarian',
-        historyBuilder: (id) async => [_atfPrimavera, _atfOutono, _atfInverno],
-      ));
-      await tester.pumpAndSettle();
-
-      final sectionCard = find.ancestor(
-        of: find.text('Histórico Reprodutivo'),
-        matching: find.byType(Card),
-      );
-      expect(sectionCard, findsOneWidget);
-      expect(
-        find.descendant(
-          of: sectionCard,
-          matching: find.byWidgetPredicate(
-            (w) => w is ChoiceChip || w is ButtonStyleButton || w is IconButton,
-          ),
-        ),
-        findsNothing,
-      );
-    });
-
-    testWidgets('navigation: tapping a row navigates to /atf/:atfId',
+    testWidgets('navigation: tapping a repro event navigates to /atf/:atfId',
         (tester) async {
       await tester.pumpWidget(_buildRoutedScreen(
         animal: _activeAnimal,
@@ -371,34 +435,189 @@ void main() {
     });
   });
 
-  group('AnimalDetailScreen — Observação display', () {
-    testWidgets('shows Observação label and text when observation is set',
-        (tester) async {
-      final animal = _activeAnimal.copyWith(observation: 'Manso, fácil manejo.');
-      await tester.pumpWidget(_buildScreen(animal: animal, role: 'veterinarian'));
+  group('AnimalDetailScreen — timeline sanitária (SANI-05, spec 3.11)', () {
+    testWidgets('renders dose name and frozen lot detail', (tester) async {
+      await tester.pumpWidget(_buildScreen(
+        animal: _activeAnimal,
+        role: 'veterinarian',
+        sanitaryBuilder: (id) async => [
+          _app(
+            id: 'app-1',
+            doseName: 'Ivomec Gold',
+            appliedAt: DateTime(2026, 5, 12),
+          ),
+        ],
+      ));
       await tester.pumpAndSettle();
 
-      expect(find.text('Observação'), findsOneWidget);
-      expect(find.text('Manso, fácil manejo.'), findsOneWidget);
+      expect(find.text('Ivomec Gold'), findsOneWidget);
+      expect(
+        find.text('lote da época: Lote A · 400 mL/UA'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('hides Observação label when observation is null',
+    testWidgets(
+        'estornada: original renders struck-through with block icon and reversal detail; the reversal row itself is not listed',
         (tester) async {
+      await tester.pumpWidget(_buildScreen(
+        animal: _activeAnimal,
+        role: 'veterinarian',
+        sanitaryBuilder: (id) async => [
+          _app(
+            id: 'rev-1',
+            doseName: 'Vacina Aftosa',
+            appliedAt: DateTime(2026, 4, 4),
+            reversesApplicationId: 'app-2',
+            notes: 'dose errada',
+          ),
+          _app(
+            id: 'app-2',
+            doseName: 'Vacina Aftosa',
+            appliedAt: DateTime(2026, 4, 3),
+          ),
+        ],
+      ));
+      await tester.pumpAndSettle();
+
+      // Only the original row renders (the reversal is its subtitle).
+      expect(find.text('Vacina Aftosa'), findsOneWidget);
+      expect(find.text('estornada em 04/04 — dose errada'), findsOneWidget);
+      expect(find.byIcon(Icons.block), findsOneWidget);
+
+      final title = tester.widget<Text>(find.text('Vacina Aftosa'));
+      expect(title.style?.decoration, TextDecoration.lineThrough);
+    });
+
+    testWidgets(
+        'navigation: tapping a sanitary event navigates to /aplicacoes/:id',
+        (tester) async {
+      await tester.pumpWidget(_buildRoutedScreen(
+        animal: _activeAnimal,
+        sanitaryBuilder: (id) async => [
+          _app(
+            id: 'app-7',
+            doseName: 'Ivomec Gold',
+            appliedAt: DateTime(2026, 5, 12),
+          ),
+        ],
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ivomec Gold'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('aplicacao-detail-app-7'), findsOneWidget);
+    });
+  });
+
+  group('AnimalDetailScreen — filtros e "ver histórico completo"', () {
+    testWidgets('Sanitário filter hides reproductive events', (tester) async {
+      await tester.pumpWidget(_buildScreen(
+        animal: _activeAnimal,
+        role: 'veterinarian',
+        historyBuilder: (id) async => [_atfPrimavera],
+        sanitaryBuilder: (id) async => [
+          _app(
+            id: 'app-1',
+            doseName: 'Ivomec Gold',
+            appliedAt: DateTime(2026, 5, 12),
+          ),
+        ],
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('ATF Primavera'), findsOneWidget);
+      expect(find.text('Ivomec Gold'), findsOneWidget);
+
+      await tester.tap(find.text('Sanitário'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('ATF Primavera'), findsNothing);
+      expect(find.text('Ivomec Gold'), findsOneWidget);
+
+      await tester.tap(find.text('Reprodução'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('ATF Primavera'), findsOneWidget);
+      expect(find.text('Ivomec Gold'), findsNothing);
+    });
+
+    testWidgets(
+        '>10 events: truncates at 10 and "Ver histórico completo (N)" expands',
+        (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      tester.view.physicalSize = const Size(800, 3000);
+      tester.view.devicePixelRatio = 1.0;
+
+      final apps = [
+        for (var i = 0; i < 12; i++)
+          _app(
+            id: 'app-$i',
+            doseName: 'Dose $i',
+            appliedAt: DateTime(2026, 1, 1).add(Duration(days: i)),
+          ),
+      ];
+      await tester.pumpWidget(_buildScreen(
+        animal: _activeAnimal,
+        role: 'veterinarian',
+        sanitaryBuilder: (id) async => apps,
+      ));
+      await tester.pumpAndSettle();
+
+      // 12 sanitary + cadastro = 13 total, only 10 rendered.
+      expect(find.text('Ver histórico completo (13)'), findsOneWidget);
+      expect(find.text('Cadastrado no rebanho'), findsNothing);
+
+      await tester.tap(find.text('Ver histórico completo (13)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ver histórico completo (13)'), findsNothing);
+      expect(find.text('Cadastrado no rebanho'), findsOneWidget);
+    });
+
+    testWidgets('timeline card is read-only — no buttons among the events',
+        (tester) async {
+      await tester.pumpWidget(_buildScreen(
+        animal: _activeAnimal,
+        role: 'veterinarian',
+        historyBuilder: (id) async => [_atfPrimavera, _atfOutono],
+      ));
+      await tester.pumpAndSettle();
+
+      final timelineCard = find.ancestor(
+        of: find.text('Cadastrado no rebanho'),
+        matching: find.byType(Card),
+      );
+      expect(timelineCard, findsOneWidget);
+      expect(
+        find.descendant(
+          of: timelineCard,
+          matching: find.byWidgetPredicate(
+            (w) => w is ButtonStyleButton || w is IconButton,
+          ),
+        ),
+        findsNothing,
+      );
+    });
+  });
+
+  group('AnimalDetailScreen — card de estado (EC + observação)', () {
+    testWidgets('shows EC meter and observation text when both set',
+        (tester) async {
+      final animal = _activeAnimal.copyWith(
+        bodyCondition: 3,
+        observation: 'Manso, fácil manejo.',
+      );
       await tester.pumpWidget(
-        _buildScreen(animal: _activeAnimal, role: 'veterinarian'),
+        _buildScreen(animal: animal, role: 'veterinarian'),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Observação'), findsNothing);
-    });
-
-    testWidgets('hides Observação label when observation is blank string',
-        (tester) async {
-      final animal = _activeAnimal.copyWith(observation: '');
-      await tester.pumpWidget(_buildScreen(animal: animal, role: 'veterinarian'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Observação'), findsNothing);
+      expect(find.text('ESTADO CORPORAL'), findsOneWidget);
+      expect(find.text('3/5'), findsOneWidget);
+      expect(find.text('OBSERVAÇÃO'), findsOneWidget);
+      expect(find.text('Manso, fácil manejo.'), findsOneWidget);
     });
 
     testWidgets('renders full multi-line observation text, not just first line',
@@ -406,38 +625,27 @@ void main() {
       final animal = _activeAnimal.copyWith(
         observation: 'Tratamento inicial em 10/01.\nBaixa em 20/03: vendido.',
       );
-      await tester.pumpWidget(_buildScreen(animal: animal, role: 'veterinarian'));
+      await tester.pumpWidget(
+        _buildScreen(animal: animal, role: 'veterinarian'),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text('Observação'), findsOneWidget);
       expect(find.textContaining('Baixa em 20/03: vendido.'), findsOneWidget);
     });
   });
 
-  // ---------------------------------------------------------------------
-  // 360px width harness (D-23) — first width-constrained widget test in
-  // this repo. Set inside individual testWidgets bodies (not the shared
-  // builder) so it never leaks into the tests above. Copy these three
-  // lines for any future width-constrained test:
-  //
-  //   addTearDown(tester.view.resetPhysicalSize);
-  //   tester.view.physicalSize = const Size(360, 800);
-  //   tester.view.devicePixelRatio = 1.0;
-  // ---------------------------------------------------------------------
-
   group('AnimalDetailScreen — Banner de baixa (D-12..D-15, SC-4)', () {
-    testWidgets('active animal: no banner, no Status label (D-15 guard)',
-        (tester) async {
+    testWidgets('active animal: no banner', (tester) async {
       await tester.pumpWidget(
         _buildScreen(animal: _activeAnimal, role: 'veterinarian'),
       );
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.info_outline), findsNothing);
-      expect(find.text('Status'), findsNothing);
     });
 
-    testWidgets('sold animal with date and observation: banner shows reason, date and observation',
+    testWidgets(
+        'sold animal with date and observation: banner shows reason, date and observation',
         (tester) async {
       final animal = _archivedAnimal.copyWith(
         baixaDate: DateTime(2025, 6, 1),
@@ -450,12 +658,14 @@ void main() {
 
       expect(find.byIcon(Icons.info_outline), findsOneWidget);
       expect(
-        find.textContaining('Vendido em 01/06/2025 — Vendido em leilão da região.'),
+        find.textContaining(
+            'Vendido em 01/06/2025 — Vendido em leilão da região.'),
         findsOneWidget,
       );
     });
 
-    testWidgets('sold animal without observation: banner shows reason and date, no dangling dash',
+    testWidgets(
+        'sold animal without observation: banner shows reason and date, no dangling dash',
         (tester) async {
       final animal = _archivedAnimal.copyWith(baixaDate: DateTime(2025, 6, 1));
       await tester.pumpWidget(
@@ -464,8 +674,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Vendido em 01/06/2025'), findsOneWidget);
-      // No dangling em-dash after the date (AppBar title already contains an
-      // unrelated "—", so scope the guard to the banner's own text pattern).
       expect(find.textContaining('01/06/2025 —'), findsNothing);
     });
 
@@ -480,7 +688,7 @@ void main() {
       expect(find.textContaining('Arquivado'), findsOneWidget);
     });
 
-    testWidgets('banner renders above AnimalInfoCard (D-12 order)',
+    testWidgets('banner renders above the state card (D-12 order)',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(animal: _archivedAnimal, role: 'veterinarian'),
@@ -488,22 +696,12 @@ void main() {
       await tester.pumpAndSettle();
 
       final bannerY = tester.getTopLeft(find.byIcon(Icons.info_outline)).dy;
-      final cardY = tester.getTopLeft(find.text('Número')).dy;
+      final cardY = tester.getTopLeft(find.text('ESTADO CORPORAL')).dy;
       expect(bannerY, lessThan(cardY));
     });
 
-    testWidgets('archived animal: reproductive and sanitary blocks stay reachable (D-16)',
+    testWidgets('archived animal: timeline stays reachable (D-16)',
         (tester) async {
-      // Neither history provider is overridden with resolved data here
-      // (mirrors the existing "hides Mover animal button when animal is
-      // archived" test above) — this test only asserts both section
-      // headers render for an archived animal, not on their row content.
-      //
-      // Tall physicalSize: the banner adds height above AnimalInfoCard, and
-      // ListView's default cacheExtent only builds Elements within/near the
-      // viewport — at the default 600px-tall test window the sanitary card
-      // falls outside that window and is never built without a scroll. A
-      // tall viewport sidesteps needing to scroll to prove it's reachable.
       addTearDown(tester.view.resetPhysicalSize);
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
@@ -513,138 +711,41 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Histórico Reprodutivo'), findsOneWidget);
-      expect(find.text('Histórico Sanitário'), findsOneWidget);
+      expect(find.text('Tudo'), findsOneWidget);
+      expect(find.text('Reprodução'), findsOneWidget);
+      expect(find.text('Sanitário'), findsOneWidget);
+      expect(find.text('Cadastrado no rebanho'), findsOneWidget);
     });
   });
 
-  group('AnimalDetailScreen — Layout adaptativo a 360px (D-21, SC-5)', () {
-    // These tests mount AnimalInfoCard directly via _buildInfoCard (not the
-    // whole AnimalDetailScreen) — see that builder's dartdoc for why:
-    // sanitary_history_section.dart (D-37-locked) has its own pre-existing
-    // narrow-width overflow unrelated to this plan's changes.
-    testWidgets('360px: no layout overflow is reported', (tester) async {
-      addTearDown(tester.view.resetPhysicalSize);
-      tester.view.physicalSize = const Size(360, 800);
-      tester.view.devicePixelRatio = 1.0;
-
-      await tester.pumpWidget(_buildInfoCard(animal: _activeAnimal));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('360px: label stacks above value in the same row',
+  group('AnimalDetailScreen — layout a 360px', () {
+    testWidgets('360px: no layout overflow with long lot/paddock names',
         (tester) async {
       addTearDown(tester.view.resetPhysicalSize);
-      tester.view.physicalSize = const Size(360, 800);
+      tester.view.physicalSize = const Size(360, 1400);
       tester.view.devicePixelRatio = 1.0;
 
-      await tester.pumpWidget(_buildInfoCard(animal: _activeAnimal));
-      await tester.pumpAndSettle();
-
-      final labelY = tester.getTopLeft(find.text('Número')).dy;
-      final valueY = tester.getTopLeft(find.text('#9')).dy;
-      expect(valueY, greaterThan(labelY));
-    });
-
-    testWidgets('800px: label stays beside value, unchanged layout',
-        (tester) async {
-      addTearDown(tester.view.resetPhysicalSize);
-      tester.view.physicalSize = const Size(800, 800);
-      tester.view.devicePixelRatio = 1.0;
-
-      await tester.pumpWidget(_buildInfoCard(animal: _activeAnimal));
-      await tester.pumpAndSettle();
-
-      final labelTopLeft = tester.getTopLeft(find.text('Número'));
-      final valueTopLeft = tester.getTopLeft(find.text('#9'));
-      expect(valueTopLeft.dy, equals(labelTopLeft.dy));
-      expect(valueTopLeft.dx, greaterThan(labelTopLeft.dx));
-    });
-
-    testWidgets('360px: a long lot/paddock name does not overflow',
-        (tester) async {
-      addTearDown(tester.view.resetPhysicalSize);
-      tester.view.physicalSize = const Size(360, 800);
-      tester.view.devicePixelRatio = 1.0;
-
-      final longLot = Lot(
-        id: 'lot-A',
-        propertyId: 'prop-1',
-        paddockId: 'paddock-1',
-        name: 'Lote Fundo de Vale Extremamente Comprido do Setor Norte',
-        createdAt: DateTime(2025, 1, 1),
-      );
       await tester.pumpWidget(
-        _buildInfoCard(
-          animal: _activeAnimal,
+        _buildScreen(
+          animal: _activeAnimal.copyWith(breed: 'Nelore', bodyCondition: 3),
+          role: 'veterinarian',
           lotWithPaddockBuilder: (id) async => LotWithPaddockName(
-            lot: longLot,
-            paddockName: 'Piquete Extremamente Comprido do Fundo do Setor Sul',
+            lot: Lot(
+              id: 'lot-A',
+              propertyId: 'prop-1',
+              paddockId: 'pad-1',
+              name: 'Lote Fundo de Vale Extremamente Comprido do Setor Norte',
+              createdAt: DateTime(2025, 1, 1),
+            ),
+            paddockName:
+                'Piquete Extremamente Comprido do Fundo do Setor Sul',
           ),
         ),
       );
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('360px: a long baixa observation wraps without overflowing',
-        (tester) async {
-      // The banner (_BaixaBanner, private to animal_detail_screen.dart) is
-      // only reachable by pumping the whole AnimalDetailScreen, so this one
-      // test (unlike the others in this group) cannot use _buildInfoCard.
-      // It therefore also cannot assert tester.takeException() is null:
-      // sanitary_history_section.dart's header row has its own pre-existing
-      // RenderFlex overflow at this width, unrelated to the banner and
-      // outside this plan's D-37 boundary — see SUMMARY "Known Issues".
-      // What this test proves instead: the banner's own Text (no maxLines,
-      // no overflow set) renders the full observation with no truncation —
-      // the observation shows up verbatim both in the banner and in the
-      // card's own "Observação" row (unchanged pre-existing behavior).
-      addTearDown(tester.view.resetPhysicalSize);
-      tester.view.physicalSize = const Size(360, 800);
-      tester.view.devicePixelRatio = 1.0;
-
-      final longObservation =
-          'Animal vendido no leilão regional após tratamento prolongado, '
-          'com acompanhamento veterinário contínuo e nota detalhada sobre '
-          'o histórico completo de manejo antes da saída do rebanho.';
-      final animal = _archivedAnimal.copyWith(
-        baixaDate: DateTime(2025, 6, 1),
-        observation: longObservation,
-      );
-      await tester.pumpWidget(
-        _buildScreen(animal: animal, role: 'veterinarian'),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining(longObservation), findsNWidgets(2));
-    });
-  });
-
-  group('AnimalDetailScreen — Degradação parcial do card (UI-SPEC partial/animal-info-card)', () {
-    testWidgets(
-        'lote+piquete read failing does not hide the animal\'s own fields',
-        (tester) async {
-      // breed/bodyCondition set so the two "—" fallbacks asserted below can
-      // only come from the failed lote/piquete rows, not from these fields.
-      final animal = _activeAnimal.copyWith(breed: 'Nelore', bodyCondition: 3);
-      await tester.pumpWidget(
-        _buildScreen(
-          animal: animal,
-          role: 'veterinarian',
-          lotWithPaddockBuilder: (id) async => throw Exception('boom'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Número'), findsOneWidget);
       expect(find.text('#9'), findsOneWidget);
-      expect(find.text('Lote atual'), findsOneWidget);
-      expect(find.text('Piquete atual'), findsOneWidget);
-      expect(find.text('—'), findsNWidgets(2));
     });
   });
 }

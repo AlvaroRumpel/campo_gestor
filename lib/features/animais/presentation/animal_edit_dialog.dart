@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
 
-/// Dialog for editing editable animal fields: Raça, EC (estado corporal),
-/// Observação. Número and Categoria are read-only display fields (ANIM-02).
+/// Formulário de edição do animal — conteúdo para [showAdaptiveForm].
+/// Editáveis: Raça, EC (estado corporal), Observação. Número e Categoria são
+/// linhas travadas somente-leitura (ANIM-02).
 ///
-/// Submit calls [AnimalRepository.updateAnimal]. On success invalidates
-/// [animalByIdProvider] and [animalListByPropertyProvider], pops with true.
+/// Submit chama [AnimalRepository.updateAnimal]. Em sucesso invalida
+/// [animalByIdProvider] e [animalListByPropertyProvider] e faz pop com true.
 class AnimalEditDialog extends ConsumerStatefulWidget {
   const AnimalEditDialog({super.key, required this.animal});
 
@@ -68,124 +70,205 @@ class _AnimalEditDialogState extends ConsumerState<AnimalEditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final categoryLabel =
         kCategoryLabels[widget.animal.category] ?? widget.animal.category;
 
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : const Text('Editar animal'),
-      content: SizedBox(
-        width: 480,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Read-only display rows
-              _ReadOnlyRow(label: 'Número', value: '#${widget.animal.number}'),
-              const SizedBox(height: 8),
-              _ReadOnlyRow(label: 'Categoria', value: categoryLabel),
-              const SizedBox(height: 16),
-              // Raça dropdown
-              DropdownButtonFormField<String?>(
-                initialValue: _breed,
-                decoration: const InputDecoration(
-                  labelText: 'Raça',
-                  border: OutlineInputBorder(),
-                ),
-                hint: const Text('Sem raça'),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Sem raça'),
-                  ),
-                  ...kBreeds.map(
-                    (b) => DropdownMenuItem<String?>(
-                      value: b,
-                      child: Text(b),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Editar animal',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Linhas travadas (número/categoria não editáveis)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _LockedField(
+                            label: 'Número',
+                            child: Text(
+                              '#${widget.animal.number}',
+                              style: monoStyle(
+                                  size: 15.5, weight: FontWeight.w600),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _LockedField(
+                            label: 'Categoria',
+                            child: Text(
+                              categoryLabel,
+                              style: const TextStyle(fontSize: 15.5),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-                onChanged: (v) => setState(() => _breed = v),
-              ),
-              const SizedBox(height: 16),
-              // EC ChoiceChips
-              Text('Estado corporal', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: List.generate(5, (i) {
-                  final val = i + 1;
-                  return ChoiceChip(
-                    label: Text('$val'),
-                    selected: _ec == val,
-                    onSelected: (sel) =>
-                        setState(() => _ec = sel ? val : null),
-                    showCheckmark: false,
-                  );
-                }),
-              ),
-              const SizedBox(height: 16),
-              // Observação
-              TextFormField(
-                controller: _obsCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Observação',
-                  border: OutlineInputBorder(),
-                  hintText: 'Observações adicionais (opcional)',
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String?>(
+                      initialValue: _breed,
+                      decoration: const InputDecoration(labelText: 'Raça'),
+                      hint: const Text('Sem raça'),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Sem raça'),
+                        ),
+                        ...kBreeds.map(
+                          (b) => DropdownMenuItem<String?>(
+                            value: b,
+                            child: Text(b),
+                          ),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => _breed = v),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'ESTADO CORPORAL',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        for (final n in const [1, 2, 3, 4, 5])
+                          ChoiceChip(
+                            label: SizedBox(
+                              width: 28,
+                              child: Center(
+                                child: Text(
+                                  '$n',
+                                  style: monoStyle(
+                                    size: 14,
+                                    weight: FontWeight.w600,
+                                    color: _ec == n
+                                        ? AppColors.onGreen
+                                        : AppColors.ink,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            selected: _ec == n,
+                            onSelected: (sel) =>
+                                setState(() => _ec = sel ? n : null),
+                            showCheckmark: false,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _obsCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Observação',
+                        hintText: 'Observações adicionais (opcional)',
+                      ),
+                      maxLines: 3,
+                      textInputAction: TextInputAction.newline,
+                    ),
+                  ],
                 ),
-                maxLines: 3,
-                textInputAction: TextInputAction.newline,
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  flex: 10,
+                  child: OutlinedButton(
+                    onPressed:
+                        _saving ? null : () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 14,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Salvar'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: _saving ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Salvar'),
-        ),
-      ],
     );
   }
 }
 
-class _ReadOnlyRow extends StatelessWidget {
-  const _ReadOnlyRow({required this.label, required this.value});
+/// Caixa somente-leitura com cadeado — número/categoria travados (spec 4.4).
+class _LockedField extends StatelessWidget {
+  const _LockedField({required this.label, required this.child});
 
   final String label;
-  final String value;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        SizedBox(
-          width: 90,
-          child: Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSubtle,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.inputBorder),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 0.9,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                child,
+              ],
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Text(value, style: theme.textTheme.bodyMedium),
-      ],
+          const Icon(Icons.lock_outline,
+              size: 16, color: AppColors.textTertiary),
+        ],
+      ),
     );
   }
 }

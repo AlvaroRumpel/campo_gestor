@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../lotes/data/lote_model.dart';
 import '../../lotes/data/lote_repository.dart';
 import '../../piquetes/data/piquete_repository.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
 
-/// Dialog for moving an animal to another lot in the same property
-/// (MOV-01, D-01..D-05).
+/// Formulário de movimentação de animal entre lotes — conteúdo para
+/// [showAdaptiveForm] (MOV-01, D-01..D-05).
 ///
-/// Layout (matches BaixaDialog template):
-/// - title: 'Mover animal #N para outro lote?' (or LinearProgressIndicator during save)
-/// - content: 480-wide column with explanation text + scrollable lot picker
-///   (maxHeight 320), excluding the animal's current lot
-/// - actions: TextButton('Cancelar') + FilledButton('Confirmar movimentação')
-///   (confirm disabled until a lot is selected)
+/// Picker de lotes (exclui o lote atual do animal) + rodapé Cancelar /
+/// "Confirmar movimentação" (desabilitado até selecionar um lote).
 ///
-/// On success: invalidates [animalByIdProvider], both old and new
-/// [animalListByLotProvider], and [animalListByPropertyProvider] (D-11),
-/// then pops with a `{'lotName': ...}` map so the parent shows a SnackBar
-/// (D-05).
+/// Em sucesso: invalida [animalByIdProvider], os dois
+/// [animalListByLotProvider] (origem e destino) e
+/// [animalListByPropertyProvider] (D-11), e faz pop com `{'lotName': ...}`
+/// para o pai mostrar o SnackBar (D-05).
 class MoverAnimalDialog extends ConsumerStatefulWidget {
   const MoverAnimalDialog({super.key, required this.animal});
 
@@ -67,27 +64,30 @@ class _MoverAnimalDialogState extends ConsumerState<MoverAnimalDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: _saving
-          ? const LinearProgressIndicator()
-          : Text('Mover animal #${widget.animal.number} para outro lote?'),
-      content: SizedBox(
-        width: 480,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Selecione o lote de destino. O animal continuará ativo e seu histórico será preservado.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontStyle: FontStyle.italic,
-                ),
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Mover #${widget.animal.number} para outro lote',
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Selecione o lote de destino. O animal continuará ativo e seu histórico será preservado.',
+              style: TextStyle(
+                fontSize: 13.5,
+                height: 1.45,
+                color: AppColors.textSecondary,
               ),
-              const SizedBox(height: 16),
-              ConstrainedBox(
+            ),
+            const SizedBox(height: 14),
+            Flexible(
+              child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 320),
                 child: _LotPickerList(
                   currentLotId: widget.animal.lotId,
@@ -100,26 +100,48 @@ class _MoverAnimalDialogState extends ConsumerState<MoverAnimalDialog> {
                   },
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  flex: 10,
+                  child: OutlinedButton(
+                    onPressed:
+                        _saving ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 14,
+                  child: FilledButton(
+                    onPressed:
+                        (_saving || _selectedLotId == null) ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 52),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Confirmar movimentação'),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: (_saving || _selectedLotId == null) ? null : _submit,
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Confirmar movimentação'),
-        ),
-      ],
     );
   }
 }
@@ -153,11 +175,9 @@ class _LotPickerList extends ConsumerWidget {
       data: (lots) {
         final available = lots.where((l) => l.id != currentLotId).toList();
         if (available.isEmpty) {
-          return Text(
+          return const Text(
             'Nenhum outro lote disponível nesta propriedade.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           );
         }
         return ListView.builder(
@@ -192,7 +212,6 @@ class _LotPickerTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final paddockAsync = ref.watch(paddockByIdProvider(lot.paddockId));
     final animalsAsync = ref.watch(animalListByLotProvider(lot.id));
 
@@ -201,17 +220,21 @@ class _LotPickerTile extends ConsumerWidget {
 
     return ListTile(
       selected: isSelected,
-      selectedTileColor: theme.colorScheme.primaryContainer,
+      selectedTileColor: AppColors.positiveChipBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
         lot.name,
-        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
         'Piquete $paddockName · $animalCount animais',
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-        ),
+        style:
+            const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
       ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle,
+              size: 22, color: AppColors.primary)
+          : null,
       onTap: onTap,
     );
   }

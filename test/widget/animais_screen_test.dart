@@ -1,7 +1,6 @@
 // ANIM-05, ANIM-06 — AnimaisScreen: search by number + filter by category/lot/paddock.
 // Wave 0 stubs. Implementation lands in Plan 06 (AnimaisScreen).
 // Decisions enforced: D-18 (filters), D-19 (tile format), D-20 (debounce 300ms), D-21 (toggle archived).
-import 'package:campo_gestor/features/animais/data/animal_constants.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/animais/presentation/animais_screen.dart';
@@ -51,7 +50,7 @@ final _fakeAnimals = <AnimalWithContext>[
     paddockName: 'Piquete Norte',
   ),
   AnimalWithContext(
-    animal: _animal(id: 'a14', number: 14, category: 'novilha'),
+    animal: _animal(id: 'a14', number: 14, category: 'novilha', lotId: 'lot-b'),
     lotName: 'Lote B',
     paddockId: 'p2',
     paddockName: 'Piquete Sul',
@@ -134,13 +133,13 @@ Widget _buildScreen({List<AnimalWithContext>? animals}) {
 void main() {
   group('AnimaisScreen — Search (ANIM-05)', () {
     testWidgets(
-        'SearchBar with hint "Buscar por número..." filters list in-memory after 300ms debounce',
+        'search field with hint "Buscar número" filters list in-memory after 300ms debounce',
         (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump(); // start async
       await tester.pump(const Duration(milliseconds: 100)); // settle providers
 
-      expect(find.text('Buscar por número...'), findsOneWidget);
+      expect(find.text('Buscar número'), findsOneWidget);
     });
 
     testWidgets(
@@ -150,7 +149,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.enterText(find.byType(SearchBar), '4');
+      await tester.enterText(find.byType(TextField), '4');
       await tester.pump(const Duration(milliseconds: 350));
 
       // Should find tiles with numbers containing '4': #4, #14, #42
@@ -163,7 +162,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      await tester.enterText(find.byType(SearchBar), '4');
+      await tester.enterText(find.byType(TextField), '4');
       await tester.pump(const Duration(milliseconds: 350));
 
       expect(find.byIcon(Icons.close), findsOneWidget);
@@ -212,33 +211,60 @@ void main() {
     });
 
     testWidgets(
-        'Lote dropdown with "Todos os lotes" default filters by lot_id when set',
+        '"+ Lote" chip defaults to no lot filter; picking a lot filters by lot_id',
         (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Todos os lotes'), findsOneWidget);
+      expect(find.text('+ Lote'), findsOneWidget);
+      expect(find.textContaining('#42'), findsWidgets); // unfiltered
+
+      await tester.tap(find.text('+ Lote'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lote B').last);
+      await tester.pumpAndSettle();
+
+      // Only #14 lives in lot-b; #42 (lot-a) is filtered out. The chip
+      // becomes the removable "Lote B ✕".
+      expect(find.textContaining('#14'), findsWidgets);
+      expect(find.textContaining('#42'), findsNothing);
+      expect(find.text('+ Lote'), findsNothing);
     });
 
     testWidgets(
-        'Piquete dropdown with "Todos os piquetes" default filters by paddock_id when set',
+        '"+ Piquete" chip defaults to no paddock filter; picking one filters by paddock_id',
         (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Todos os piquetes'), findsOneWidget);
+      expect(find.text('+ Piquete'), findsOneWidget);
+
+      await tester.tap(find.text('+ Piquete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Piquete Sul').last);
+      await tester.pumpAndSettle();
+
+      // Only #14 lives in p2 (Piquete Sul); #42 (p1) is filtered out.
+      expect(find.textContaining('#14'), findsWidgets);
+      expect(find.textContaining('#42'), findsNothing);
+      expect(find.text('+ Piquete'), findsNothing);
     });
 
-    testWidgets('SummaryBar shows "X animais · Y,Y UA total" updating with filters',
+    testWidgets('totals strip shows "X animais · Y,Y UA" updating with filters',
         (tester) async {
       await tester.pumpWidget(_buildScreen());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.textContaining('animais ·'), findsOneWidget);
-      expect(find.textContaining('UA total'), findsOneWidget);
+      // 4 active animals: 1,0 + 1,0 + 0,75 + 1,5 = 4,25 → "4,3" (pt-BR).
+      expect(find.text('4 animais · 4,3 UA'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilterChip, 'Vaca'));
+      await tester.pump();
+
+      expect(find.text('2 animais · 2,0 UA'), findsOneWidget);
     });
 
     testWidgets(
@@ -296,7 +322,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        await tester.enterText(find.byType(SearchBar), '125');
+        await tester.enterText(find.byType(TextField), '125');
         await tester.pump(const Duration(milliseconds: 350));
 
         expect(find.textContaining('#125'), findsOneWidget);
@@ -309,7 +335,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        await tester.enterText(find.byType(SearchBar), '12');
+        await tester.enterText(find.byType(TextField), '12');
         await tester.pump(const Duration(milliseconds: 350));
 
         expect(find.textContaining('#125'), findsNothing);
@@ -331,10 +357,10 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        await tester.enterText(find.byType(SearchBar), '125');
+        await tester.enterText(find.byType(TextField), '125');
         await tester.pump(const Duration(milliseconds: 350));
 
-        expect(find.text('Morto'), findsOneWidget);
+        expect(find.text('Morte'), findsOneWidget);
       });
     },
   );
