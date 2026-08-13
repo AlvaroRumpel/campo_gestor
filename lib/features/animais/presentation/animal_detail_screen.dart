@@ -778,80 +778,91 @@ class _WideHeader extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 16),
-          Wrap(
-            alignment: WrapAlignment.end,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 16,
-            runSpacing: 8,
-            children: [
-              StatusChip(reproStatus.label, kind: reproStatus.chipKind),
-              _HeaderStat(label: 'UA', value: _fmtUa(ua)),
-              _HeaderStat(
-                label: 'Lote',
-                value: lotData?.lot.name ?? '—',
-                mono: false,
-                onTap: lotData == null
-                    ? null
-                    : () => context.go(AppRoutes.loteDetail(lotData.lot.id)),
-              ),
-              _HeaderStat(
-                label: 'Piquete',
-                value: lotData?.paddockName ?? '—',
-                mono: false,
-                onTap: lotData == null
-                    ? null
-                    : () => context.go('/piquetes/${lotData.lot.paddockId}'),
-              ),
-              if (canEdit)
-                Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: onEdit,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.onGreen,
-                        foregroundColor: AppColors.primary,
-                      ),
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text('Editar'),
-                    ),
-                    if (isActive) ...[
-                      OutlinedButton.icon(
-                        onPressed: onMover,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.onGreen,
-                          side: BorderSide(
-                            color: AppColors.onGreen.withValues(alpha: 0.45),
-                          ),
+          // Flexible (não um Wrap "solto"): dentro de um Row, um filho
+          // não-flex recebe largura de main-axis ilimitada e nunca quebra
+          // sozinho — é preciso um flex para o Wrap ganhar uma largura
+          // máxima real e passar a quebrar linha perto de 1024px.
+          Flexible(
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                StatusChip(reproStatus.label, kind: reproStatus.chipKind),
+                _HeaderStat(label: 'UA', value: _fmtUa(ua)),
+                _HeaderStat(
+                  label: 'Lote',
+                  value: lotData?.lot.name ?? '—',
+                  mono: false,
+                  maxWidth: 150,
+                  onTap: lotData == null
+                      ? null
+                      : () =>
+                          context.go(AppRoutes.loteDetail(lotData.lot.id)),
+                ),
+                _HeaderStat(
+                  label: 'Piquete',
+                  value: lotData?.paddockName ?? '—',
+                  mono: false,
+                  maxWidth: 150,
+                  onTap: lotData == null
+                      ? null
+                      : () =>
+                          context.go('/piquetes/${lotData.lot.paddockId}'),
+                ),
+                if (canEdit)
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: onEdit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.onGreen,
+                          foregroundColor: AppColors.primary,
                         ),
-                        icon: const Icon(Icons.swap_horiz, size: 18),
-                        label: const Text('Mover'),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Editar'),
                       ),
-                      SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: OutlinedButton(
-                          onPressed: onBaixa,
+                      if (isActive) ...[
+                        OutlinedButton.icon(
+                          onPressed: onMover,
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
                             foregroundColor: AppColors.onGreen,
                             side: BorderSide(
                               color:
                                   AppColors.onGreen.withValues(alpha: 0.45),
                             ),
                           ),
-                          child: const Tooltip(
-                            message: 'Dar baixa',
-                            child: Icon(Icons.arrow_downward,
-                                size: 20, color: AppColors.onGreen),
+                          icon: const Icon(Icons.swap_horiz, size: 18),
+                          label: const Text('Mover'),
+                        ),
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: OutlinedButton(
+                            onPressed: onBaixa,
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              foregroundColor: AppColors.onGreen,
+                              side: BorderSide(
+                                color: AppColors.onGreen
+                                    .withValues(alpha: 0.45),
+                              ),
+                            ),
+                            child: const Tooltip(
+                              message: 'Dar baixa',
+                              child: Icon(Icons.arrow_downward,
+                                  size: 20, color: AppColors.onGreen),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-            ],
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -862,21 +873,48 @@ class _WideHeader extends ConsumerWidget {
 /// "LABEL / valor" de uma stat do header desktop — [mono] estiliza o valor
 /// com [monoStyle] (UA); textos (lote/piquete) usam a fonte padrão. Navegável
 /// quando [onTap] é informado, mesma convenção do [GlassTile] mobile.
+/// [maxWidth], quando informado, trunca o valor com reticências — nomes de
+/// lote/piquete são texto livre e não podem crescer o header sem limite.
 class _HeaderStat extends StatelessWidget {
   const _HeaderStat({
     required this.label,
     required this.value,
     this.mono = true,
     this.onTap,
+    this.maxWidth,
   });
 
   final String label;
   final String value;
   final bool mono;
   final VoidCallback? onTap;
+  final double? maxWidth;
 
   @override
   Widget build(BuildContext context) {
+    Widget valueText = Text(
+      value,
+      overflow: TextOverflow.ellipsis,
+      maxLines: 1,
+      style: mono
+          ? monoStyle(
+              size: 15,
+              weight: FontWeight.w600,
+              color: AppColors.onGreen,
+            )
+          : const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onGreen,
+            ),
+    );
+    if (maxWidth != null) {
+      valueText = ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth!),
+        child: valueText,
+      );
+    }
+
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -891,20 +929,7 @@ class _HeaderStat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: mono
-              ? monoStyle(
-                  size: 15,
-                  weight: FontWeight.w600,
-                  color: AppColors.onGreen,
-                )
-              : const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onGreen,
-                ),
-        ),
+        valueText,
       ],
     );
     if (onTap == null) return content;
