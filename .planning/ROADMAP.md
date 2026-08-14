@@ -416,11 +416,21 @@ Plans:
 **Requirements**: MEMB-01 convite por e-mail com papel (veterinario/proprietario/leitor) e aceite/recusa pelo convidado; convite revogável · MEMB-02 listar membros com papel; trocar papel; remover membro; sair da fazenda (self-service) · MEMB-03 guarda de último vet no banco (rejeitar remover/rebaixar/sair do único veterinário) · PROPV-01 arquivar fazenda com confirmação forte (digitar o nome) · PROPV-02 restaurar fazenda arquivada pela UI (visível a vets ex-membros)
 **Decisões travadas (2026-08-14):** convite com aceite (tabela de convites pendentes, sem e-mail transacional no MVP — convite aparece in-app para o convidado logado); vet E proprietário gerenciam membros; proprietário pode remover vet desde que não seja o último; sem trilha de auditoria; sem mudança em `is_member_of`; toda escrita em `property_members`/convites via RPC SECURITY DEFINER.
 **Depends on:** Phase 9
-**Plans:** 0 plans
+**Plans:** 11 plans em 5 waves
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 10 to break down)
+- [ ] 10-01-PLAN.md — migration `20260814_11_membership_lifecycle.sql`: tabela `invites` (FORCE RLS, 2 policies SELECT), helpers `current_user_email` / `assert_not_last_veterinarian` (lock-then-count) e 9 RPCs SECURITY DEFINER (wave 1)
+- [ ] 10-02-PLAN.md — suíte pgTAP `supabase/tests/10_membership_test.sql` cobrindo schema, grants, os 9 RPCs e os 4 caminhos da guarda de último vet (wave 2)
+- [ ] 10-03-PLAN.md — camada de dados: `membro_models.dart`, `membro_exception.dart` (SQLSTATE → pt-BR), `membro_repository.dart` + 4 providers (wave 1)
+- [ ] 10-04-PLAN.md — peças compartilhadas de UI: gate `canManageMembers`, `InviteFormDialog`, `InviteBanner` (wave 2)
+- [ ] 10-05-PLAN.md — `MembrosScreen` mobile (ListView + FAB) e desktop (tabela + painel 380px) com as 5 ações de gestão (wave 3)
+- [ ] 10-06-PLAN.md — `fetchArchivedProperties` / `restoreProperty` / `archivedPropertyListProvider` + `ArchiveConfirmDialog` (wave 1)
+- [ ] 10-07-PLAN.md — `PropriedadesScreen`: alternador Ativas/Arquivadas, arquivar com confirmação forte, restaurar (wave 2)
+- [ ] 10-08-PLAN.md — `/sem-acesso` vira caixa de entrada de convites (wave 3)
+- [ ] 10-09-PLAN.md — banner de convite no dashboard, mobile e desktop (wave 3)
+- [ ] 10-10-PLAN.md — rota `/propriedades/:propertyId/membros` + item "Membros" no menu do cartão de fazenda (wave 4)
+- [ ] 10-11-PLAN.md — aplicar migration em PROD via MCP, verificação de catálogo, replay pgTAP e UAT humana (wave 5, orquestrador)
 
 ---
 
