@@ -87,6 +87,7 @@ class SectionCard extends StatelessWidget {
     this.trailing,
     required this.child,
     this.padding = const EdgeInsets.all(14),
+    this.onTap,
   });
 
   final String? title;
@@ -94,34 +95,48 @@ class SectionCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
 
+  /// Quando não-nulo, o card inteiro fica tocável. `null` (padrão) mantém a
+  /// árvore byte-idêntica à de antes desta opção existir.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (title != null) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title!,
-                      style: const TextStyle(
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w700,
-                      ),
+    final content = Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (title != null) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title!,
+                    style: const TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  ?trailing,
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-            child,
+                ),
+                ?trailing,
+              ],
+            ),
+            const SizedBox(height: 12),
           ],
-        ),
+          child,
+        ],
+      ),
+    );
+    if (onTap == null) {
+      return Card(child: content);
+    }
+    // InkWell dentro do Card (não fora) — fora do Card o ripple fica atrás
+    // da superfície do Material e não aparece.
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: content,
       ),
     );
   }

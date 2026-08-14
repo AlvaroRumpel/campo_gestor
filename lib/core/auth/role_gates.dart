@@ -26,3 +26,21 @@ bool canManageExpenses(
       .firstOrNull;
   return role == 'veterinarian' || role == 'owner';
 }
+
+/// Convenção do projeto: papel negado vê o controle **ausente**, nunca
+/// desabilitado (nunca um `IconButton`/segmento renderizado com
+/// `onPressed: null`). Adicionado para não duplicar um sexto `_canEdit`
+/// privado — os cinco já existentes (`animais_screen`, `animal_detail_screen`,
+/// `lote_detail_screen`, `piquetes_screen`, `atf_detail_screen`) permanecem
+/// como estão.
+bool isVeterinarian(
+  SelectedProperty? current,
+  List<PropertyMembership>? members,
+) {
+  if (current == null || members == null) return false;
+  final role = members
+      .where((m) => m.property.id == current.id)
+      .map((m) => m.role)
+      .firstOrNull;
+  return role == 'veterinarian';
+}

@@ -56,28 +56,38 @@ class AppShell extends ConsumerWidget {
 
         if (width < Breakpoints.mobile) {
           // The bottom nav only offers the first 5 items (Gastos is
-          // desktop-only). Without the clamp, a deep link into /gastos
-          // (branch index 5) followed by narrowing the window would hand
-          // NavigationBar a selectedIndex past its destinations and the
-          // framework throws an assertion.
-          final selectedIndex =
-              navigationShell.currentIndex.clamp(0, _mobileNavCount - 1);
+          // desktop-only, reachable below 600px only via deep link or the
+          // dashboard card). When the active branch is /gastos (index 5),
+          // no tab represents the current screen — NavigationBar still
+          // needs a legal selectedIndex (it asserts on an out-of-range
+          // value), so index 0 is used as the required-but-not-visible
+          // value: its selected icon and indicator pill are suppressed so
+          // it doesn't read as "Início" being selected.
+          final outOfNav = navigationShell.currentIndex >= _mobileNavCount;
+          final navigationBar = NavigationBar(
+            selectedIndex: outOfNav ? 0 : navigationShell.currentIndex,
+            onDestinationSelected: navigationShell.goBranch,
+            destinations: _navItems
+                .take(_mobileNavCount)
+                .map(
+                  (item) => NavigationDestination(
+                    icon: Icon(item.icon),
+                    selectedIcon: Icon(outOfNav ? item.icon : item.selectedIcon),
+                    label: item.label,
+                  ),
+                )
+                .toList(),
+          );
           return Scaffold(
             body: navigationShell,
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: navigationShell.goBranch,
-              destinations: _navItems
-                  .take(_mobileNavCount)
-                  .map(
-                    (item) => NavigationDestination(
-                      icon: Icon(item.icon),
-                      selectedIcon: Icon(item.selectedIcon),
-                      label: item.label,
+            bottomNavigationBar: outOfNav
+                ? NavigationBarTheme(
+                    data: const NavigationBarThemeData(
+                      indicatorColor: Colors.transparent,
                     ),
+                    child: navigationBar,
                   )
-                  .toList(),
-            ),
+                : navigationBar,
           );
         }
 

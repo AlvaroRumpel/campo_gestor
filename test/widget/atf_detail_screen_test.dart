@@ -971,6 +971,38 @@ void main() {
     });
 
     testWidgets(
+        'T-g9j-09: a non-veterinarian sees the DG result as static text, '
+        'never a DgSegmentButton', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [_dg('a1', 'pregnant')],
+          membership: _reader,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DgSegmentButton), findsNothing);
+      expect(find.text('Prenhe'), findsOneWidget);
+    });
+
+    testWidgets(
+        'T-g9j-09: a veterinarian still sees the interactive DG segments',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          atf: AsyncValue.data(_atf()),
+          activeMemberships: [_membership('a1')],
+          dgRecords: [_dg('a1', 'pregnant')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DgSegmentButton), findsNWidgets(3));
+    });
+
+    testWidgets(
         'E6 backstop: a 200-animal ATF builds, and the payload carries only the 3 changed rows',
         (tester) async {
       final repo = _FakeAtfRepo();

@@ -15,6 +15,7 @@ import '../data/kg_per_ua_resolver.dart';
 import '../data/sanitary_application_exception.dart';
 import '../data/sanitary_application_repository.dart';
 import '../data/sanitary_calculations.dart';
+import 'dose_form_dialog.dart';
 
 /// Resolves the active property's lots with each one's active-animal count
 /// (D-18's gate mirrored here: a lot with zero active animals cannot be an
@@ -117,6 +118,23 @@ class _RegistrarAplicacaoScreenState
   Future<void> _pickDose() async {
     final doses = await ref.read(doseListByPropertyProvider.future);
     if (!mounted) return;
+
+    // Sem nenhuma dose cadastrada, o seletor vazio é um beco sem saída —
+    // abre o formulário de dose direto (mesmo padrão de
+    // sanitario_screen.dart._openDoseForm). Esta tela só é alcançável pelo
+    // FAB vet-only de sanitario_screen.dart, então nenhuma checagem de
+    // papel entra aqui — seria um gate morto.
+    if (doses.isEmpty) {
+      final saved = await showAdaptiveForm<bool>(
+        context: context,
+        builder: (_) => const DoseFormDialog(),
+      );
+      if (saved != true || !mounted) return;
+      ref.invalidate(doseListByPropertyProvider);
+      await _pickDose();
+      return;
+    }
+
     final picked = await showModalBottomSheet<Dose>(
       context: context,
       builder: (ctx) => _PickerSheet<Dose>(

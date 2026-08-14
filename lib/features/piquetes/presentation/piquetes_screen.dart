@@ -125,11 +125,23 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
                             ),
                             data: (paddocks) {
                               if (paddocks.isEmpty) {
-                                return const EmptyState(
+                                // Papel negado (canEdit false): texto neutro,
+                                // sem instrução de criação e sem action.
+                                return EmptyState(
                                   icon: Icons.fence_outlined,
-                                  title: 'Nenhum piquete cadastrado',
-                                  message:
-                                      'Adicione piquetes para começar a organizar os lotes da fazenda.',
+                                  title: canEdit
+                                      ? 'Nenhum piquete cadastrado'
+                                      : 'Nenhum piquete cadastrado ainda.',
+                                  message: canEdit
+                                      ? 'Adicione piquetes para começar a organizar os lotes da fazenda.'
+                                      : 'Fale com o veterinário responsável para cadastrar piquetes.',
+                                  action: canEdit
+                                      ? FilledButton.icon(
+                                          onPressed: () => _openForm(context),
+                                          icon: const Icon(Icons.add),
+                                          label: const Text('Criar piquete'),
+                                        )
+                                      : null,
                                 );
                               }
                               return ListView.separated(

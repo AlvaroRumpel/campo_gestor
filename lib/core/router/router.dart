@@ -28,6 +28,24 @@ import '../providers/current_property_provider.dart';
 import '../widgets/app_shell.dart';
 import 'routes.dart';
 
+/// Resolve o destino pós-login a partir do query param `from` carregado pelo
+/// redirect ao interceptar um deep link não autenticado. Só aceita um path
+/// interno (`/...`), rejeita protocol-relative (`//`) e qualquer rota de
+/// auth ou `/sem-acesso` — caso contrário cai em `/dashboard`. Comparação é
+/// só contra o path de `from` (via `Uri.parse`), para `/piquetes?x=1`
+/// continuar válido.
+String safeReturnTo(String? from) {
+  if (from == null || from.isEmpty) return AppRoutes.dashboard;
+  if (!from.startsWith('/') || from.startsWith('//')) {
+    return AppRoutes.dashboard;
+  }
+  final path = Uri.parse(from).path;
+  if (AppRoutes.authRoutes.contains(path) || path == AppRoutes.noAccess) {
+    return AppRoutes.dashboard;
+  }
+  return from;
+}
+
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellDashboardKey = GlobalKey<NavigatorState>(debugLabel: 'dashboard');
 final _shellPiquetesKey = GlobalKey<NavigatorState>(debugLabel: 'piquetes');
@@ -72,9 +90,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoutes.resetPassword;
       }
 
-      // Not logged in: only auth routes are reachable.
+      // Not logged in: only auth routes are reachable. Captures the deep
+      // link that was intercepted in `from`, so the post-login redirect can
+      // return the user to their original destination (T-g9j-08: consumed
+      // only through safeReturnTo, which rejects external/auth targets).
+      // /sem-acesso never carries `from` — it isn't a real destination to
+      // return to.
       if (!isLoggedIn) {
-        return onAuthRoute ? null : AppRoutes.login;
+        if (onAuthRoute) return null;
+        if (loc == AppRoutes.noAccess) return AppRoutes.login;
+        return Uri(
+          path: AppRoutes.login,
+          queryParameters: {'from': state.uri.toString()},
+        ).toString();
       }
 
       // Logged in. Check membership.
@@ -91,9 +119,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         return AppRoutes.noAccess;
       }
 
-      // Has memberships on /login or /signup: bounce to dashboard.
+      // Has memberships on /login or /signup: bounce to the original
+      // destination captured in `from` (T-g9j-08), or /dashboard if there
+      // was none / it isn't safe.
       if (loc == AppRoutes.login || loc == AppRoutes.signup) {
-        return AppRoutes.dashboard;
+        return safeReturnTo(state.uri.queryParameters['from']);
       }
 
       // Has memberships but sitting on /sem-acesso (post re-membership): bounce.

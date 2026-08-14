@@ -315,11 +315,24 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
                     Expanded(
                       child: filtered.isEmpty
                           ? animals.isEmpty
-                              ? const EmptyState(
+                              // Papel negado (canEdit false): texto neutro,
+                              // sem CTA de criação.
+                              ? EmptyState(
                                   icon: Icons.pets_outlined,
-                                  title: 'Nenhum animal cadastrado',
-                                  message:
-                                      'Crie um lote no piquete para registrar os animais da fazenda.',
+                                  title: canEdit
+                                      ? 'Nenhum animal cadastrado'
+                                      : 'Nenhum animal cadastrado ainda.',
+                                  message: canEdit
+                                      ? 'Crie um lote no piquete para registrar os animais da fazenda.'
+                                      : 'Fale com o veterinário responsável para cadastrar animais.',
+                                  action: canEdit
+                                      ? FilledButton.icon(
+                                          onPressed: () =>
+                                              context.go(AppRoutes.piquetes),
+                                          icon: const Icon(Icons.grass),
+                                          label: const Text('Ir para Piquetes'),
+                                        )
+                                      : null,
                                 )
                               : const EmptyState(
                                   icon: Icons.search_off,

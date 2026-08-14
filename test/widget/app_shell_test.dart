@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-GoRouter _buildTestRouter() => GoRouter(
-      initialLocation: '/dashboard',
+GoRouter _buildTestRouter({String initialLocation = '/dashboard'}) => GoRouter(
+      initialLocation: initialLocation,
       routes: [
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) =>
@@ -23,12 +23,18 @@ GoRouter _buildTestRouter() => GoRouter(
       ],
     );
 
-Future<void> _pumpAppShell(WidgetTester tester, Size size) async {
+Future<void> _pumpAppShell(
+  WidgetTester tester,
+  Size size, {
+  String initialLocation = '/dashboard',
+}) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     ProviderScope(
-      child: MaterialApp.router(routerConfig: _buildTestRouter()),
+      child: MaterialApp.router(
+        routerConfig: _buildTestRouter(initialLocation: initialLocation),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -44,6 +50,20 @@ void main() {
     // 260813-x4f) — the bottom nav stays at exactly 5.
     final navigationBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
     expect(navigationBar.destinations.length, 5);
+  });
+
+  testWidgets(
+      'AppShell shows no selected tab at 360x800 on /gastos (branch 6, out of nav)',
+      (tester) async {
+    await _pumpAppShell(tester, const Size(360, 800),
+        initialLocation: '/gastos');
+    expect(find.byType(NavigationBar), findsOneWidget);
+    // Filled/selected variants of the destinations that would otherwise show
+    // as "selected" — none should appear since /gastos isn't in the bottom
+    // nav's 5 destinations.
+    expect(find.byIcon(Icons.home), findsNothing);
+    expect(find.byIcon(Icons.medical_services), findsNothing);
+    expect(find.byIcon(Icons.home_outlined), findsOneWidget);
   });
 
   testWidgets('AppShell renders icon rail (no title, no NavigationBar) at 800x600', (tester) async {
