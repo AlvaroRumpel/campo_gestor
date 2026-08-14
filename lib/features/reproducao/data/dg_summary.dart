@@ -40,6 +40,22 @@ bool isLaterDg(DgRecord candidate, DgRecord current) {
   return candidate.createdAt.isAfter(current.createdAt);
 }
 
+/// Most-recent DG for [animalId] within [records] (the [isLaterDg] winner,
+/// G-05-4). Null when [animalId] has no record in [records]. The ONE place
+/// this per-animal lookup lives — `_AtfDgBodyState._mostRecentDg` (mobile)
+/// and `AtfDgTableView` (desktop, quick task 260813-tos) both delegate here
+/// so the two surfaces can never drift on the tie-break rule.
+DgRecord? latestDgFor(List<DgRecord> records, String animalId) {
+  DgRecord? latest;
+  for (final r in records) {
+    if (r.animalId != animalId) continue;
+    if (latest == null || isLaterDg(r, latest)) {
+      latest = r;
+    }
+  }
+  return latest;
+}
+
 /// Aggregates [records] into a [DgSummary] (REPR-04).
 ///
 /// Reduces to one record per `animalId`, keeping the one that wins under

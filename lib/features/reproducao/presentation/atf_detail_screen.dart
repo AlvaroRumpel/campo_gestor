@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
@@ -15,6 +16,7 @@ import '../data/atf_repository.dart';
 import '../data/dg_record_model.dart';
 import '../data/dg_summary.dart';
 import 'atf_animal_selection_screen.dart';
+import 'atf_dg_table_view.dart';
 import 'encerrar_atf_dialog.dart';
 
 /// ATF detail screen (`/atf/:atfId`, root-level per D-02) — redesign spec 4.9
@@ -111,27 +113,47 @@ class AtfDetailScreen extends ConsumerWidget {
               ],
             ),
           ),
-          body: Column(
-            children: [
-              AtfHeaderCard(
-                atf: atf,
-                activeMemberships: activeMemberships,
-                dgRecords: dgRecords,
-              ),
-              Expanded(
-                child: _AtfDgBody(
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              final allMemberships =
+                  allMembershipsAsync.asData?.value ?? const [];
+              if (constraints.maxWidth >= Breakpoints.rail) {
+                // >=1024px (quick task 260813-tos): dense table with inline
+                // DG registration + batch selection, replacing the mobile
+                // green header + merged composição/DG list below.
+                final visibleRows =
+                    allMemberships.where((m) => !m.animalDeleted).toList();
+                return AtfDgTableView(
                   atf: atf,
+                  rows: visibleRows,
                   activeMemberships: activeMemberships,
-                  memberships:
-                      allMembershipsAsync.asData?.value ?? const [],
                   dgRecords: dgRecords,
-                  dgAnimalIds: dgAnimalIds,
-                  canEdit: canEdit,
-                  showEncerrarBanner: showBanner,
                   pendingMembers: pendingMembers,
-                ),
-              ),
-            ],
+                  canEdit: canEdit,
+                );
+              }
+              return Column(
+                children: [
+                  AtfHeaderCard(
+                    atf: atf,
+                    activeMemberships: activeMemberships,
+                    dgRecords: dgRecords,
+                  ),
+                  Expanded(
+                    child: _AtfDgBody(
+                      atf: atf,
+                      activeMemberships: activeMemberships,
+                      memberships: allMemberships,
+                      dgRecords: dgRecords,
+                      dgAnimalIds: dgAnimalIds,
+                      canEdit: canEdit,
+                      showEncerrarBanner: showBanner,
+                      pendingMembers: pendingMembers,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         );
       },
@@ -553,15 +575,10 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
   }
 
   /// Most-recent DG for [animalId] in this ATF (D-12's tie-breaker: the
-  /// exam-date rule in [isLaterDg], G-05-4).
+  /// exam-date rule in [isLaterDg], G-05-4). Delegates to [latestDgFor] —
+  /// the single shared implementation `AtfDgTableView` also uses.
   DgResult? _mostRecentDg(String animalId) {
-    DgRecord? latest;
-    for (final r in widget.dgRecords) {
-      if (r.animalId != animalId) continue;
-      if (latest == null || isLaterDg(r, latest)) {
-        latest = r;
-      }
-    }
+    final latest = latestDgFor(widget.dgRecords, animalId);
     return latest == null ? null : DgResult.fromDb(latest.result);
   }
 
