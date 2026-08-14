@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../features/animais/data/animal_constants.dart';
@@ -12,7 +13,11 @@ import '../../../features/animais/data/animal_repository.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../../../features/gastos/data/expense_repository.dart';
 import '../../../features/lotes/data/lote_repository.dart';
+import '../../../features/lotes/presentation/lote_detail_panel.dart';
+import '../../../features/lotes/presentation/lote_form_dialog.dart';
 import '../../../features/lotes/presentation/lotes_list_view.dart';
+import '../../../features/lotes/presentation/lotes_table_view.dart';
+import '../../../features/sanitario/data/sanitary_application_repository.dart';
 import '../../../features/sanitario/data/sanitary_calculations.dart';
 import '../data/piquete_model.dart';
 import '../data/piquete_repository.dart';
@@ -31,6 +36,7 @@ class PiquetesScreen extends ConsumerStatefulWidget {
 
 class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
   bool _showLots = false;
+  String? _selectedLotId;
 
   @override
   Widget build(BuildContext context) {
@@ -48,79 +54,219 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
     final paddockCount = paddocksAsync.asData?.value.length ?? 0;
     final lotCount = lotsAsync.asData?.value.length ?? 0;
 
-    return Scaffold(
-      appBar: const CampoAppBar(title: 'Piquetes'),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Piquetes',
-                    count: paddockCount,
-                    selected: !_showLots,
-                    onTap: () => setState(() => _showLots = false),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _SegmentButton(
-                    label: 'Lotes',
-                    count: lotCount,
-                    selected: _showLots,
-                    onTap: () => setState(() => _showLots = true),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _showLots
-                ? const LotesListView()
-                : paddocksAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (err, _) => const Center(
-                      child: Text('Erro ao carregar piquetes.'),
-                    ),
-                    data: (paddocks) {
-                      if (paddocks.isEmpty) {
-                        return const EmptyState(
-                          icon: Icons.fence_outlined,
-                          title: 'Nenhum piquete cadastrado',
-                          message:
-                              'Adicione piquetes para começar a organizar os lotes da fazenda.',
-                        );
-                      }
-                      return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 96),
-                        itemCount: paddocks.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, i) => _PaddockCard(
-                          paddock: paddocks[i],
-                          lotsAsync: lotsAsync,
-                          animalsAsync: animalsAsync,
-                          canEdit: canEdit,
-                          onEdit: () =>
-                              _openForm(context, paddock: paddocks[i]),
-                          onDelete: () => _confirmDelete(context, paddocks[i]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= Breakpoints.rail;
+        final showDesktopLots = isDesktop && _showLots;
+
+        final Widget body = showDesktopLots
+            ? _buildDesktopLots(
+                context,
+                paddocks: paddocksAsync.asData?.value ?? const <Paddock>[],
+                lots: lotsAsync.asData?.value ??
+                    const <LotWithPaddockCount>[],
+                animals: animalsAsync.asData?.value ??
+                    const <AnimalWithContext>[],
+                canEdit: canEdit,
+                paddockCount: paddockCount,
+                lotCount: lotCount,
+                currentProp: currentPropAsync.asData?.value,
+              )
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _SegmentButton(
+                            label: 'Piquetes',
+                            count: paddockCount,
+                            selected: !_showLots,
+                            onTap: () => setState(() => _showLots = false),
+                          ),
                         ),
-                      );
-                    },
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _SegmentButton(
+                            label: 'Lotes',
+                            count: lotCount,
+                            selected: _showLots,
+                            onTap: () => setState(() => _showLots = true),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  Expanded(
+                    child: _showLots
+                        ? const LotesListView()
+                        : paddocksAsync.when(
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            error: (err, _) => const Center(
+                              child: Text('Erro ao carregar piquetes.'),
+                            ),
+                            data: (paddocks) {
+                              if (paddocks.isEmpty) {
+                                return const EmptyState(
+                                  icon: Icons.fence_outlined,
+                                  title: 'Nenhum piquete cadastrado',
+                                  message:
+                                      'Adicione piquetes para começar a organizar os lotes da fazenda.',
+                                );
+                              }
+                              return ListView.separated(
+                                padding:
+                                    const EdgeInsets.fromLTRB(14, 4, 14, 96),
+                                itemCount: paddocks.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (context, i) => _PaddockCard(
+                                  paddock: paddocks[i],
+                                  lotsAsync: lotsAsync,
+                                  animalsAsync: animalsAsync,
+                                  canEdit: canEdit,
+                                  onEdit: () => _openForm(
+                                    context,
+                                    paddock: paddocks[i],
+                                  ),
+                                  onDelete: () =>
+                                      _confirmDelete(context, paddocks[i]),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+
+        return Scaffold(
+          appBar: const CampoAppBar(title: 'Piquetes'),
+          body: body,
+          floatingActionButton: canEdit && !_showLots
+              ? FloatingActionButton.extended(
+                  onPressed: () => _openForm(context),
+                  icon: const Icon(Icons.add, size: 22),
+                  label: const Text('Piquete'),
+                )
+              : null,
+        );
+      },
+    );
+  }
+
+  /// Branch mestre-detalhe desktop (>=Breakpoints.rail) da aba Lotes:
+  /// LotesTableView + LoteDetailPanel opcional. Deriva os agregados a
+  /// partir dos providers que a tela já observa — zero método novo de
+  /// repositório.
+  Widget _buildDesktopLots(
+    BuildContext context, {
+    required List<Paddock> paddocks,
+    required List<LotWithPaddockCount> lots,
+    required List<AnimalWithContext> animals,
+    required bool canEdit,
+    required int paddockCount,
+    required int lotCount,
+    required SelectedProperty? currentProp,
+  }) {
+    final animalsByLot = <String, List<Animal>>{};
+    for (final ctx in animals) {
+      if (ctx.animal.deletedAt != null) continue;
+      (animalsByLot[ctx.animal.lotId] ??= []).add(ctx.animal);
+    }
+
+    final overloadedPaddockIds = <String>{};
+    for (final p in paddocks) {
+      final ua = calcTotalUa(
+        animals
+            .where((c) => c.animal.deletedAt == null && c.paddockId == p.id)
+            .map((c) => c.animal),
+      );
+      if (p.uaCapacity > 0 && ua / p.uaCapacity >= 1.0) {
+        overloadedPaddockIds.add(p.id);
+      }
+    }
+
+    final applicationsAsync =
+        ref.watch(sanitaryApplicationListByPropertyProvider);
+    final lastApplicationByLot = <String, DateTime>{};
+    for (final app in applicationsAsync.asData?.value ?? const []) {
+      final existing = lastApplicationByLot[app.lotId];
+      if (existing == null || app.appliedAt.isAfter(existing)) {
+        lastApplicationByLot[app.lotId] = app.appliedAt;
+      }
+    }
+
+    final selected = lots.where((l) => l.lot.id == _selectedLotId).firstOrNull;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: LotesTableView(
+            lots: lots,
+            animalsByLot: animalsByLot,
+            paddocks: paddocks,
+            overloadedPaddockIds: overloadedPaddockIds,
+            lastApplicationByLot: lastApplicationByLot,
+            paddockCount: paddockCount,
+            lotCount: lotCount,
+            showLots: _showLots,
+            onShowLotsChanged: (v) => setState(() => _showLots = v),
+            selectedId: _selectedLotId,
+            onSelect: (id) => setState(() => _selectedLotId = id),
+            canEdit: canEdit,
+            onCreate: () => _onCreateLot(context, paddocks, currentProp),
           ),
+        ),
+        if (selected != null)
+          LoteDetailPanel(
+            key: ValueKey(selected.lot.id),
+            item: selected,
+            activeAnimals: animalsByLot[selected.lot.id] ?? const <Animal>[],
+            lastApplication: lastApplicationByLot[selected.lot.id],
+            canEdit: canEdit,
+            onClose: () => setState(() => _selectedLotId = null),
+          ),
+      ],
+    );
+  }
+
+  /// "Novo lote" no cabeçalho da tabela desktop: escolhe o piquete (a aba
+  /// Lotes não tem piquete no contexto) e encadeia no LoteFormDialog
+  /// existente — sem rota nem diálogo de formulário novo.
+  Future<void> _onCreateLot(
+    BuildContext context,
+    List<Paddock> paddocks,
+    SelectedProperty? currentProp,
+  ) async {
+    if (currentProp == null || paddocks.isEmpty) return;
+    final paddockId = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Em qual piquete?'),
+        children: [
+          for (final p in paddocks)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, p.id),
+              child: Text(p.name),
+            ),
         ],
       ),
-      floatingActionButton: canEdit && !_showLots
-          ? FloatingActionButton.extended(
-              onPressed: () => _openForm(context),
-              icon: const Icon(Icons.add, size: 22),
-              label: const Text('Piquete'),
-            )
-          : null,
     );
+    if (paddockId == null || !context.mounted) return;
+    final ok = await showAdaptiveForm<bool>(
+      context: context,
+      builder: (_) => LoteFormDialog(
+        paddockId: paddockId,
+        propertyId: currentProp.id,
+      ),
+    );
+    if (ok == true) {
+      ref.invalidate(loteWithPaddockListByPropertyProvider);
+    }
   }
 
   bool _canEdit(
