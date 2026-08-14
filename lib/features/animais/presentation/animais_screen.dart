@@ -144,8 +144,12 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
                   : null,
           body: animalsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, st) =>
-                const Center(child: Text('Erro ao carregar animais.')),
+            error: (err, st) => Center(
+              child: ErrorRetry(
+                message: 'Erro ao carregar animais.',
+                onRetry: () => ref.invalidate(animalListByPropertyProvider),
+              ),
+            ),
             data: (animals) {
               // Build deduplicated lot map from animal context
               final allLots = <String, String>{};

@@ -44,9 +44,13 @@ class AplicacaoDetailScreen extends ConsumerWidget {
       ),
       error: (err, st) => Scaffold(
         appBar: _appBar(context),
-        body: const Center(
-          child: Text(
-            'Erro ao carregar. Verifique sua conexão e tente novamente.',
+        body: Center(
+          child: ErrorRetry(
+            message:
+                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            onRetry: () => ref.invalidate(
+              sanitaryApplicationByIdProvider(applicationId),
+            ),
           ),
         ),
       ),

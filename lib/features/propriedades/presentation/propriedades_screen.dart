@@ -40,9 +40,9 @@ class PropriedadesScreen extends ConsumerWidget {
       body: propertiesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-          child: Text(
-            'Erro ao carregar fazendas.',
-            style: Theme.of(context).textTheme.bodyLarge,
+          child: ErrorRetry(
+            message: 'Erro ao carregar fazendas.',
+            onRetry: () => ref.invalidate(propertyListProvider),
           ),
         ),
         data: (properties) {

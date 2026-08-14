@@ -62,7 +62,12 @@ class LoteDetailScreen extends ConsumerWidget {
       ),
       body: lotAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(child: Text('Erro ao carregar lote.')),
+        error: (e, _) => Center(
+          child: ErrorRetry(
+            message: 'Erro ao carregar lote.',
+            onRetry: () => ref.invalidate(loteByIdProvider(loteId)),
+          ),
+        ),
         data: (lot) {
           if (lot == null) {
             return const Center(child: Text('Lote não encontrado.'));
@@ -113,7 +118,7 @@ class LoteDetailScreen extends ConsumerWidget {
                     ],
                     _ComposicaoCard(animals: activeAnimals),
                     const SizedBox(height: 12),
-                    _AnimaisCard(animalsAsync: animalsAsync),
+                    _AnimaisCard(lotId: loteId, animalsAsync: animalsAsync),
                     const SizedBox(height: 12),
                     LoteSanitaryHistorySection(lotId: loteId),
                   ],
@@ -333,13 +338,14 @@ class _ComposicaoCard extends StatelessWidget {
 }
 
 /// Card Animais: linhas 48h — nº mono + categoria·raça + EC.
-class _AnimaisCard extends StatelessWidget {
-  const _AnimaisCard({required this.animalsAsync});
+class _AnimaisCard extends ConsumerWidget {
+  const _AnimaisCard({required this.lotId, required this.animalsAsync});
 
+  final String lotId;
   final AsyncValue<List<Animal>> animalsAsync;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return animalsAsync.when(
       loading: () => const Center(
         child: Padding(
@@ -347,10 +353,13 @@ class _AnimaisCard extends StatelessWidget {
           child: CircularProgressIndicator(),
         ),
       ),
-      error: (e, _) => const Center(
+      error: (e, _) => Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text('Erro ao carregar animais.'),
+          padding: const EdgeInsets.all(32),
+          child: ErrorRetry(
+            message: 'Erro ao carregar animais.',
+            onRetry: () => ref.invalidate(animalListByLotProvider(lotId)),
+          ),
         ),
       ),
       data: (animals) {

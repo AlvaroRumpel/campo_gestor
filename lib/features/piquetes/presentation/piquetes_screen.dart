@@ -106,8 +106,12 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
                             loading: () => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                            error: (err, _) => const Center(
-                              child: Text('Erro ao carregar piquetes.'),
+                            error: (err, _) => Center(
+                              child: ErrorRetry(
+                                message: 'Erro ao carregar piquetes.',
+                                onRetry: () =>
+                                    ref.invalidate(paddockListProvider),
+                              ),
                             ),
                             data: (paddocks) {
                               if (paddocks.isEmpty) {

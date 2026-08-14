@@ -378,9 +378,9 @@ class _LotacaoCard extends ConsumerWidget {
             ),
           ),
         ),
-        error: (_, _) => const Text(
-          'Erro ao carregar piquetes.',
-          style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
+        error: (_, _) => ErrorRetry(
+          message: 'Erro ao carregar piquetes.',
+          onRetry: () => ref.invalidate(paddockOccupancyProvider),
         ),
         data: (list) {
           if (list.isEmpty) {
@@ -477,9 +477,9 @@ class _PrenhezCard extends ConsumerWidget {
             ),
           ),
         ),
-        error: (_, _) => const Text(
-          'Erro ao carregar ATFs.',
-          style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
+        error: (_, _) => ErrorRetry(
+          message: 'Erro ao carregar ATFs.',
+          onRetry: () => ref.invalidate(atfListByPropertyProvider),
         ),
         data: (all) {
           final actives = all.where((s) => s.atf.active).toList();
@@ -632,9 +632,9 @@ class _GastosCard extends ConsumerWidget {
             ),
           ),
         ),
-        error: (_, _) => const Text(
-          'Erro ao carregar gastos.',
-          style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
+        error: (_, _) => ErrorRetry(
+          message: 'Erro ao carregar gastos.',
+          onRetry: () => ref.invalidate(monthExpensesProvider),
         ),
         data: (month) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,

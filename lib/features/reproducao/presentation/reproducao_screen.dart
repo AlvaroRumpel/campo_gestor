@@ -72,9 +72,11 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
           appBar: const CampoAppBar(title: 'Reprodução'),
           body: atfsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, st) => const Center(
-              child: Text(
-                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            error: (err, st) => Center(
+              child: ErrorRetry(
+                message:
+                    'Erro ao carregar. Verifique sua conexão e tente novamente.',
+                onRetry: () => ref.invalidate(atfListByPropertyProvider),
               ),
             ),
             data: (atfs) {

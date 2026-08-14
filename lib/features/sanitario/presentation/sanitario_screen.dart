@@ -341,9 +341,12 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
         Expanded(
           child: appsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, st) => const Center(
-              child: Text(
-                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            error: (err, st) => Center(
+              child: ErrorRetry(
+                message:
+                    'Erro ao carregar. Verifique sua conexão e tente novamente.',
+                onRetry: () =>
+                    ref.invalidate(sanitaryApplicationListByPropertyProvider),
               ),
             ),
             data: (rows) {
@@ -542,9 +545,15 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
         Expanded(
           child: dosesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, st) => const Center(
-              child: Text(
-                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            error: (err, st) => Center(
+              child: ErrorRetry(
+                message:
+                    'Erro ao carregar. Verifique sua conexão e tente novamente.',
+                onRetry: () => ref.invalidate(
+                  _showArchived
+                      ? archivedDoseListByPropertyProvider
+                      : doseListByPropertyProvider,
+                ),
               ),
             ),
             data: (doses) {

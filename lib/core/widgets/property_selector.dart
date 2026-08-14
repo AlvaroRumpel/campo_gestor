@@ -164,9 +164,9 @@ class PropertySelector extends ConsumerWidget {
               strokeWidth: 2, color: AppColors.onGreen),
         ),
       ),
-      error: (err, _) => const Text(
-        'Erro ao carregar fazenda',
-        style: TextStyle(fontSize: 15, color: AppColors.onGreen),
+      error: (err, _) => ErrorRetry(
+        message: 'Erro ao carregar fazenda',
+        onRetry: () => ref.invalidate(currentPropertyProvider),
       ),
     );
   }
