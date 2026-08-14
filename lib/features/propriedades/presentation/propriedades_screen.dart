@@ -10,14 +10,26 @@ import '../../../core/widgets/ui.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../data/propriedade_model.dart';
 import '../data/propriedade_repository.dart';
+import 'archive_confirm_dialog.dart';
 import 'property_form_dialog.dart';
 
-class PropriedadesScreen extends ConsumerWidget {
+class PropriedadesScreen extends ConsumerStatefulWidget {
   const PropriedadesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final propertiesAsync = ref.watch(propertyListProvider);
+  ConsumerState<PropriedadesScreen> createState() =>
+      _PropriedadesScreenState();
+}
+
+class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
+  // PROPV-02: aba Ativas é a padrão ao montar.
+  bool _showArchived = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final propertiesAsync = ref.watch(
+      _showArchived ? archivedPropertyListProvider : propertyListProvider,
+    );
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);
 
@@ -37,41 +49,80 @@ class PropriedadesScreen extends ConsumerWidget {
           context.go(AppRoutes.dashboard);
         },
       ),
-      body: propertiesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: ErrorRetry(
-            message: 'Erro ao carregar fazendas.',
-            onRetry: () => ref.invalidate(propertyListProvider),
-          ),
-        ),
-        data: (properties) {
-          if (properties.isEmpty) {
-            return const EmptyState(
-              icon: Icons.landscape_outlined,
-              title: 'Nenhuma fazenda cadastrada',
-              message:
-                  'Crie sua primeira fazenda para começar a organizar o rebanho.',
-            );
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            itemCount: properties.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 10),
-            itemBuilder: (context, i) => _PropertyCard(
-              property: properties[i],
-              canEdit: canEdit,
-              onEdit: () => _openForm(context, ref, property: properties[i]),
-              onDelete: () => _confirmDelete(context, ref, properties[i]),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+            child: Row(
+              children: [
+                _ScopeChip(
+                  label: 'Ativas',
+                  selected: !_showArchived,
+                  onTap: () => setState(() => _showArchived = false),
+                ),
+                const SizedBox(width: 8),
+                _ScopeChip(
+                  label: 'Arquivadas',
+                  selected: _showArchived,
+                  onTap: () => setState(() => _showArchived = true),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: propertiesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => Center(
+                child: ErrorRetry(
+                  message: 'Erro ao carregar fazendas.',
+                  onRetry: () => ref.invalidate(
+                    _showArchived
+                        ? archivedPropertyListProvider
+                        : propertyListProvider,
+                  ),
+                ),
+              ),
+              data: (properties) {
+                if (properties.isEmpty) {
+                  return _showArchived
+                      ? const EmptyState(
+                          icon: Icons.archive_outlined,
+                          title: 'Nenhuma fazenda arquivada',
+                          message:
+                              'Fazendas arquivadas por você aparecem aqui para restaurar quando precisar.',
+                        )
+                      : const EmptyState(
+                          icon: Icons.landscape_outlined,
+                          title: 'Nenhuma fazenda cadastrada',
+                          message:
+                              'Crie sua primeira fazenda para começar a organizar o rebanho.',
+                        );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  itemCount: properties.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 10),
+                  itemBuilder: (context, i) => _PropertyCard(
+                    property: properties[i],
+                    canEdit: canEdit,
+                    archived: _showArchived,
+                    onEdit: () => _openForm(property: properties[i]),
+                    onArchive: () => _confirmArchive(properties[i]),
+                    onRestore: () => _restore(properties[i]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: canEdit
+      floatingActionButton: canEdit && !_showArchived
           ? FloatingActionButton.extended(
               onPressed: () => _openForm(
-                context,
-                ref,
                 isFirstProperty: membersAsync.asData?.value.isEmpty ?? false,
               ),
               tooltip: 'Nova fazenda',
@@ -97,9 +148,7 @@ class PropriedadesScreen extends ConsumerWidget {
     return role == 'veterinarian';
   }
 
-  Future<void> _openForm(
-    BuildContext context,
-    WidgetRef ref, {
+  Future<void> _openForm({
     Property? property,
     bool isFirstProperty = false,
   }) async {
@@ -110,66 +159,91 @@ class PropriedadesScreen extends ConsumerWidget {
     if (result == true) {
       ref.invalidate(propertyListProvider);
       ref.invalidate(memberPropertiesProvider);
-      if (isFirstProperty && context.mounted) {
+      if (isFirstProperty && mounted) {
         context.go(AppRoutes.dashboard);
       }
     }
   }
 
-  Future<void> _confirmDelete(
-    BuildContext context,
-    WidgetRef ref,
-    Property property,
-  ) async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _confirmArchive(Property property) async {
+    final confirmed = await showAdaptiveForm<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.dangerContainer,
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(
-                Icons.delete_outline,
-                size: 21,
-                color: AppColors.danger,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('Remover fazenda')),
-          ],
-        ),
-        content: Text(
-          'Tem certeza que deseja remover "${property.name}"? Esta ação não pode ser desfeita.',
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.onDanger,
-            ),
-            child: const Text('Remover'),
-          ),
-        ],
-      ),
+      width: FormWidth.confirm,
+      builder: (_) => ArchiveConfirmDialog(propertyName: property.name),
     );
-    if (confirmed == true) {
+    if (confirmed != true) return;
+    try {
       await ref
           .read(propertyRepositoryProvider)
           .softDeleteProperty(property.id);
       ref.invalidate(propertyListProvider);
+      ref.invalidate(archivedPropertyListProvider);
       ref.invalidate(memberPropertiesProvider);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao arquivar a fazenda. Tente novamente.'),
+        ),
+      );
     }
+  }
+
+  Future<void> _restore(Property property) async {
+    try {
+      await ref.read(propertyRepositoryProvider).restoreProperty(property.id);
+      ref.invalidate(propertyListProvider);
+      ref.invalidate(archivedPropertyListProvider);
+      ref.invalidate(memberPropertiesProvider);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao restaurar a fazenda. Tente novamente.'),
+        ),
+      );
+    }
+  }
+}
+
+/// Alternador de escopo Ativas/Arquivadas — visual de `_PeriodChip`
+/// (`gastos_property_screen.dart`), redeclarado localmente porque aquela
+/// classe é privada de outro arquivo.
+class _ScopeChip extends StatelessWidget {
+  const _ScopeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? AppColors.onGreen : AppColors.ink,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -178,75 +252,91 @@ class _PropertyCard extends StatelessWidget {
     required this.property,
     required this.canEdit,
     required this.onEdit,
-    required this.onDelete,
+    required this.onArchive,
+    required this.onRestore,
+    this.archived = false,
   });
   final Property property;
   final bool canEdit;
+  final bool archived;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback onArchive;
+  final VoidCallback onRestore;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        child: Row(
-          children: [
-            FarmAvatar(
-              name: property.name,
-              size: 40,
-              background: AppColors.surfaceVariant,
-              foreground: AppColors.primaryDarkText,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          FarmAvatar(
+            name: property.name,
+            size: 40,
+            background: AppColors.surfaceVariant,
+            foreground: AppColors.primaryDarkText,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  property.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (property.owner != null) ...[
+                  const SizedBox(height: 2),
                   Text(
-                    property.name,
+                    'Proprietário: ${property.owner}',
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (property.owner != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Proprietário: ${property.owner}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
-            if (canEdit)
-              PopupMenuButton<String>(
-                onSelected: (v) {
-                  if (v == 'edit') onEdit();
-                  if (v == 'delete') onDelete();
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text(
-                      'Remover',
-                      style: TextStyle(color: AppColors.danger),
-                    ),
-                  ),
-                ],
+          ),
+          if (canEdit && archived)
+            FilledButton.icon(
+              onPressed: onRestore,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.onAccent,
               ),
-          ],
-        ),
+              icon: const Icon(Icons.unarchive_outlined, size: 18),
+              label: const Text('Restaurar fazenda'),
+            )
+          else if (canEdit)
+            PopupMenuButton<String>(
+              onSelected: (v) {
+                if (v == 'edit') onEdit();
+                if (v == 'archive') onArchive();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                const PopupMenuItem(
+                  value: 'archive',
+                  child: Text(
+                    'Arquivar',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
     );
+
+    // Cartão arquivado esmaecido — mesmo tratamento das aplicações
+    // sanitárias arquivadas (Fase 9).
+    return Card(child: archived ? Opacity(opacity: 0.6, child: content) : content);
   }
 }
