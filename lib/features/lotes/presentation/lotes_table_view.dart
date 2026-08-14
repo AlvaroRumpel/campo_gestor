@@ -6,8 +6,7 @@ import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
 import '../../piquetes/data/piquete_model.dart';
-import '../../reproducao/presentation/reproducao_table_view.dart'
-    show AtfScopeChip;
+import '../../piquetes/presentation/piquetes_lotes_header.dart';
 import '../data/lote_repository.dart';
 
 /// Tabela mestre-detalhe desktop de lotes (quick task 260813-ugd) — a partir
@@ -70,14 +69,6 @@ class _LotesTableViewState extends State<LotesTableView> {
 
   @override
   Widget build(BuildContext context) {
-    final uaOcupada = widget.animalsByLot.values
-        .fold<double>(0, (sum, animals) => sum + calcTotalUa(animals));
-    final capacidadeTotal =
-        widget.paddocks.fold<double>(0, (sum, p) => sum + p.uaCapacity);
-    final haTotal =
-        widget.paddocks.fold<double>(0, (sum, p) => sum + p.areaHa);
-    final uaPorHa = haTotal > 0 ? uaOcupada / haTotal : 0.0;
-
     final sorted = [...widget.lots]
       ..sort((a, b) {
         final cmp = _uaFor(a).compareTo(_uaFor(b));
@@ -90,64 +81,20 @@ class _LotesTableViewState extends State<LotesTableView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Piquetes e lotes',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${_fmt1(uaOcupada)} / ${_fmt1(capacidadeTotal)} UA · '
-                        '${_fmt1(haTotal)} ha · ${_fmt1(uaPorHa)} UA/ha',
-                        style: monoStyle(
-                          size: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.canEdit) ...[
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
+          PiquetesLotesHeader(
+            paddocks: widget.paddocks,
+            animalsByLot: widget.animalsByLot,
+            paddockCount: widget.paddockCount,
+            lotCount: widget.lotCount,
+            showLots: widget.showLots,
+            onShowLotsChanged: widget.onShowLotsChanged,
+            action: widget.canEdit
+                ? FilledButton.icon(
                     onPressed: widget.onCreate,
                     icon: const Icon(Icons.add, size: 20),
                     label: const Text('Novo lote'),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: Row(
-              children: [
-                AtfScopeChip(
-                  label: 'Piquetes',
-                  count: widget.paddockCount,
-                  selected: !widget.showLots,
-                  onTap: () => widget.onShowLotsChanged(false),
-                ),
-                const SizedBox(width: 8),
-                AtfScopeChip(
-                  label: 'Lotes',
-                  count: widget.lotCount,
-                  selected: widget.showLots,
-                  onTap: () => widget.onShowLotsChanged(true),
-                ),
-              ],
-            ),
+                  )
+                : null,
           ),
           Container(
             constraints: const BoxConstraints(minHeight: 36),
