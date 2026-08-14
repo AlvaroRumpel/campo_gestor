@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_repository.dart';
@@ -21,6 +22,7 @@ import '../data/sanitary_calculations.dart';
 import 'aplicacao_form_dialog.dart';
 import 'dose_form_dialog.dart';
 import 'registrar_aplicacao_screen.dart';
+import 'sanitario_table_views.dart';
 
 final _dateFmt = DateFormat('dd/MM/yyyy');
 
@@ -173,40 +175,124 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
     final currentProperty = currentPropAsync.asData?.value;
     final canEdit = _canEdit(currentProperty, membersAsync.asData?.value);
 
-    return Scaffold(
-      appBar: const CampoAppBar(title: 'Sanitário'),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-            child: SizedBox(
-              width: double.infinity,
-              height: 40,
-              child: SegmentedButton<int>(
-                segments: const [
-                  ButtonSegment(value: 0, label: Text('Aplicações')),
-                  ButtonSegment(value: 1, label: Text('Doses')),
-                ],
-                selected: {_tab},
-                showSelectedIcon: false,
-                style: SegmentedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                ),
-                onSelectionChanged: (s) => setState(() => _tab = s.first),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= Breakpoints.rail;
+
+        return Scaffold(
+          appBar: const CampoAppBar(title: 'Sanitário'),
+          body: Column(
+            children: [
+              if (isDesktop) _buildDesktopHeader(canEdit, currentProperty),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+                child: isDesktop
+                    ? Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: 320,
+                          height: 40,
+                          child: _buildSegmented(),
+                        ),
+                      )
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 40,
+                        child: _buildSegmented(),
+                      ),
               ),
+              Expanded(
+                child: _tab == 0
+                    ? _buildApplicationsTab(canEdit, isDesktop)
+                    : _buildDosesTab(canEdit, isDesktop),
+              ),
+            ],
+          ),
+          floatingActionButton:
+              isDesktop ? null : _buildFab(canEdit, currentProperty),
+        );
+      },
+    );
+  }
+
+  SegmentedButton<int> _buildSegmented() {
+    return SegmentedButton<int>(
+      segments: const [
+        ButtonSegment(value: 0, label: Text('Aplicações')),
+        ButtonSegment(value: 1, label: Text('Doses')),
+      ],
+      selected: {_tab},
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(11),
+        ),
+      ),
+      onSelectionChanged: (s) => setState(() => _tab = s.first),
+    );
+  }
+
+  /// Header desktop (>=1024px): título + subtítulo mono com contagens +
+  /// botão primário da aba ativa. O segmented e o FAB continuam fora daqui.
+  Widget _buildDesktopHeader(bool canEdit, SelectedProperty? currentProperty) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Sanitário',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _desktopSubtitle(),
+                  style: monoStyle(size: 13, color: AppColors.textSecondary),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: _tab == 0
-                ? _buildApplicationsTab()
-                : _buildDosesTab(canEdit),
-          ),
+          if (canEdit && currentProperty != null) ...[
+            const SizedBox(width: 10),
+            FilledButton.icon(
+              onPressed:
+                  _tab == 0 ? _openRegistrarAplicacao : () => _openDoseForm(),
+              icon: const Icon(Icons.add, size: 20),
+              label: Text(_tab == 0 ? 'Nova aplicação' : 'Nova dose'),
+            ),
+          ],
         ],
       ),
-      floatingActionButton: _buildFab(canEdit, currentProperty),
     );
+  }
+
+  String _desktopSubtitle() {
+    if (_tab == 0) {
+      final rows =
+          ref.watch(sanitaryApplicationListByPropertyProvider).asData?.value ??
+              const <SanitaryApplication>[];
+      final filtered = _filteredApplications(rows);
+      final totalUa = filtered.fold<double>(0, (sum, a) => sum + a.totalUa);
+      final costs = [
+        for (final a in filtered)
+          if (a.totalCost != null) a.totalCost!,
+      ];
+      var subtitle = '${filtered.length} aplicações · ${formatUa(totalUa)} UA';
+      if (costs.isNotEmpty) {
+        final totalCost = costs.fold<double>(0, (sum, c) => sum + c);
+        subtitle += ' · ${formatCurrencyBrl(totalCost)}';
+      }
+      return subtitle;
+    }
+    final dosesAsync = _showArchived
+        ? ref.watch(archivedDoseListByPropertyProvider)
+        : ref.watch(doseListByPropertyProvider);
+    final n = dosesAsync.asData?.value.length ?? 0;
+    return _showArchived ? '$n doses arquivadas' : '$n doses';
   }
 
   // ---------------------------------------------------------------------
@@ -231,7 +317,18 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
     return true;
   }
 
-  Widget _buildApplicationsTab() {
+  /// Aplica o toggle "Mostrar estornadas", os filtros da faixa e a ordenação
+  /// padrão — única definição do que está na tela, reusada pela aba e pelo
+  /// subtítulo do header desktop.
+  List<SanitaryApplication> _filteredApplications(
+    List<SanitaryApplication> rows,
+  ) {
+    final visible = visibleApplications(rows, showReversed: _showReversed);
+    final filtered = visible.where(_matchesApplicationFilters).toList();
+    return sortByAppliedAtDesc(filtered);
+  }
+
+  Widget _buildApplicationsTab(bool canEdit, bool isDesktop) {
     final appsAsync = ref.watch(sanitaryApplicationListByPropertyProvider);
     return Column(
       children: [
@@ -250,14 +347,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
               ),
             ),
             data: (rows) {
-              final visible = visibleApplications(
-                rows,
-                showReversed: _showReversed,
-              );
-              final filtered = visible
-                  .where(_matchesApplicationFilters)
-                  .toList();
-              final sorted = sortByAppliedAtDesc(filtered);
+              final sorted = _filteredApplications(rows);
 
               if (sorted.isEmpty) {
                 return rows.isEmpty
@@ -275,6 +365,17 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
               }
 
               final reversedIds = reversedApplicationIds(rows);
+
+              if (isDesktop) {
+                return AplicacoesTableView(
+                  rows: sorted,
+                  reversedIds: reversedIds,
+                  canEdit: canEdit,
+                  onOpen: (app) =>
+                      context.go(AppRoutes.aplicacaoDetail(app.id)),
+                );
+              }
+
               return ListView.builder(
                 padding: const EdgeInsets.fromLTRB(14, 4, 14, 88),
                 itemCount: sorted.length,
@@ -425,7 +526,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
   // Doses tab (SANI-01, spec 4.11)
   // ---------------------------------------------------------------------
 
-  Widget _buildDosesTab(bool canEdit) {
+  Widget _buildDosesTab(bool canEdit, bool isDesktop) {
     final dosesAsync = _showArchived
         ? ref.watch(archivedDoseListByPropertyProvider)
         : ref.watch(doseListByPropertyProvider);
@@ -455,6 +556,17 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
                       'Cadastre uma dose para registrar aplicações sanitárias.',
                 );
               }
+
+              if (isDesktop) {
+                return DosesTableView(
+                  doses: doses,
+                  kgPerUa: kgPerUa,
+                  canEdit: canEdit,
+                  onEdit: (d) => _openDoseForm(existing: d),
+                  onArchiveToggle: _toggleArchive,
+                );
+              }
+
               return ListView.builder(
                 padding: const EdgeInsets.fromLTRB(14, 4, 14, 88),
                 itemCount: doses.length,
