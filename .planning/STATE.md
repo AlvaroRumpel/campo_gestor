@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 08 (complete)
 current_plan: Not started
 status: milestone-complete
-stopped_at: Phase 8 UAT 15/15 pass, 08-VERIFICATION.md passed; milestone v1.0 pronto para /gsd-complete-milestone
-last_updated: "2026-08-14T17:12:34.790Z"
+stopped_at: Phase 10 UI-SPEC approved
+last_updated: "2026-08-14T17:20:34.732Z"
 last_activity: 2026-08-14
 last_activity_desc: "Completed quick task 260814-g9j: findings médios do review (migration 20260814_10 pendente de aplicar)"
 progress:
@@ -160,10 +160,10 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 ## Session Continuity
 
-**Stopped at:** Phase 8 complete — UAT 15/15 pass, verification `passed`, milestone v1.0 100%
-**Resume file:** None
+**Stopped at:** Phase 10 UI-SPEC approved
+**Resume file:** .planning/phases/10-gest-o-de-membros-e-ciclo-de-vida-da-propriedade/10-UI-SPEC.md
 
-**Last session:** 2026-08-12T00:52:37Z
+**Last session:** 2026-08-14T17:20:34.697Z
 **Next action:** `/gsd-complete-milestone v1.0` — todas as 9 fases fechadas com UAT. Phase 8's dois checkpoints humanos (SC-1 4G <1s / 4 requests, e o banner de baixa em 360px) foram confirmados nesta sessão via `08-UAT.md` testes 14 e 15; `08-VERIFICATION.md` foi promovido de `human_needed` para `passed` (7/7). Itens abertos que **não** bloqueiam o milestone: (1) `01-VERIFICATION.md` ainda em `human_needed` (Phase 1 foi aprovada por UAT 4/4 em 2026-05-07, mas o relatório de verificação nunca foi fechado); (2) Site URL + redirect URLs do projeto `wrdwzychjhlpwpivfhhq` ainda apontam para localhost; (3) as 4 correções do quick task 260804-fpk nunca foram confirmadas no browser; (4) `sanitary_history_section.dart` header row estoura ~29px em 360px (pré-existente, D-37-locked — merece quick task própria); (5) 2 debug sessions em `diagnosed` (`animal-history-22p02`, `dose-restore-noop`). Nota de higiene do roadmap: os checkboxes das Phases 1 e 2 estavam `[ ]` apesar de completas, o que fez `phase.complete` apontar `next_phase: 1` — corrigido manualmente nesta sessão.
 **Files of interest:**
 
