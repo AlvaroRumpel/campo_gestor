@@ -154,39 +154,48 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
         _buildDesktopHeader(canManage, propertyId, count, total),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: _buildPeriodDropdown(),
+          child: Row(
+            children: [
+              for (final preset in ExpensePeriodPreset.values)
+                if (preset != ExpensePeriodPreset.personalizado) ...[
+                  _PeriodChip(
+                    label: preset.label,
+                    selected: _preset == preset,
+                    onTap: () => setState(() => _preset = preset),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+            ],
           ),
         ),
         Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppColors.divider)),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: periodItems.isEmpty
-                      ? const EmptyState(
-                          icon: Icons.receipt_long_outlined,
-                          title: 'Nenhum gasto no período selecionado',
-                          message: 'Tente ajustar o período.',
-                        )
-                      : _buildTable(
-                          periodItems,
-                          total,
-                          paddockMap,
-                          canManage,
-                          propertyId,
-                        ),
-                ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 330,
-                  child: SingleChildScrollView(
-                    child: _buildPanel(items, totalUa),
+                  child: ColoredBox(
+                    color: AppColors.surface,
+                    child: periodItems.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.receipt_long_outlined,
+                            title: 'Nenhum gasto no período selecionado',
+                            message: 'Tente ajustar o período.',
+                          )
+                        : _buildTable(
+                            periodItems,
+                            count,
+                            total,
+                            paddockMap,
+                            canManage,
+                            propertyId,
+                          ),
                   ),
                 ),
+                _buildPanel(items, totalUa),
               ],
             ),
           ),
@@ -216,13 +225,7 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${Intl.plural(
-                    count,
-                    zero: '$count lançamentos',
-                    one: '1 lançamento',
-                    other: '$count lançamentos',
-                    locale: 'pt_BR',
-                  )} · ${formatCurrencyBrl(total)}',
+                  '${_countLabel(count)} · ${formatCurrencyBrl(total)}',
                   style: monoStyle(size: 13, color: AppColors.textSecondary),
                 ),
               ],
@@ -240,6 +243,14 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
       ),
     );
   }
+
+  String _countLabel(int count) => Intl.plural(
+        count,
+        zero: '$count lançamentos',
+        one: '1 lançamento',
+        other: '$count lançamentos',
+        locale: 'pt_BR',
+      );
 
   Widget _buildPeriodDropdown() {
     return DropdownButton<ExpensePeriodPreset>(
@@ -260,31 +271,29 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
 
   Widget _buildTable(
     List<ExpenseListItem> periodItems,
+    int count,
     double total,
     Map<String, String> paddockMap,
     bool canManage,
     String propertyId,
   ) {
-    return ColoredBox(
-      color: AppColors.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildTableHeader(),
-          Expanded(
-            child: ListView.builder(
-              itemCount: periodItems.length,
-              itemBuilder: (context, i) => _buildTableRow(
-                periodItems[i],
-                paddockMap,
-                canManage,
-                propertyId,
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTableHeader(),
+        Expanded(
+          child: ListView.builder(
+            itemCount: periodItems.length,
+            itemBuilder: (context, i) => _buildTableRow(
+              periodItems[i],
+              paddockMap,
+              canManage,
+              propertyId,
             ),
           ),
-          _buildTableFooter(total),
-        ],
-      ),
+        ),
+        _buildTableFooter(count, total),
+      ],
     );
   }
 
@@ -309,27 +318,15 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
     );
   }
 
-  Widget _buildTableFooter(double total) {
+  Widget _buildTableFooter(int count, double total) {
     return Container(
       constraints: const BoxConstraints(minHeight: 34),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       color: AppColors.surfaceVariant,
-      child: Row(
-        children: [
-          const Text(
-            'TOTAL',
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            formatCurrencyBrl(total),
-            style: monoStyle(size: 13.5, weight: FontWeight.w700),
-          ),
-        ],
+      alignment: Alignment.centerRight,
+      child: Text(
+        '${_countLabel(count)} · ${formatCurrencyBrl(total)}',
+        style: monoStyle(size: 11.5, color: AppColors.textSecondary),
       ),
     );
   }
@@ -425,7 +422,9 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Painel direito 330px
+  // Painel direito ancorado (380px) — molde LoteDetailPanel/AnimalDetailPanel.
+  // Fundo `background` (osso), não `surface`: o conteúdo é uma pilha de
+  // SectionCard brancos, que sobre branco perde a definição.
   // ---------------------------------------------------------------------
 
   Widget _buildPanel(List<ExpenseListItem> allItems, double? totalUa) {
@@ -434,46 +433,60 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
     final monthTotal = totalAmount(monthItems);
     final categoryCard = _buildCategoryCard(monthItems);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const OverlineLabel('Total do mês'),
-              const SizedBox(height: 6),
-              Text(
-                formatCurrencyBrl(monthTotal),
-                style: monoStyle(size: 28, weight: FontWeight.w700),
+    return Container(
+      key: const ValueKey('gastos-painel'),
+      width: 380,
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        border: Border(left: BorderSide(color: AppColors.divider)),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const OverlineLabel('Total do mês'),
+                  const SizedBox(height: 6),
+                  Text(
+                    formatCurrencyBrl(monthTotal),
+                    style: monoStyle(size: 28, weight: FontWeight.w700),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        SectionCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const OverlineLabel('R\$/UA'),
-              const SizedBox(height: 6),
-              Text(
-                (totalUa == null || totalUa <= 0)
-                    ? _kDash
-                    : formatCurrencyBrl(monthTotal / totalUa),
-                style: monoStyle(
-                  size: 22,
-                  weight: FontWeight.w700,
-                  color: AppColors.primaryDarkText,
-                ),
+            ),
+            const SizedBox(height: 10),
+            SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const OverlineLabel('R\$/UA'),
+                  const SizedBox(height: 6),
+                  Text(
+                    (totalUa == null || totalUa <= 0)
+                        ? _kDash
+                        : formatCurrencyBrl(monthTotal / totalUa),
+                    style: monoStyle(
+                      size: 22,
+                      weight: FontWeight.w700,
+                      color: AppColors.primaryDarkText,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            if (categoryCard != null) ...[
+              const SizedBox(height: 10),
+              categoryCard,
             ],
-          ),
+            const SizedBox(height: 10),
+            _buildMonthsCard(allItems, now),
+          ],
         ),
-        if (categoryCard != null) ...[const SizedBox(height: 10), categoryCard],
-        const SizedBox(height: 10),
-        _buildMonthsCard(allItems, now),
-      ],
+      ),
     );
   }
 
@@ -718,6 +731,47 @@ class _HeaderText extends StatelessWidget {
         weight: FontWeight.w700,
         letterSpacing: 0.8,
         color: AppColors.primaryDarkText,
+      ),
+    );
+  }
+}
+
+/// Chip de filtro de período — clone visual de `_ScopeChip`
+/// (`animais_table_view.dart`), o "padrão das outras abas" real.
+class _PeriodChip extends StatelessWidget {
+  const _PeriodChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.positiveChipBg : AppColors.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: selected ? null : Border.all(color: AppColors.chipBorder),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? AppColors.primaryDarkText : AppColors.ink,
+            ),
+          ),
+        ),
       ),
     );
   }
