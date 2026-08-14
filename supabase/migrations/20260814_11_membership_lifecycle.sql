@@ -371,3 +371,181 @@ $$;
 REVOKE ALL ON FUNCTION list_my_invites() FROM public;
 GRANT EXECUTE ON FUNCTION list_my_invites() TO authenticated;
 REVOKE EXECUTE ON FUNCTION list_my_invites() FROM anon, PUBLIC;
+
+-- ============================================================
+-- 7. RPCs de membro
+-- ============================================================
+
+-- list_property_members — qualquer papel pode listar (leitor visualiza,
+-- D-10-04). Existe porque members_read_own_memberships limita o SELECT
+-- direto às linhas do próprio usuário e porque auth.users.email não é
+-- legível por authenticated. is_self é calculado no servidor para que a
+-- tela saiba qual linha oferece "Sair da fazenda" em vez de "Remover
+-- membro" sem consulta extra de identidade no client.
+CREATE OR REPLACE FUNCTION list_property_members(p_property_id uuid)
+RETURNS TABLE (
+  user_id    uuid,
+  email      text,
+  role       role_enum,
+  created_at timestamptz,
+  is_self    boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+  IF NOT is_member_of(p_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', p_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN QUERY
+  SELECT pm.user_id, u.email, pm.role, pm.created_at, (pm.user_id = auth.uid())
+    FROM property_members pm
+    JOIN auth.users u ON u.id = pm.user_id
+   WHERE pm.property_id = p_property_id
+   ORDER BY pm.created_at;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION list_property_members(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION list_property_members(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION list_property_members(uuid) FROM anon, PUBLIC;
+
+-- remove_member — guarda MEMB-03 chamada antes do DELETE.
+CREATE OR REPLACE FUNCTION remove_member(
+  p_property_id     uuid,
+  p_target_user_id  uuid
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT is_member_of(p_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', p_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF get_role(p_property_id) NOT IN ('veterinarian'::role_enum, 'owner'::role_enum) THEN
+    RAISE EXCEPTION 'forbidden: only veterinarians or owners can remove members'
+      USING ERRCODE = '42501';
+  END IF;
+
+  PERFORM assert_not_last_veterinarian(p_property_id, p_target_user_id);
+
+  DELETE FROM property_members
+   WHERE user_id = p_target_user_id
+     AND property_id = p_property_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'member % not found in property %', p_target_user_id, p_property_id
+      USING ERRCODE = '23503';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION remove_member(uuid, uuid) FROM public;
+GRANT EXECUTE ON FUNCTION remove_member(uuid, uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION remove_member(uuid, uuid) FROM anon, PUBLIC;
+
+-- update_member_role — a guarda só dispara quando o alvo é veterinarian
+-- atual e o novo papel deixa de ser veterinarian (rebaixar/trocar o último
+-- vet). Promover para vet, ou mexer no papel de um não-vet, nunca precisa
+-- da guarda. O SET toca só a coluna role — incluir property_id no SET
+-- dispararia trg_property_members_property_id_immutable.
+CREATE OR REPLACE FUNCTION update_member_role(
+  p_property_id     uuid,
+  p_target_user_id  uuid,
+  p_new_role        role_enum
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_current_role role_enum;
+BEGIN
+  IF NOT is_member_of(p_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', p_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF get_role(p_property_id) NOT IN ('veterinarian'::role_enum, 'owner'::role_enum) THEN
+    RAISE EXCEPTION 'forbidden: only veterinarians or owners can update member roles'
+      USING ERRCODE = '42501';
+  END IF;
+
+  SELECT role INTO v_current_role
+    FROM property_members
+   WHERE user_id = p_target_user_id
+     AND property_id = p_property_id;
+
+  IF v_current_role IS NULL THEN
+    RAISE EXCEPTION 'member % not found in property %', p_target_user_id, p_property_id
+      USING ERRCODE = '23503';
+  END IF;
+
+  IF v_current_role = 'veterinarian'::role_enum AND p_new_role <> 'veterinarian'::role_enum THEN
+    PERFORM assert_not_last_veterinarian(p_property_id, p_target_user_id);
+  END IF;
+
+  UPDATE property_members
+     SET role = p_new_role
+   WHERE user_id = p_target_user_id
+     AND property_id = p_property_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'member % not found in property %', p_target_user_id, p_property_id
+      USING ERRCODE = '23503';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION update_member_role(uuid, uuid, role_enum) FROM public;
+GRANT EXECUTE ON FUNCTION update_member_role(uuid, uuid, role_enum) TO authenticated;
+REVOKE EXECUTE ON FUNCTION update_member_role(uuid, uuid, role_enum) FROM anon, PUBLIC;
+
+-- leave_property — D-10-05: qualquer membro pode sair, sem checagem de
+-- papel do próprio ator; bloqueado se for o último veterinarian.
+CREATE OR REPLACE FUNCTION leave_property(p_property_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT is_member_of(p_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', p_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  PERFORM assert_not_last_veterinarian(p_property_id, auth.uid());
+
+  DELETE FROM property_members
+   WHERE user_id = auth.uid()
+     AND property_id = p_property_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'member not found in property %', p_property_id
+      USING ERRCODE = '23503';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION leave_property(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION leave_property(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION leave_property(uuid) FROM anon, PUBLIC;
+
+-- ============================================================
+-- Resumo dos objetos criados (conferência rápida no momento da aplicação)
+-- ============================================================
+-- 1 tabela (invites), 2 índices (invites_property_email_pending_idx,
+-- invites_invited_email_idx), 2 policies SELECT (invitee_can_read_own_invites,
+-- managers_can_read_property_invites), 1 trigger
+-- (trg_invites_property_id_immutable), 11 funções (current_user_email,
+-- assert_not_last_veterinarian, create_invite, revoke_invite, accept_invite,
+-- decline_invite, list_my_invites, list_property_members, remove_member,
+-- update_member_role, leave_property) — 10 delas chamáveis pelo client
+-- (todas menos assert_not_last_veterinarian).
