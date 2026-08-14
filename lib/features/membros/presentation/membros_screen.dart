@@ -310,16 +310,236 @@ class _MembrosScreenState extends ConsumerState<MembrosScreen> {
   }
 
   // ---------------------------------------------------------------------
-  // Desktop (>=Breakpoints.rail) — placeholder da Task 1, substituído
-  // por uma tabela + painel 380px na Task 2.
+  // Desktop (>=Breakpoints.rail) — tabela densa + painel 380px ancorado,
+  // molde `GastosPropertyScreen._buildDesktop`/`_buildPanel`. Handlers
+  // reusados da Task 1, nenhuma lógica duplicada.
   // ---------------------------------------------------------------------
 
   Widget _buildDesktop(
     List<PropertyMember> members,
     bool canManage,
     String propertyName,
-  ) =>
-      _buildMobile(members, canManage, propertyName);
+  ) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Membros',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _countLabel(members.length),
+                style:
+                    const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppColors.divider)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ColoredBox(
+                    color: AppColors.surface,
+                    child: _buildTable(members, canManage, propertyName),
+                  ),
+                ),
+                _buildPanel(canManage),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTable(
+    List<PropertyMember> members,
+    bool canManage,
+    String propertyName,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTableHeader(),
+        Expanded(
+          child: ListView.builder(
+            itemCount: members.length,
+            itemBuilder: (context, i) =>
+                _buildTableRow(members[i], canManage, propertyName),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTableHeader() {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 36),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      color: AppColors.surfaceVariant,
+      child: const Row(
+        children: [
+          Expanded(flex: _kFlexNomeEmail, child: _ColumnHeader('Nome/E-mail')),
+          SizedBox(width: _kColPapel, child: _ColumnHeader('Papel')),
+          SizedBox(width: _kColAcoes, child: _ColumnHeader('Ações')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableRow(
+    PropertyMember member,
+    bool canManage,
+    String propertyName,
+  ) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 44),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.divider)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: _kFlexNomeEmail,
+            child: Text(
+              member.email,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          SizedBox(
+            width: _kColPapel,
+            child: StatusChip(
+              roleLabel(member.role),
+              kind: member.role == 'veterinarian'
+                  ? StatusKind.positive
+                  : StatusKind.neutral,
+            ),
+          ),
+          SizedBox(
+            width: _kColAcoes,
+            child: canManage
+                ? PopupMenuButton<String>(
+                    onSelected: (v) {
+                      if (v == 'role') _openRoleChange(member);
+                      if (v == 'remove') _confirmRemove(member, propertyName);
+                      if (v == 'leave') _confirmLeave(propertyName);
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'role',
+                        child: Text('Trocar papel'),
+                      ),
+                      member.isSelf
+                          ? const PopupMenuItem(
+                              value: 'leave',
+                              child: Text(
+                                'Sair da fazenda',
+                                style: TextStyle(color: AppColors.danger),
+                              ),
+                            )
+                          : const PopupMenuItem(
+                              value: 'remove',
+                              child: Text(
+                                'Remover membro',
+                                style: TextStyle(color: AppColors.danger),
+                              ),
+                            ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Painel direito ancorado (380px) — clone de
+  // `GastosPropertyScreen._buildPanel`. CTA "Convidar membro" no topo
+  // (só quando canManage) + a mesma seção de convites pendentes do mobile.
+  Widget _buildPanel(bool canManage) {
+    return Container(
+      key: const ValueKey('membros-painel'),
+      width: 380,
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        border: Border(left: BorderSide(color: AppColors.divider)),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (canManage) ...[
+              SectionCard(
+                title: 'Convidar membro',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Convide um veterinário, proprietário ou leitor pelo '
+                      'e-mail.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton.icon(
+                      onPressed: _openInvite,
+                      icon: const Icon(Icons.person_add_alt_1, size: 18),
+                      label: const Text('Convidar membro'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            _buildInvitesSection(canManage),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+const _kFlexNomeEmail = 3;
+const _kColPapel = 140.0;
+const _kColAcoes = 56.0;
+
+/// Texto de coluna do cabeçalho desktop — mono 10.5px w700, letterSpacing
+/// 0.8, mas SEM `.toUpperCase()`: a 10-UI-SPEC pede "Nome/E-mail"/"Papel"/
+/// "Ações" em mixed-case, ao contrário do "DATA"/"CATEGORIA" já-maiúsculo
+/// de `sanitario_table_views.dart`/`gastos_property_screen.dart`.
+class _ColumnHeader extends StatelessWidget {
+  const _ColumnHeader(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: monoStyle(
+        size: 10.5,
+        weight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: AppColors.primaryDarkText,
+      ),
+    );
+  }
 }
 
 // ─── Linha de membro (mobile) ───

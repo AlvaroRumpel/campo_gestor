@@ -343,5 +343,137 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    // -------------------------------------------------------------------
+    // Task 2 — layout desktop mestre-detalhe
+    // -------------------------------------------------------------------
+
+    testWidgets(
+        '1280x900: painel de 380px com borda à esquerda e tabela (não '
+        'ListView de Cards)', (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      await _pump(
+        tester,
+        _buildScreen(
+          repo: _FakeMembroRepository(),
+          members: [_self, _owner],
+          invites: [],
+          memberships: const [_vetMembership],
+        ),
+      );
+
+      expect(
+        tester.getSize(find.byKey(const ValueKey('membros-painel'))).width,
+        380,
+      );
+      // FarmAvatar só aparece no _MemberCard mobile — sua ausência prova
+      // que a listagem principal virou tabela, não ListView de Cards.
+      expect(find.byType(FarmAvatar), findsNothing);
+    });
+
+    testWidgets('1280x900: cabeçalhos de coluna Nome/E-mail, Papel e Ações',
+        (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      await _pump(
+        tester,
+        _buildScreen(
+          repo: _FakeMembroRepository(),
+          members: [_self, _owner],
+          invites: [],
+          memberships: const [_vetMembership],
+        ),
+      );
+
+      expect(find.text('Nome/E-mail'), findsOneWidget);
+      expect(find.text('Papel'), findsOneWidget);
+      expect(find.text('Ações'), findsOneWidget);
+    });
+
+    testWidgets(
+        '1280x900: painel mostra "Convidar membro" quando canManageMembers '
+        'é verdadeiro', (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      await _pump(
+        tester,
+        _buildScreen(
+          repo: _FakeMembroRepository(),
+          members: [_self, _owner],
+          invites: [],
+          memberships: const [_vetMembership],
+        ),
+      );
+
+      expect(find.widgetWithText(FilledButton, 'Convidar membro'), findsOneWidget);
+    });
+
+    testWidgets('1280x900: papel reader não mostra "Convidar membro" no painel',
+        (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      await _pump(
+        tester,
+        _buildScreen(
+          repo: _FakeMembroRepository(),
+          members: [_owner, _reader],
+          invites: [],
+          memberships: const [_readerMembership],
+        ),
+      );
+
+      expect(find.text('Convidar membro'), findsNothing);
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
+
+    testWidgets(
+        '1280x900: SectionCard "Convites pendentes" vive dentro do painel '
+        '(único método, compartilhado com o mobile)', (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      await _pump(
+        tester,
+        _buildScreen(
+          repo: _FakeMembroRepository(),
+          members: [_self],
+          invites: [_pendingInvite],
+          memberships: const [_vetMembership],
+        ),
+      );
+
+      final panel = find.byKey(const ValueKey('membros-painel'));
+      expect(
+        find.descendant(of: panel, matching: find.text('novo@example.com')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        '1280x900: e-mail muito longo na tabela não gera overflow, e não '
+        'há FloatingActionButton', (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      final longEmailMember = PropertyMember(
+        userId: 'user-9',
+        email: 'um.endereco.de.email.extremamente.longo.para.testar.a.'
+            'quebra@dominio-muito-extenso-de-teste.com.br',
+        role: 'reader',
+        createdAt: DateTime(2026, 1, 1),
+        isSelf: false,
+      );
+      await _pump(
+        tester,
+        _buildScreen(
+          repo: _FakeMembroRepository(),
+          members: [_self, longEmailMember],
+          invites: [],
+          memberships: const [_vetMembership],
+        ),
+      );
+
+      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
   });
 }
