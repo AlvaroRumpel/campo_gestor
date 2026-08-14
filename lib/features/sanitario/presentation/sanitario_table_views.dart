@@ -411,12 +411,13 @@ class DosesTableView extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        icon: const Icon(Icons.edit_outlined, size: 16),
                         tooltip: 'Editar dose',
+                        visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints.tightFor(
-                          width: 36,
-                          height: 36,
+                          width: 28,
+                          height: 28,
                         ),
                         onPressed: () => onEdit(dose),
                       ),
@@ -425,14 +426,15 @@ class DosesTableView extends StatelessWidget {
                           isArchived
                               ? Icons.unarchive_outlined
                               : Icons.archive_outlined,
-                          size: 18,
+                          size: 16,
                         ),
                         tooltip:
                             isArchived ? 'Reativar dose' : 'Arquivar dose',
+                        visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints.tightFor(
-                          width: 36,
-                          height: 36,
+                          width: 28,
+                          height: 28,
                         ),
                         onPressed: () => onArchiveToggle(dose),
                       ),
