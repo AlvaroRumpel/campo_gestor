@@ -37,6 +37,27 @@ ALTER TABLE invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invites FORCE ROW LEVEL SECURITY;
 
 -- ============================================================
+-- 1.5. current_user_email() — precisa existir ANTES das policies da seção 2,
+--      que a referenciam (CREATE POLICY resolve funções na criação).
+--      Resolve o e-mail do chamador a partir de auth.users; usado pelas
+--      policies e pelos RPCs de convite para nunca confiar em e-mail vindo
+--      por parâmetro do client.
+-- ============================================================
+CREATE OR REPLACE FUNCTION current_user_email()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, auth
+AS $$
+  SELECT email FROM auth.users WHERE id = auth.uid();
+$$;
+
+REVOKE ALL ON FUNCTION current_user_email() FROM public;
+GRANT EXECUTE ON FUNCTION current_user_email() TO authenticated;
+REVOKE EXECUTE ON FUNCTION current_user_email() FROM anon, PUBLIC;
+
+-- ============================================================
 -- 2. RLS Policies — invites (exatamente 2, ambas SELECT; zero de escrita)
 -- ============================================================
 -- Escrita em invites é só via RPC SECURITY DEFINER (create_invite,
@@ -70,23 +91,8 @@ CREATE TRIGGER trg_invites_property_id_immutable
   EXECUTE FUNCTION enforce_property_id_immutable();
 
 -- ============================================================
--- 4. current_user_email() — resolve o e-mail do chamador a partir de
---    auth.users; usado pelas policies acima e pelos RPCs de convite para
---    nunca confiar em e-mail vindo por parâmetro do client.
+-- 4. (movida para 1.5 — current_user_email precisa preceder as policies)
 -- ============================================================
-CREATE OR REPLACE FUNCTION current_user_email()
-RETURNS text
-LANGUAGE sql
-SECURITY DEFINER
-STABLE
-SET search_path = public, auth
-AS $$
-  SELECT email FROM auth.users WHERE id = auth.uid();
-$$;
-
-REVOKE ALL ON FUNCTION current_user_email() FROM public;
-GRANT EXECUTE ON FUNCTION current_user_email() TO authenticated;
-REVOKE EXECUTE ON FUNCTION current_user_email() FROM anon, PUBLIC;
 
 -- ============================================================
 -- 5. assert_not_last_veterinarian() — guarda MEMB-03 (lock-then-count)
