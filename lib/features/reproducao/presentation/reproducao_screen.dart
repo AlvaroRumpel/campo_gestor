@@ -8,16 +8,20 @@ import 'package:intl/intl.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../auth/data/property_repository.dart';
 import '../data/atf_repository.dart';
+import 'atf_detail_panel.dart';
 import 'atf_form_dialog.dart';
+import 'reproducao_table_view.dart';
 
 /// ATF list screen (`/reproducao` shell branch, D-01), redesign spec 4.8.
 ///
 /// Separates active from closed ATFs via the "Ativos N" / "Encerrados N"
-/// filter chips (D-01, D-03).
+/// filter chips (D-01, D-03). A partir do breakpoint de rail, tabela densa +
+/// [AtfDetailPanel] mestre-detalhe (quick task 260813-r4s).
 class ReproducaoScreen extends ConsumerStatefulWidget {
   const ReproducaoScreen({super.key});
 
@@ -27,6 +31,7 @@ class ReproducaoScreen extends ConsumerStatefulWidget {
 
 class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
   bool _showEncerrados = false;
+  String? _selectedAtfId;
 
   bool _canEdit(
     SelectedProperty? current,
@@ -40,6 +45,16 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
     return role == 'veterinarian';
   }
 
+  Future<void> _openCreateForm(SelectedProperty property) async {
+    final newId = await showAdaptiveForm<String>(
+      context: context,
+      builder: (_) => AtfFormDialog(propertyId: property.id),
+    );
+    if (newId != null && mounted) {
+      context.go(AppRoutes.atfDetail(newId));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final atfsAsync = ref.watch(atfListByPropertyProvider);
@@ -49,139 +64,126 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
     final currentProperty = currentPropAsync.asData?.value;
     final canEdit = _canEdit(currentProperty, membersAsync.asData?.value);
 
-    return Scaffold(
-      appBar: const CampoAppBar(title: 'Reprodução'),
-      body: atfsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => const Center(
-          child: Text(
-            'Erro ao carregar. Verifique sua conexão e tente novamente.',
-          ),
-        ),
-        data: (atfs) {
-          final ativos = atfs.where((s) => s.atf.active).toList();
-          final encerrados = atfs.where((s) => !s.atf.active).toList();
-          final shown = _showEncerrados ? encerrados : ativos;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= Breakpoints.rail;
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-                child: Row(
+        return Scaffold(
+          appBar: const CampoAppBar(title: 'Reprodução'),
+          body: atfsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, st) => const Center(
+              child: Text(
+                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+              ),
+            ),
+            data: (atfs) {
+              final ativos = atfs.where((s) => s.atf.active).toList();
+              final encerrados = atfs.where((s) => !s.atf.active).toList();
+              final shown = _showEncerrados ? encerrados : ativos;
+
+              if (!isDesktop) {
+                // <1024px: byte-a-byte o comportamento atual, sem alteração.
+                return Column(
                   children: [
-                    _FilterCountChip(
-                      label: 'Ativos',
-                      count: ativos.length,
-                      selected: !_showEncerrados,
-                      onTap: () => setState(() => _showEncerrados = false),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+                      child: Row(
+                        children: [
+                          AtfScopeChip(
+                            label: 'Ativos',
+                            count: ativos.length,
+                            selected: !_showEncerrados,
+                            onTap: () =>
+                                setState(() => _showEncerrados = false),
+                          ),
+                          const SizedBox(width: 8),
+                          AtfScopeChip(
+                            label: 'Encerrados',
+                            count: encerrados.length,
+                            selected: _showEncerrados,
+                            onTap: () =>
+                                setState(() => _showEncerrados = true),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    _FilterCountChip(
-                      label: 'Encerrados',
-                      count: encerrados.length,
-                      selected: _showEncerrados,
-                      onTap: () => setState(() => _showEncerrados = true),
+                    Expanded(
+                      child: shown.isEmpty
+                          ? (atfs.isEmpty
+                              ? const EmptyState(
+                                  icon: Icons.favorite_border,
+                                  title: 'Nenhum ATF cadastrado',
+                                  message:
+                                      'Crie um ATF para iniciar um ciclo reprodutivo.',
+                                )
+                              : _showEncerrados
+                                  ? const EmptyState(
+                                      icon: Icons.favorite_border,
+                                      title: 'Nenhum ATF encerrado',
+                                      message:
+                                          'ATFs encerrados aparecem aqui como histórico.',
+                                    )
+                                  : const EmptyState(
+                                      icon: Icons.favorite_border,
+                                      title: 'Nenhum ATF ativo',
+                                      message:
+                                          "Toque em 'Encerrados' para ver o histórico.",
+                                    ))
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              itemCount: shown.length,
+                              itemBuilder: (context, i) =>
+                                  _AtfCard(summary: shown[i]),
+                            ),
                     ),
                   ],
-                ),
-              ),
-              Expanded(
-                child: shown.isEmpty
-                    ? (atfs.isEmpty
-                        ? const EmptyState(
-                            icon: Icons.favorite_border,
-                            title: 'Nenhum ATF cadastrado',
-                            message:
-                                'Crie um ATF para iniciar um ciclo reprodutivo.',
-                          )
-                        : _showEncerrados
-                            ? const EmptyState(
-                                icon: Icons.favorite_border,
-                                title: 'Nenhum ATF encerrado',
-                                message:
-                                    'ATFs encerrados aparecem aqui como histórico.',
-                              )
-                            : const EmptyState(
-                                icon: Icons.favorite_border,
-                                title: 'Nenhum ATF ativo',
-                                message:
-                                    "Toque em 'Encerrados' para ver o histórico.",
-                              ))
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        itemCount: shown.length,
-                        itemBuilder: (context, i) =>
-                            _AtfCard(summary: shown[i]),
-                      ),
-              ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: (canEdit && currentProperty != null)
-          ? FloatingActionButton.extended(
-              icon: const Icon(Icons.add),
-              label: const Text('Novo ATF'),
-              onPressed: () async {
-                final newId = await showAdaptiveForm<String>(
-                  context: context,
-                  builder: (_) =>
-                      AtfFormDialog(propertyId: currentProperty.id),
                 );
-                if (newId != null && context.mounted) {
-                  context.go(AppRoutes.atfDetail(newId));
-                }
-              },
-            )
-          : null,
-    );
-  }
-}
+              }
 
-/// Filter chip with embedded mono count (spec 3.5): selected = green filled.
-class _FilterCountChip extends StatelessWidget {
-  const _FilterCountChip({
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
+              // >=1024px: tabela densa + painel lateral mestre-detalhe.
+              final selected =
+                  shown.where((s) => s.atf.id == _selectedAtfId).firstOrNull;
 
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ChoiceChip(
-      selected: selected,
-      showCheckmark: false,
-      onSelected: (_) => onTap(),
-      label: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: label,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? AppColors.onGreen : AppColors.ink,
-              ),
-            ),
-            TextSpan(
-              text: ' $count',
-              style: monoStyle(
-                size: 11.5,
-                weight: FontWeight.w600,
-                color: selected
-                    ? AppColors.onGreenSecondary
-                    : AppColors.textTertiary,
-              ),
-            ),
-          ],
-        ),
-      ),
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: ReproducaoTableView(
+                      ativos: ativos,
+                      encerrados: encerrados,
+                      shown: shown,
+                      showEncerrados: _showEncerrados,
+                      onShowEncerradosChanged: (v) =>
+                          setState(() => _showEncerrados = v),
+                      selectedId: selected?.atf.id,
+                      onSelect: (id) => setState(() => _selectedAtfId = id),
+                      canEdit: canEdit,
+                      onCreate: currentProperty == null
+                          ? () {}
+                          : () => _openCreateForm(currentProperty),
+                    ),
+                  ),
+                  if (selected != null)
+                    AtfDetailPanel(
+                      key: ValueKey(selected.atf.id),
+                      summary: selected,
+                      onClose: () => setState(() => _selectedAtfId = null),
+                    ),
+                ],
+              );
+            },
+          ),
+          floatingActionButton:
+              (!isDesktop && canEdit && currentProperty != null)
+                  ? FloatingActionButton.extended(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Novo ATF'),
+                      onPressed: () => _openCreateForm(currentProperty),
+                    )
+                  : null,
+        );
+      },
     );
   }
 }
