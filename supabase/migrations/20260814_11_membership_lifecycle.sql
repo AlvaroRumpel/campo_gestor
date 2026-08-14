@@ -132,3 +132,242 @@ $$;
 
 -- Não é chamável pelo client — sem GRANT a authenticated.
 REVOKE ALL ON FUNCTION assert_not_last_veterinarian(uuid, uuid) FROM public;
+
+-- ============================================================
+-- 6. RPCs de convite
+-- ============================================================
+
+-- create_invite — D-10-04: qualquer gestor (veterinarian OU owner) convida,
+-- não é vet-only como quase todo outro RPC deste projeto.
+CREATE OR REPLACE FUNCTION create_invite(
+  p_property_id uuid,
+  p_email       text,
+  p_role        role_enum
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_email      text;
+  v_invite_id  uuid;
+BEGIN
+  v_email := lower(trim(p_email));
+
+  IF v_email IS NULL OR v_email = '' OR v_email NOT LIKE '%@%' THEN
+    RAISE EXCEPTION 'invalid email %', p_email USING ERRCODE = '22023';
+  END IF;
+
+  IF NOT is_member_of(p_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', p_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF get_role(p_property_id) NOT IN ('veterinarian'::role_enum, 'owner'::role_enum) THEN
+    RAISE EXCEPTION 'forbidden: only veterinarians or owners can invite members'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+      FROM property_members pm
+      JOIN auth.users u ON u.id = pm.user_id
+     WHERE pm.property_id = p_property_id
+       AND u.email = v_email
+  ) THEN
+    RAISE EXCEPTION 'user % is already a member of this property', v_email
+      USING ERRCODE = '23505';
+  END IF;
+
+  -- Convite pendente duplicado é barrado pelo índice único parcial
+  -- invites_property_email_pending_idx e chega ao client como 23505 também
+  -- (mesma família de erro, mesma copy pt-BR no plano 10-03).
+  INSERT INTO invites (property_id, invited_email, role, invited_by)
+  VALUES (p_property_id, v_email, p_role, auth.uid())
+  RETURNING id INTO v_invite_id;
+
+  RETURN v_invite_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION create_invite(uuid, text, role_enum) FROM public;
+GRANT EXECUTE ON FUNCTION create_invite(uuid, text, role_enum) TO authenticated;
+REVOKE EXECUTE ON FUNCTION create_invite(uuid, text, role_enum) FROM anon, PUBLIC;
+
+-- revoke_invite — fecha o TOCTOU entre duas revogações/aceites concorrentes
+-- do mesmo convite (fonte do backstop de UI "convite já respondido").
+CREATE OR REPLACE FUNCTION revoke_invite(p_invite_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_property_id uuid;
+BEGIN
+  SELECT property_id INTO v_property_id
+    FROM invites
+   WHERE id = p_invite_id;
+
+  IF v_property_id IS NULL THEN
+    RAISE EXCEPTION 'invite % not found', p_invite_id USING ERRCODE = '23503';
+  END IF;
+
+  IF NOT is_member_of(v_property_id) THEN
+    RAISE EXCEPTION 'forbidden: not a member of property %', v_property_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF get_role(v_property_id) NOT IN ('veterinarian'::role_enum, 'owner'::role_enum) THEN
+    RAISE EXCEPTION 'forbidden: only veterinarians or owners can revoke invites'
+      USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE invites
+     SET status = 'revoked', resolved_at = now()
+   WHERE id = p_invite_id
+     AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'invite % was already resolved', p_invite_id
+      USING ERRCODE = 'P0002';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION revoke_invite(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION revoke_invite(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION revoke_invite(uuid) FROM anon, PUBLIC;
+
+-- accept_invite — T-10-02: o e-mail nunca vem por parâmetro; deriva sempre
+-- de current_user_email() para que ninguém aceite o convite de outra pessoa
+-- só por saber o id.
+CREATE OR REPLACE FUNCTION accept_invite(p_invite_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_caller_email text;
+  v_invite       record;
+BEGIN
+  v_caller_email := current_user_email();
+
+  SELECT id, property_id, invited_email, role, status
+    INTO v_invite
+    FROM invites
+   WHERE id = p_invite_id;
+
+  IF v_invite.id IS NULL THEN
+    RAISE EXCEPTION 'invite % not found', p_invite_id USING ERRCODE = '23503';
+  END IF;
+
+  IF v_invite.invited_email <> v_caller_email THEN
+    RAISE EXCEPTION 'invite % does not belong to the current user', p_invite_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF v_invite.status <> 'pending' THEN
+    RAISE EXCEPTION 'invite % was already resolved', p_invite_id
+      USING ERRCODE = 'P0002';
+  END IF;
+
+  INSERT INTO property_members (user_id, property_id, role)
+  VALUES (auth.uid(), v_invite.property_id, v_invite.role)
+  ON CONFLICT (user_id, property_id) DO NOTHING;
+
+  UPDATE invites
+     SET status = 'accepted', resolved_at = now()
+   WHERE id = p_invite_id
+     AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'invite % was already resolved', p_invite_id
+      USING ERRCODE = 'P0002';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION accept_invite(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION accept_invite(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION accept_invite(uuid) FROM anon, PUBLIC;
+
+-- decline_invite — mesmas checagens de e-mail/status de accept_invite, mas
+-- não toca property_members.
+CREATE OR REPLACE FUNCTION decline_invite(p_invite_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_caller_email text;
+  v_invite       record;
+BEGIN
+  v_caller_email := current_user_email();
+
+  SELECT id, invited_email, status
+    INTO v_invite
+    FROM invites
+   WHERE id = p_invite_id;
+
+  IF v_invite.id IS NULL THEN
+    RAISE EXCEPTION 'invite % not found', p_invite_id USING ERRCODE = '23503';
+  END IF;
+
+  IF v_invite.invited_email <> v_caller_email THEN
+    RAISE EXCEPTION 'invite % does not belong to the current user', p_invite_id
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF v_invite.status <> 'pending' THEN
+    RAISE EXCEPTION 'invite % was already resolved', p_invite_id
+      USING ERRCODE = 'P0002';
+  END IF;
+
+  UPDATE invites
+     SET status = 'declined', resolved_at = now()
+   WHERE id = p_invite_id
+     AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'invite % was already resolved', p_invite_id
+      USING ERRCODE = 'P0002';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION decline_invite(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION decline_invite(uuid) TO authenticated;
+REVOKE EXECUTE ON FUNCTION decline_invite(uuid) FROM anon, PUBLIC;
+
+-- list_my_invites — SECURITY DEFINER porque o convidado ainda não é membro
+-- da propriedade, então não passa pela RLS de properties para ler o nome da
+-- fazenda. Filtra p.deleted_at IS NULL para não oferecer convite de fazenda
+-- arquivada.
+CREATE OR REPLACE FUNCTION list_my_invites()
+RETURNS TABLE (
+  id           uuid,
+  property_id  uuid,
+  property_name text,
+  role         role_enum,
+  created_at   timestamptz
+)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public, auth
+AS $$
+  SELECT i.id, i.property_id, p.name, i.role, i.created_at
+    FROM invites i
+    JOIN properties p ON p.id = i.property_id
+   WHERE i.invited_email = current_user_email()
+     AND i.status = 'pending'
+     AND p.deleted_at IS NULL
+   ORDER BY i.created_at;
+$$;
+
+REVOKE ALL ON FUNCTION list_my_invites() FROM public;
+GRANT EXECUTE ON FUNCTION list_my_invites() TO authenticated;
+REVOKE EXECUTE ON FUNCTION list_my_invites() FROM anon, PUBLIC;
