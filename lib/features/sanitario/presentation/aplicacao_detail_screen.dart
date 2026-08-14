@@ -304,7 +304,7 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: OutlinedButton.icon(
-                  onPressed: () => _confirmEstorno(context, ref),
+                  onPressed: () => confirmEstorno(context, ref, app),
                   icon: const Icon(Icons.undo, size: 20),
                   label: const Text('Estornar'),
                   style: OutlinedButton.styleFrom(
@@ -320,27 +320,6 @@ class _AplicacaoHeaderCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmEstorno(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => EstornarAplicacaoDialog(
-        applicationId: app.id,
-        doseName: app.doseName,
-        appliedAt: app.appliedAt,
-        lotId: app.lotId,
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-    ref.invalidate(sanitaryApplicationByIdProvider(app.id));
-    ref.invalidate(sanitaryApplicationsByLotProvider(app.lotId));
-    ref.invalidate(sanitaryApplicationListByPropertyProvider);
-    for (final entry in app.compositionSnapshot) {
-      ref.invalidate(sanitaryHistoryByAnimalProvider(entry.animalId));
-    }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Aplicação estornada.')));
-  }
 }
 
 /// Totals line with the frozen aggregates, numbers mono, labels plain.

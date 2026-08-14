@@ -6,9 +6,41 @@ import 'package:intl/intl.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/sanitary_application_exception.dart';
+import '../data/sanitary_application_model.dart';
 import '../data/sanitary_application_repository.dart';
 
 final _dateFmt = DateFormat('dd/MM/yyyy');
+
+/// Shared estorno write path (extracted from `AplicacaoDetailScreen`, quick
+/// task 260813-vvh) — the single owner of the dialog + invalidations +
+/// success snackbar, called both from the detail screen's button and from
+/// `AplicacoesTableView`'s row action so there is exactly one list of
+/// invalidations in the project.
+Future<void> confirmEstorno(
+  BuildContext context,
+  WidgetRef ref,
+  SanitaryApplication app,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => EstornarAplicacaoDialog(
+      applicationId: app.id,
+      doseName: app.doseName,
+      appliedAt: app.appliedAt,
+      lotId: app.lotId,
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+  ref.invalidate(sanitaryApplicationByIdProvider(app.id));
+  ref.invalidate(sanitaryApplicationsByLotProvider(app.lotId));
+  ref.invalidate(sanitaryApplicationListByPropertyProvider);
+  for (final entry in app.compositionSnapshot) {
+    ref.invalidate(sanitaryHistoryByAnimalProvider(entry.animalId));
+  }
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(const SnackBar(content: Text('Aplicação estornada.')));
+}
 
 /// Estorno confirmation dialog (D-27..D-31, spec 4.20) — the one
 /// destructive-toned action in this module. 480px dialog anatomy: undo icon
