@@ -57,6 +57,14 @@ abstract final class AppRoutes {
   static const gastosById = '/gastos/:paddockId'; // template — used by GoRoute path
   static String gastosPorPiquete(String id) => '/gastos/$id';
 
+  // Phase 10 detail route — root-level (outside shell, MEMB-02): the fifth
+  // use of this pattern after loteById, atfById, aplicacaoById and
+  // gastosById. `MembrosScreen` (10-05) is reachable from the property
+  // card's context menu, not from a shell branch, so it follows the same
+  // root-level convention as the others.
+  static const membrosById = '/propriedades/:propertyId/membros'; // template — used by GoRoute path
+  static String membros(String id) => '/propriedades/$id/membros';
+
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';
   static const piquetes = '/piquetes';
