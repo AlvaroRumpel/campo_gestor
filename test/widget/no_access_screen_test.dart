@@ -131,15 +131,22 @@ void main() {
         'error loading invites shows ErrorRetry, and tapping retry '
         'invalidates the provider', (tester) async {
       var callCount = 0;
-      final container = ProviderContainer(overrides: [
-        myInvitesProvider.overrideWith((ref) {
-          callCount++;
-          if (callCount == 1) {
-            return Future<List<MyInvite>>.error(Exception('boom'));
-          }
-          return Future.value(<MyInvite>[]);
-        }),
-      ]);
+      final container = ProviderContainer(
+        // Riverpod 3 auto-retries a failed FutureProvider with exponential
+        // backoff by default, masking AsyncError behind AsyncLoading until
+        // the retry settles — disable it so the error state is observable
+        // deterministically (mirrors sanitary_history_section_test.dart).
+        retry: (retryCount, error) => null,
+        overrides: [
+          myInvitesProvider.overrideWith((ref) async {
+            callCount++;
+            if (callCount == 1) {
+              throw Exception('boom');
+            }
+            return <MyInvite>[];
+          }),
+        ],
+      );
       addTearDown(container.dispose);
       container.listen(myInvitesProvider, (_, _) {});
 
