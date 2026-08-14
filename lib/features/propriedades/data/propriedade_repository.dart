@@ -68,10 +68,40 @@ class PropertyRepository {
   }
 
   /// Soft-delete: sets deleted_at = now(). RLS requires veterinarian role.
+  ///
+  /// Since Phase 10 (PROPV-01), the only UI path that calls this is
+  /// `ArchiveConfirmDialog` (strong confirmation by typing the property
+  /// name). The operation is reversible via [restoreProperty] (PROPV-02).
   Future<void> softDeleteProperty(String id) async {
     await _service.client
         .from('properties')
         .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
+        .eq('id', id);
+  }
+
+  /// Fetch all archived (soft-deleted) properties the user is a member of —
+  /// the exact inverse of [fetchProperties]. The read RLS policy
+  /// (`members_can_read_their_properties USING (is_member_of(id))`) does not
+  /// reference `deleted_at`, so a member keeps seeing an archived property
+  /// here — that is PROPV-02's requirement.
+  Future<List<Property>> fetchArchivedProperties() async {
+    final rows = await _service.client
+        .from('properties')
+        .select()
+        .not('deleted_at', 'is', null)
+        .order('name');
+    return (rows as List)
+        .map((r) => Property.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Restore an archived property: set deleted_at = null. Authorized by the
+  /// already-existing `veterinarian_can_update_property` policy — no new
+  /// migration needed (10-RESEARCH.md pitfall 4).
+  Future<void> restoreProperty(String id) async {
+    await _service.client
+        .from('properties')
+        .update({'deleted_at': null})
         .eq('id', id);
   }
 }
@@ -85,4 +115,13 @@ final propertyListProvider = FutureProvider<List<Property>>((ref) async {
   ref.watch(authNotifierProvider);
   final repo = ref.read(propertyRepositoryProvider);
   return repo.fetchProperties();
+});
+
+/// List of archived properties the active user can see (PROPV-02).
+final archivedPropertyListProvider = FutureProvider<List<Property>>((
+  ref,
+) async {
+  ref.watch(authNotifierProvider);
+  final repo = ref.read(propertyRepositoryProvider);
+  return repo.fetchArchivedProperties();
 });
