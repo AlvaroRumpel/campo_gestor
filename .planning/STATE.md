@@ -55,7 +55,7 @@ See: .planning/PROJECT.md
 | Plans complete | 65 of 65 across phases 0–8 |
 | Dart tests | 349 passing |
 | Migration ledger | 18 |
-| Last activity | 2026-08-13 - Completed quick task 260813-tos: DG em massa desktop |
+| Last activity | 2026-08-13 - Completed quick task 260813-ugd: lotes tabela desktop |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
@@ -141,6 +141,7 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 | 260813-q69 | Ficha do animal expandida desktop (header horizontal + duas colunas: contexto 340px, timeline 760px; mobile intacto) — Verified 6/6 | 2026-08-13 | 172883e | [260813-q69-ficha-do-animal-expandida-desktop-layout](./quick/260813-q69-ficha-do-animal-expandida-desktop-layout/) |
 | 260813-r4s | Reprodução mestre-detalhe desktop (tabela de ciclos ATF + painel 380px com protocolo/Sem DG/Continuar DGs; mobile intacto) — Verified 6/6 | 2026-08-13 | 49d6848 | [260813-r4s-reproducao-mestre-detalhe-desktop-lista-](./quick/260813-r4s-reproducao-mestre-detalhe-desktop-lista-/) |
 | 260813-tos | DG em massa na tabela do ATF desktop (Prenhe/Vazia inline, seleção múltipla + barra contextual, latestDgFor compartilhado; mobile intacto) — Verified 7/7 | 2026-08-13 | 77cfc65 | [260813-tos-dg-em-massa-na-tabela-do-detalhe-do-atf-](./quick/260813-tos-dg-em-massa-na-tabela-do-detalhe-do-atf-/) |
+| 260813-ugd | Lotes em tabela desktop (aba Lotes ≥1024: tabela por UA + painel 380px com composição/animais/ações; mobile e aba Piquetes intactos) — Verified 5/5 | 2026-08-13 | 6a8f0ed | [260813-ugd-lotes-em-tabela-desktop-com-painel-de-de](./quick/260813-ugd-lotes-em-tabela-desktop-com-painel-de-de/) |
 
 ---
 
