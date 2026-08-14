@@ -36,7 +36,17 @@ class AppShell extends ConsumerWidget {
         icon: Icons.medical_services_outlined,
         selectedIcon: Icons.medical_services,
         label: 'Sanitário'),
+    _NavItem(
+        icon: Icons.payments_outlined,
+        selectedIcon: Icons.payments,
+        label: 'Gastos'),
   ];
+
+  /// Only the bottom nav (<600px) stays at 5 destinations — Gastos is a
+  /// desktop-only (rail/drawer) destination (redesign 2026-08-13, quick task
+  /// 260813-x4f). The rail and the 232px drawer below iterate `_navItems`
+  /// whole and pick it up with no other change.
+  static const int _mobileNavCount = 5;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,12 +55,20 @@ class AppShell extends ConsumerWidget {
         final width = constraints.maxWidth;
 
         if (width < Breakpoints.mobile) {
+          // The bottom nav only offers the first 5 items (Gastos is
+          // desktop-only). Without the clamp, a deep link into /gastos
+          // (branch index 5) followed by narrowing the window would hand
+          // NavigationBar a selectedIndex past its destinations and the
+          // framework throws an assertion.
+          final selectedIndex =
+              navigationShell.currentIndex.clamp(0, _mobileNavCount - 1);
           return Scaffold(
             body: navigationShell,
             bottomNavigationBar: NavigationBar(
-              selectedIndex: navigationShell.currentIndex,
+              selectedIndex: selectedIndex,
               onDestinationSelected: navigationShell.goBranch,
               destinations: _navItems
+                  .take(_mobileNavCount)
                   .map(
                     (item) => NavigationDestination(
                       icon: Icon(item.icon),
@@ -126,16 +144,29 @@ class _IconRail extends ConsumerWidget {
           const SizedBox(height: 14),
           const PropertySelector(compact: true),
           const SizedBox(height: 18),
-          for (var i = 0; i < items.length; i++)
-            _IconRailItem(
-              item: items[i],
-              selected: i == selectedIndex,
-              onTap: () => onSelect(i),
-              badgeCount: items[i].label == 'Reprodução' && activeAtfCount > 0
-                  ? activeAtfCount
-                  : null,
+          // Expanded + scroll instead of a fixed Column + Spacer: the 6th
+          // item (Gastos, redesign 2026-08-13) overflows a short viewport
+          // (e.g. 800x600) when every item is laid out at full fixed height
+          // — this keeps "Sair" pinned at the bottom when there's room and
+          // scrolls the nav items instead of overflowing when there isn't.
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  for (var i = 0; i < items.length; i++)
+                    _IconRailItem(
+                      item: items[i],
+                      selected: i == selectedIndex,
+                      onTap: () => onSelect(i),
+                      badgeCount:
+                          items[i].label == 'Reprodução' && activeAtfCount > 0
+                              ? activeAtfCount
+                              : null,
+                    ),
+                ],
+              ),
             ),
-          const Spacer(),
+          ),
           _IconRailItem(
             item: const _NavItem(
                 icon: Icons.logout, selectedIcon: Icons.logout, label: 'Sair'),
