@@ -7,6 +7,7 @@ import 'package:campo_gestor/core/router/routes.dart';
 import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/features/dashboard/data/dashboard_providers.dart';
+import 'package:campo_gestor/features/gastos/data/expense_calculations.dart';
 import 'package:campo_gestor/features/gastos/data/expense_model.dart';
 import 'package:campo_gestor/features/gastos/data/expense_repository.dart';
 import 'package:campo_gestor/features/gastos/presentation/_expense_list_item_card.dart';
@@ -176,17 +177,40 @@ void main() {
 
   group('GastosPropertyScreen — /gastos consolidado (260813-x4f)', () {
     testWidgets(
-        '1440x900: tabela + painel de 330px renderizam, total do rodapé '
-        'bate com o subtítulo do header', (tester) async {
+        '1440x900: tabela + painel ancorado de 380px renderizam, total do '
+        'rodapé bate com o subtítulo do header', (tester) async {
       await _pumpDesktop(tester, _items);
 
-      expect(find.text('TOTAL'), findsOneWidget);
+      // 'TOTAL' foi absorvido pelo rodapé com contagem — o rótulo sumiu,
+      // o rodapé agora mostra o mesmo texto plural do subtítulo do header.
+      expect(find.textContaining('lançamentos'), findsNWidgets(2));
       // Header subtitle ("N lançamentos · R$ 350,00") + table footer share
       // the same figure — computed once, not recalculated separately. (The
       // painel's "Total do mês"/"Últimos 6 meses" blocks coincidentally show
       // the same number here because every fixture falls in the current
       // month — that's additional confirmation, not noise.)
       expect(find.textContaining('R\$ 350,00'), findsAtLeastNWidgets(2));
+      expect(
+        tester.getSize(find.byKey(const ValueKey('gastos-painel'))).width,
+        380,
+      );
+    });
+
+    testWidgets(
+        '1440x900: chips de período substituem o dropdown e refiltram a '
+        'tabela', (tester) async {
+      await _pumpDesktop(tester, _items);
+
+      expect(find.text('Mês atual'), findsOneWidget);
+      expect(find.text('Ano'), findsOneWidget);
+      expect(find.byType(DropdownButton<ExpensePeriodPreset>), findsNothing);
+
+      // Todas as fixtures caem no mês corrente — trocar para "Mês passado"
+      // deve esvaziar a tabela, provando que o chip refiltra de verdade.
+      await tester.tap(find.text('Mês passado'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EmptyState), findsOneWidget);
     });
 
     testWidgets(
@@ -209,6 +233,10 @@ void main() {
 
       expect(find.text('DATA'), findsNothing);
       expect(find.byType(ExpenseListItemCard), findsWidgets);
+      // <1024 continua com o dropdown de período, sem chips — o dropdown
+      // fechado só renderiza o item selecionado ("Mês atual").
+      expect(find.byType(DropdownButton<ExpensePeriodPreset>), findsOneWidget);
+      expect(find.text('Mês passado'), findsNothing);
     });
 
     testWidgets('1440x900: lista vazia mostra EmptyState', (tester) async {
