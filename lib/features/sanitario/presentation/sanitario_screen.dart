@@ -168,6 +168,21 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Reset local filters when the active property actually changes (not on
+    // the first resolve, null -> A) — otherwise this fires on initial load
+    // and wipes the `?lote=`/`?animal=` deep-link filters seeded in
+    // `_seedFiltersFromQuery` above, which this screen's `build()` runs
+    // before this listener would even have a "previous" value.
+    ref.listen(currentPropertyProvider, (prev, next) {
+      final prevId = prev?.value?.id;
+      final nextId = next.value?.id;
+      if (prevId == null || nextId == null || prevId == nextId) return;
+      setState(() {
+        _lotFilterId = null;
+        _animalFilterId = null;
+      });
+    });
+
     _seedFiltersFromQuery(context);
 
     final currentPropAsync = ref.watch(currentPropertyProvider);
@@ -341,9 +356,12 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
         Expanded(
           child: appsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, st) => const Center(
-              child: Text(
-                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            error: (err, st) => Center(
+              child: ErrorRetry(
+                message:
+                    'Erro ao carregar. Verifique sua conexão e tente novamente.',
+                onRetry: () =>
+                    ref.invalidate(sanitaryApplicationListByPropertyProvider),
               ),
             ),
             data: (rows) {
@@ -542,9 +560,15 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
         Expanded(
           child: dosesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, st) => const Center(
-              child: Text(
-                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            error: (err, st) => Center(
+              child: ErrorRetry(
+                message:
+                    'Erro ao carregar. Verifique sua conexão e tente novamente.',
+                onRetry: () => ref.invalidate(
+                  _showArchived
+                      ? archivedDoseListByPropertyProvider
+                      : doseListByPropertyProvider,
+                ),
               ),
             ),
             data: (doses) {

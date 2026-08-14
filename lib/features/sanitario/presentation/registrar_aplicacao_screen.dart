@@ -416,9 +416,11 @@ class _RegistrarAplicacaoScreenState
     final animalsAsync = ref.watch(animalListByLotProvider(lotId));
     return animalsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => const Center(
-        child: Text(
-          'Erro ao carregar. Verifique sua conexão e tente novamente.',
+      error: (e, _) => Center(
+        child: ErrorRetry(
+          message:
+              'Erro ao carregar. Verifique sua conexão e tente novamente.',
+          onRetry: () => ref.invalidate(animalListByLotProvider(lotId)),
         ),
       ),
       data: (allAnimals) {

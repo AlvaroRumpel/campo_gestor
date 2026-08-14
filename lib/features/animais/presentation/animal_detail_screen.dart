@@ -116,7 +116,13 @@ class _AnimalDetailScreenState extends ConsumerState<AnimalDetailScreen> {
       ),
       error: (err, st) => Scaffold(
         appBar: appBar,
-        body: const Center(child: Text('Erro ao carregar animal.')),
+        body: Center(
+          child: ErrorRetry(
+            message: 'Erro ao carregar animal.',
+            onRetry: () =>
+                ref.invalidate(animalByIdProvider(widget.animalId)),
+          ),
+        ),
       ),
       data: (animal) {
         if (animal == null) {

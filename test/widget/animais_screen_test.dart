@@ -1,15 +1,18 @@
 // ANIM-05, ANIM-06 — AnimaisScreen: search by number + filter by category/lot/paddock.
 // Wave 0 stubs. Implementation lands in Plan 06 (AnimaisScreen).
 // Decisions enforced: D-18 (filters), D-19 (tile format), D-20 (debounce 300ms), D-21 (toggle archived).
+import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/animais/presentation/animais_screen.dart';
+import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_model.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // Fake data
@@ -361,6 +364,60 @@ void main() {
         await tester.pump(const Duration(milliseconds: 350));
 
         expect(find.text('Morte'), findsOneWidget);
+      });
+    },
+  );
+
+  group(
+    'AnimaisScreen — Reset de filtros na troca de propriedade (T-f2v-06)',
+    () {
+      const propA = SelectedProperty(id: 'prop-a', name: 'Fazenda A');
+      const propB = SelectedProperty(id: 'prop-b', name: 'Fazenda B');
+      const membershipA =
+          PropertyMembership(property: propA, role: 'veterinarian');
+      const membershipB =
+          PropertyMembership(property: propB, role: 'veterinarian');
+
+      testWidgets(
+          'trocar de propriedade ativa zera o filtro de lote aplicado',
+          (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              animalListByPropertyProvider
+                  .overrideWith((ref) async => _fakeAnimals),
+              paddockListProvider.overrideWith((ref) async => _fakePaddocks),
+              memberPropertiesProvider
+                  .overrideWith((ref) async => [membershipA, membershipB]),
+            ],
+            child: MaterialApp.router(routerConfig: _router),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Applies the "Lote B" filter — #14 (lot-b) stays, #42 (lot-a) hides.
+        await tester.tap(find.text('+ Lote'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Lote B').last);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('#14'), findsWidgets);
+        expect(find.textContaining('#42'), findsNothing);
+        expect(find.text('+ Lote'), findsNothing);
+
+        // Switches the active property A -> B (both non-null, different).
+        final element = tester.element(find.byType(AnimaisScreen));
+        final container = ProviderScope.containerOf(element);
+        await container
+            .read(currentPropertyProvider.notifier)
+            .selectProperty(propB);
+        await tester.pumpAndSettle();
+
+        // Filter cleared: "+ Lote" chip returns, #42 visible again.
+        expect(find.text('+ Lote'), findsOneWidget);
+        expect(find.textContaining('#42'), findsWidgets);
       });
     },
   );

@@ -44,8 +44,12 @@ class PaddockDetailScreen extends ConsumerWidget {
       ),
       body: paddockAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) =>
-            const Center(child: Text('Erro ao carregar piquete.')),
+        error: (err, st) => Center(
+          child: ErrorRetry(
+            message: 'Erro ao carregar piquete.',
+            onRetry: () => ref.invalidate(paddockByIdProvider(paddockId)),
+          ),
+        ),
         data: (paddock) {
           if (paddock == null) {
             return const Center(child: Text('Piquete não encontrado.'));

@@ -25,7 +25,13 @@ class LotesListView extends ConsumerWidget {
 
     return lotsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => const Center(child: Text('Erro ao carregar lotes.')),
+      error: (e, _) => Center(
+        child: ErrorRetry(
+          message: 'Erro ao carregar lotes.',
+          onRetry: () =>
+              ref.invalidate(loteWithPaddockListByPropertyProvider),
+        ),
+      ),
       data: (lots) {
         if (lots.isEmpty) {
           return const EmptyState(

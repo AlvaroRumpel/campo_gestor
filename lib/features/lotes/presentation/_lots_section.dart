@@ -39,10 +39,13 @@ class LotsSection extends ConsumerWidget {
           child: CircularProgressIndicator(),
         ),
       ),
-      error: (err, st) => const Center(
+      error: (err, st) => Center(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('Erro ao carregar.'),
+          padding: const EdgeInsets.all(16),
+          child: ErrorRetry(
+            message: 'Erro ao carregar.',
+            onRetry: () => ref.invalidate(loteListByPaddockProvider(paddockId)),
+          ),
         ),
       ),
       data: (lots) {

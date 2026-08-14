@@ -203,9 +203,18 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
       ),
       body: itemsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, st) => const Center(
-          child: Text(
-            'Erro ao carregar. Verifique sua conexão e tente novamente.',
+        error: (err, st) => Center(
+          child: ErrorRetry(
+            message:
+                'Erro ao carregar. Verifique sua conexão e tente novamente.',
+            onRetry: () => _showDeleted
+                ? ref.invalidate(
+                    unifiedExpenseListWithDeletedByPaddockProvider(
+                        widget.paddockId),
+                  )
+                : ref.invalidate(
+                    unifiedExpenseListByPaddockProvider(widget.paddockId),
+                  ),
           ),
         ),
         data: (items) => _buildBody(items, canManage, propertyId),

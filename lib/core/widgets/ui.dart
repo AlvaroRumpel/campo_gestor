@@ -458,6 +458,40 @@ class ImmutabilityNotice extends StatelessWidget {
   }
 }
 
+// ─── Erro de rede com retry ───
+
+/// Mensagem de erro + botão "Tentar novamente". Sem `Center` embutido —
+/// vários call sites já ficam dentro de um `Center`/`Column` próprio.
+class ErrorRetry extends StatelessWidget {
+  const ErrorRetry({super.key, required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13.5,
+            color: Theme.of(context).colorScheme.error,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('Tentar novamente'),
+        ),
+      ],
+    );
+  }
+}
+
 // ─── Banner laranja "precisa de você" / avisos ───
 
 class WarningBanner extends StatelessWidget {

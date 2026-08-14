@@ -42,6 +42,16 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Reset the mestre-detalhe lote selection when the active property
+    // actually changes — guarded so the first resolve (null -> A) is a
+    // no-op.
+    ref.listen(currentPropertyProvider, (prev, next) {
+      final prevId = prev?.value?.id;
+      final nextId = next.value?.id;
+      if (prevId == null || nextId == null || prevId == nextId) return;
+      setState(() => _selectedLotId = null);
+    });
+
     final paddocksAsync = ref.watch(paddockListProvider);
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);
@@ -106,8 +116,12 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
                             loading: () => const Center(
                               child: CircularProgressIndicator(),
                             ),
-                            error: (err, _) => const Center(
-                              child: Text('Erro ao carregar piquetes.'),
+                            error: (err, _) => Center(
+                              child: ErrorRetry(
+                                message: 'Erro ao carregar piquetes.',
+                                onRetry: () =>
+                                    ref.invalidate(paddockListProvider),
+                              ),
                             ),
                             data: (paddocks) {
                               if (paddocks.isEmpty) {

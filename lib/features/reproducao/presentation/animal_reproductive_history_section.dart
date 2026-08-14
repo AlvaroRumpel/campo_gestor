@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/widgets/ui.dart';
 import '../data/atf_model.dart';
 import '../data/atf_repository.dart';
 import '../data/dg_record_model.dart';
@@ -79,22 +80,11 @@ class AnimalReproductiveHistorySection extends ConsumerWidget {
                   child: CircularProgressIndicator(),
                 ),
               ),
-              error: (err, st) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Erro ao carregar histórico reprodutivo.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => ref.invalidate(
-                      reproductiveHistoryByAnimalProvider(animalId),
-                    ),
-                    child: const Text('Tentar novamente'),
-                  ),
-                ],
+              error: (err, st) => ErrorRetry(
+                message: 'Erro ao carregar histórico reprodutivo.',
+                onRetry: () => ref.invalidate(
+                  reproductiveHistoryByAnimalProvider(animalId),
+                ),
               ),
               data: (entries) {
                 if (entries.isEmpty) {
