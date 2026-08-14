@@ -44,9 +44,16 @@ abstract final class AppRoutes {
   // Phase 7 detail route — root-level (outside shell, D-08): the expense
   // list needs deep-link + back-button context of its own paddock, and is
   // the fourth use of this pattern after loteById, atfById and
-  // aplicacaoById. A sixth shell branch was rejected because Material 3
-  // recommends 3–5 destinations, and it would change AppShell._navItems,
-  // AppRoutes.all and the tests that count navigation items.
+  // aplicacaoById. Coexists with `gastos` below (a two-segment root-level
+  // route always wins its own match ahead of the shell).
+  //
+  // Redesign 2026-08-13: the "no 6a branch" call this comment used to
+  // record was explicitly reverted by the user (quick task 260813-x4f).
+  // `/gastos` is now the 6a shell branch with the property-wide
+  // consolidated view (`GastosPropertyScreen`); `/gastos/:paddockId` stays
+  // root-level as the deep-link target from a single paddock. The mobile
+  // bottom nav still ships only 5 destinations — Gastos is a desktop-only
+  // (rail/drawer) destination, never in the <600px NavigationBar.
   static const gastosById = '/gastos/:paddockId'; // template — used by GoRoute path
   static String gastosPorPiquete(String id) => '/gastos/$id';
 
@@ -56,6 +63,7 @@ abstract final class AppRoutes {
   static const animais = '/animais';
   static const reproducao = '/reproducao';
   static const sanitario = '/sanitario';
+  static const gastos = '/gastos';
 
   /// Top-level shell branches only — used by tests that count navigation items.
   static const all = <String>[
@@ -64,6 +72,7 @@ abstract final class AppRoutes {
     animais,
     reproducao,
     sanitario,
+    gastos,
   ];
 
   /// All auth routes — used by router redirect to detect "is on auth route".

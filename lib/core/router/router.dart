@@ -15,6 +15,7 @@ import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/gastos/presentation/gastos_property_screen.dart';
 import '../../features/gastos/presentation/gastos_screen.dart';
 import '../../features/piquetes/presentation/paddock_detail_screen.dart';
 import '../../features/lotes/presentation/lote_detail_screen.dart';
@@ -33,6 +34,7 @@ final _shellPiquetesKey = GlobalKey<NavigatorState>(debugLabel: 'piquetes');
 final _shellAnimaisKey = GlobalKey<NavigatorState>(debugLabel: 'animais');
 final _shellReproducaoKey = GlobalKey<NavigatorState>(debugLabel: 'reproducao');
 final _shellSanitarioKey = GlobalKey<NavigatorState>(debugLabel: 'sanitario');
+final _shellGastosKey = GlobalKey<NavigatorState>(debugLabel: 'gastos');
 
 /// Provider exposing the singleton GoRouter for the app.
 ///
@@ -224,6 +226,19 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.sanitario,
                 builder: (ctx, _) => const SanitarioScreen(),
+              ),
+            ],
+          ),
+          // 6a branch (redesign 2026-08-13, quick task 260813-x4f): the
+          // index MUST match AppShell._navItems' 6th entry — StatefulShellRoute
+          // indexes branches positionally, and a mismatch silently routes to
+          // the wrong screen with no error.
+          StatefulShellBranch(
+            navigatorKey: _shellGastosKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.gastos,
+                builder: (ctx, _) => const GastosPropertyScreen(),
               ),
             ],
           ),

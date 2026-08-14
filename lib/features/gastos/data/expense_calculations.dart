@@ -76,6 +76,45 @@ enum ExpensePeriodPreset {
       };
 }
 
+/// One calendar month's total, produced by [lastMonthsTotals].
+class MonthTotal {
+  const MonthTotal({
+    required this.year,
+    required this.month,
+    required this.total,
+  });
+  final int year;
+  final int month;
+  final double total;
+}
+
+/// Buckets [items] into [months] calendar months ending at `now`'s month,
+/// oldest first. A month with no matching item still appears with `total:
+/// 0` — the caller's bar chart never loses a month from its axis. Pure —
+/// crosses year boundaries via `DateTime(now.year, now.month - k)`, the same
+/// normalizing-constructor trick `rangeForPreset`'s `ultimos3Meses` case
+/// already relies on.
+List<MonthTotal> lastMonthsTotals(
+  List<ExpenseListItem> items,
+  DateTime now, {
+  int months = 6,
+}) {
+  return [
+    for (var k = months - 1; k >= 0; k--)
+      _monthTotalFor(items, DateTime(now.year, now.month - k)),
+  ];
+}
+
+MonthTotal _monthTotalFor(List<ExpenseListItem> items, DateTime bucket) {
+  final total = items
+      .where(
+        (i) =>
+            dateOf(i).year == bucket.year && dateOf(i).month == bucket.month,
+      )
+      .fold(0.0, (sum, i) => sum + amountOf(i));
+  return MonthTotal(year: bucket.year, month: bucket.month, total: total);
+}
+
 /// Named shorthand for `rangeForPreset(mesAtual, now)` — the paddock summary
 /// card (07-07) and the screen default (07-06) both call this so the card's
 /// figure and the screen's opening figure cannot diverge (D-09, D-15).

@@ -17,6 +17,7 @@ GoRouter _buildTestRouter() => GoRouter(
             StatefulShellBranch(routes: [GoRoute(path: '/animais', builder: (ctx, _) => const Center(child: Text('Animais')))]),
             StatefulShellBranch(routes: [GoRoute(path: '/reproducao', builder: (ctx, _) => const Center(child: Text('Reprod.')))]),
             StatefulShellBranch(routes: [GoRoute(path: '/sanitario', builder: (ctx, _) => const Center(child: Text('Sanitário')))]),
+            StatefulShellBranch(routes: [GoRoute(path: '/gastos', builder: (ctx, _) => const Center(child: Text('Gastos')))]),
           ],
         ),
       ],
@@ -39,6 +40,10 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('Campo Gestor'), findsNothing);
     expect(find.text('Sair'), findsNothing);
+    // Gastos is a desktop-only destination (redesign 2026-08-13, quick task
+    // 260813-x4f) — the bottom nav stays at exactly 5.
+    final navigationBar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(navigationBar.destinations.length, 5);
   });
 
   testWidgets('AppShell renders icon rail (no title, no NavigationBar) at 800x600', (tester) async {
@@ -63,5 +68,8 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(PropertySelector), findsOneWidget);
     expect(find.text('Selecionar fazenda'), findsOneWidget);
+    // 6a branch (redesign 2026-08-13, quick task 260813-x4f): Gastos is
+    // navegável no drawer, depois de Sanitário.
+    expect(find.text('Gastos'), findsOneWidget);
   });
 }

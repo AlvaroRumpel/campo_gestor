@@ -1,18 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../gastos/data/expense_calculations.dart';
-import '../../gastos/data/expense_model.dart';
 import '../../gastos/data/expense_repository.dart';
 import '../../piquetes/data/piquete_model.dart';
 import '../../piquetes/data/piquete_repository.dart';
 import '../../reproducao/data/atf_repository.dart';
-import '../../sanitario/data/sanitary_application_model.dart';
-import '../../sanitario/data/sanitary_application_repository.dart';
 import '../../sanitario/data/sanitary_calculations.dart';
 
 /// KPIs do header do Início (spec 4.1 / 4.14).
@@ -148,21 +144,13 @@ final dashboardAlertsProvider =
 });
 
 /// Total de gastos do mês corrente da propriedade (manuais + aplicações
-/// sanitárias visíveis, D-33) e valor por animal ativo.
+/// sanitárias visíveis, D-33) e valor por animal ativo. A lista unificada
+/// property-wide agora vem de [unifiedExpenseListByPropertyProvider]
+/// (redesign 2026-08-13) — este provider só aplica o filtro do mês corrente,
+/// para o card do Início e a tela `/gastos` somarem exatamente os mesmos
+/// dados.
 final monthExpensesProvider = FutureProvider<MonthExpenses>((ref) async {
-  final property = await ref.watch(currentPropertyProvider.future);
-  if (property == null) return const MonthExpenses(total: 0, perAnimal: null);
-
-  final expenses = await ref
-      .watch(expenseRepositoryProvider)
-      .fetchExpensesByProperty(property.id);
-  final applications =
-      await ref.watch(sanitaryApplicationListByPropertyProvider.future);
-  final items = <ExpenseListItem>[
-    for (final e in expenses) ExpenseListItem.manual(e),
-    for (final a in visibleApplications(applications, showReversed: false))
-      ExpenseListItem.sanitary(a),
-  ];
+  final items = await ref.watch(unifiedExpenseListByPropertyProvider.future);
   final total = totalAmount(
     filterByDateRange(items, currentMonthRange(DateTime.now())),
   );
