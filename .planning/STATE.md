@@ -55,7 +55,7 @@ See: .planning/PROJECT.md
 | Plans complete | 65 of 65 across phases 0–8 |
 | Dart tests | 349 passing |
 | Migration ledger | 18 |
-| Last activity | 2026-08-14 - Completed quick task 260813-x4f: gastos consolidados — série desktop Turno 2/3 100% concluída |
+| Last activity | 2026-08-14 - Completed quick task 260814-d79: gastos alinhado ao padrão |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
@@ -146,6 +146,7 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 | 260813-vvh | Sanitário desktop (Aplicações/Doses em tabelas densas, estorno compartilhado, arquivada esmaecida; mobile intacto) — Verified 7/7 | 2026-08-13 | c8c79af | [260813-vvh-sanitario-e-doses-em-tabela-desktop-apli](./quick/260813-vvh-sanitario-e-doses-em-tabela-desktop-apli/) |
 | 260813-wmm | Login desktop (AuthScaffold: card 440px centralizado ≥600px, marca acima; login/signup/reset herdam; folha mobile intacta) | 2026-08-13 | 2fcdd88 | [260813-wmm-login-desktop-card-centralizado-440px-so](./quick/260813-wmm-login-desktop-card-centralizado-440px-so/) |
 | 260813-x4f | Gastos consolidados (rota /gastos como 6ª branch — REVERTE decisão Fase 7, aprovado; tabela + painel 330px; dashboard reusa provider unificado) — Verified 6/6 | 2026-08-14 | c77ff58 | [260813-x4f-gastos-consolidados-da-propriedade-tela-](./quick/260813-x4f-gastos-consolidados-da-propriedade-tela-/) |
+| 260814-d79 | Alinhar Gastos ao padrão mestre-detalhe (painel 380 border-left, chips de período, tabela full-bleed) — feedback de produção | 2026-08-14 | bb9debe | [260814-d79-alinhar-gastospropertyscreen-ao-padrao-m](./quick/260814-d79-alinhar-gastospropertyscreen-ao-padrao-m/) |
 
 ---
 
