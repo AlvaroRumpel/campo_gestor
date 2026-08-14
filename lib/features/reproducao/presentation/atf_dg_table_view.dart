@@ -8,14 +8,14 @@ import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
 import '../data/atf_model.dart';
+import '../data/atf_repository.dart';
 import '../data/dg_record_model.dart';
 import '../data/dg_summary.dart';
 import 'atf_animal_selection_screen.dart';
 
 /// Larguras de coluna declaradas uma vez e reusadas pelo cabeçalho e pelas
 /// linhas (mesma convenção de `animais_table_view.dart`/`reproducao_table_view.dart`).
-/// A coluna de checkbox e o conteúdo da célula RESULTADO entram na Task 2
-/// (quick task 260813-tos) — aqui só a largura final é reservada.
+const _kColCheckbox = 44.0;
 const _kColNumber = 72.0;
 const _kColIa = 82.0;
 const _kColDg = 82.0;
@@ -25,6 +25,7 @@ const _kFlexLote = 2;
 
 final _dateFmtShort = DateFormat('dd/MM/yy');
 final _iaSubtitleFmt = DateFormat('dd/MM');
+final _dateOnlyFmt = DateFormat('yyyy-MM-dd');
 
 /// Tabela desktop densa do detalhe do ATF (>=`Breakpoints.rail`, quick task
 /// 260813-tos): registro de DG inline por linha + seleção múltipla com barra
@@ -61,6 +62,9 @@ class AtfDgTableView extends ConsumerStatefulWidget {
 }
 
 class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
+  final Set<String> _selectedIds = {};
+  bool _saving = false;
+
   @override
   Widget build(BuildContext context) {
     final animalsAsync = ref.watch(animalListByPropertyProvider);
@@ -81,6 +85,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildTopBlock(summary),
+          if (_selectedIds.isNotEmpty) _buildContextBar(),
           _buildColumnHeader(),
           Expanded(
             child: widget.rows.isEmpty
@@ -90,6 +95,163 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
                     itemBuilder: (context, i) =>
                         _buildRow(widget.rows[i], animalsById),
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Escrita única, usada pelo botão inline (lista de 1) e pela barra
+  /// contextual (lista de N) — assunção 4/8. Filtra fora animais cujo
+  /// [latestDgFor] já é [result] (no-op de re-registro); se sobrar zero,
+  /// não chama `saveDgRecords`.
+  Future<void> _registerDg(List<String> animalIds, DgResult result) async {
+    final filtered = animalIds.where((id) {
+      final latest = latestDgFor(widget.dgRecords, id);
+      return latest == null || DgResult.fromDb(latest.result) != result;
+    }).toList();
+    if (filtered.isEmpty) return;
+
+    final examDate = _dateOnlyFmt.format(DateTime.now());
+    final records = [
+      for (final id in filtered)
+        {'animal_id': id, 'result': result.dbValue, 'exam_date': examDate},
+    ];
+
+    setState(() => _saving = true);
+    try {
+      await ref.read(atfRepositoryProvider).saveDgRecords(
+            atfBatchId: widget.atf.id,
+            records: records,
+          );
+      if (!mounted) return;
+      ref.invalidate(dgRecordsByAtfProvider(widget.atf.id));
+      ref.invalidate(atfByIdProvider(widget.atf.id));
+      ref.invalidate(atfListByPropertyProvider);
+      for (final id in filtered) {
+        ref.invalidate(reproductiveHistoryByAnimalProvider(id));
+      }
+      setState(_selectedIds.clear);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('DGs registrados.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao salvar DGs. Tente novamente.')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  /// Portão de "Remover do ATF" em lote — mesmo do ícone mobile (assunção
+  /// 13): ativo + canEdit + nenhuma linha selecionada já tem DG.
+  bool get _canRemoveSelected {
+    if (!(widget.atf.active && widget.canEdit) || _selectedIds.isEmpty) {
+      return false;
+    }
+    return _selectedIds
+        .every((id) => latestDgFor(widget.dgRecords, id) == null);
+  }
+
+  Future<void> _confirmRemoveSelected() async {
+    final ids = _selectedIds.toList();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Remover ${ids.length} do ATF?'),
+        content: const Text('Os animais deixam de fazer parte deste ciclo.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final repo = ref.read(atfRepositoryProvider);
+    try {
+      await Future.wait([
+        for (final id in ids)
+          repo.removeAnimalFromAtf(atfBatchId: widget.atf.id, animalId: id),
+      ]);
+      if (!mounted) return;
+      ref.invalidate(atfActiveMembershipsProvider(widget.atf.id));
+      ref.invalidate(atfMembershipsProvider(widget.atf.id));
+      ref.invalidate(atfListByPropertyProvider);
+      for (final id in ids) {
+        ref.invalidate(reproductiveHistoryByAnimalProvider(id));
+      }
+      setState(_selectedIds.clear);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao remover animal. Tente novamente.'),
+        ),
+      );
+    }
+  }
+
+  /// Barra contextual (assunção 11): fundo `AppColors.primaryDarkText`,
+  /// texto `AppColors.onGreen`, altura 48.
+  Widget _buildContextBar() {
+    final count = _selectedIds.length;
+    return Container(
+      height: 48,
+      color: AppColors.primaryDarkText,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          Text(
+            count == 1 ? '1 selecionada' : '$count selecionadas',
+            style: monoStyle(
+              size: 13,
+              weight: FontWeight.w700,
+              color: AppColors.onGreen,
+            ),
+          ),
+          const SizedBox(width: 16),
+          TextButton(
+            onPressed: _saving
+                ? null
+                : () =>
+                    _registerDg(_selectedIds.toList(), DgResult.pregnant),
+            child: const Text(
+              'Marcar prenhe',
+              style: TextStyle(color: AppColors.onGreen),
+            ),
+          ),
+          TextButton(
+            onPressed: _saving
+                ? null
+                : () =>
+                    _registerDg(_selectedIds.toList(), DgResult.notPregnant),
+            child: const Text(
+              'Marcar vazia',
+              style: TextStyle(color: AppColors.onGreen),
+            ),
+          ),
+          TextButton(
+            onPressed:
+                (_saving || !_canRemoveSelected) ? null : _confirmRemoveSelected,
+            child: const Text(
+              'Remover do ATF',
+              style: TextStyle(color: AppColors.onGreen),
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.close, color: AppColors.onGreen),
+            tooltip: 'Limpar seleção',
+            onPressed: () => setState(_selectedIds.clear),
           ),
         ],
       ),
@@ -179,18 +341,39 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
   }
 
   Widget _buildColumnHeader() {
+    final allSelected =
+        widget.rows.isNotEmpty && _selectedIds.length == widget.rows.length;
     return Container(
       constraints: const BoxConstraints(minHeight: 36),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       color: AppColors.surfaceVariant,
-      child: const Row(
+      child: Row(
         children: [
-          SizedBox(width: _kColNumber, child: _HeaderText('Nº')),
-          Expanded(flex: _kFlexCategoria, child: _HeaderText('CATEGORIA')),
-          Expanded(flex: _kFlexLote, child: _HeaderText('LOTE')),
-          SizedBox(width: _kColIa, child: _HeaderText('IA')),
-          SizedBox(width: _kColDg, child: _HeaderText('DG')),
-          SizedBox(width: _kColResultado, child: _HeaderText('RESULTADO')),
+          if (widget.canEdit)
+            SizedBox(
+              width: _kColCheckbox,
+              child: Checkbox(
+                tristate: true,
+                value: _selectedIds.isEmpty ? false : (allSelected ? true : null),
+                onChanged: (_) => setState(() {
+                  if (allSelected) {
+                    _selectedIds.clear();
+                  } else {
+                    _selectedIds
+                      ..clear()
+                      ..addAll(widget.rows.map((m) => m.animalId));
+                  }
+                }),
+              ),
+            ),
+          const SizedBox(width: _kColNumber, child: _HeaderText('Nº')),
+          const Expanded(
+              flex: _kFlexCategoria, child: _HeaderText('CATEGORIA')),
+          const Expanded(flex: _kFlexLote, child: _HeaderText('LOTE')),
+          const SizedBox(width: _kColIa, child: _HeaderText('IA')),
+          const SizedBox(width: _kColDg, child: _HeaderText('DG')),
+          const SizedBox(
+              width: _kColResultado, child: _HeaderText('RESULTADO')),
         ],
       ),
     );
@@ -209,6 +392,8 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
         : '$categoryLabel · $breed';
     final lotName = aw?.lotName;
     final lastDg = latestDgFor(widget.dgRecords, m.animalId);
+    final lastResult =
+        lastDg == null ? null : DgResult.fromDb(lastDg.result);
 
     return Container(
       constraints: const BoxConstraints(minHeight: 44),
@@ -218,6 +403,20 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
       ),
       child: Row(
         children: [
+          if (widget.canEdit)
+            SizedBox(
+              width: _kColCheckbox,
+              child: Checkbox(
+                value: _selectedIds.contains(m.animalId),
+                onChanged: (checked) => setState(() {
+                  if (checked ?? false) {
+                    _selectedIds.add(m.animalId);
+                  } else {
+                    _selectedIds.remove(m.animalId);
+                  }
+                }),
+              ),
+            ),
           SizedBox(
             width: _kColNumber,
             child: Text(
@@ -250,7 +449,53 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
               style: monoStyle(size: 12.5),
             ),
           ),
-          const SizedBox(width: _kColResultado),
+          _buildResultCell(m, lastResult),
+        ],
+      ),
+    );
+  }
+
+  /// Célula RESULTADO: fora de `canEdit`, só o rótulo do resultado atual
+  /// (assunção 7/12). Com `canEdit`, um chip "Duvidosa" quando o DG mais
+  /// recente é `doubtful` (assunção 9, o desktop nunca registra esse
+  /// resultado) seguido do par Prenhe/Vazia inline.
+  Widget _buildResultCell(AtfMembershipView m, DgResult? lastResult) {
+    if (!widget.canEdit) {
+      return SizedBox(
+        width: _kColResultado,
+        child: Text(lastResult?.label ?? '—'),
+      );
+    }
+    final isDoubtful = lastResult == DgResult.doubtful;
+    return SizedBox(
+      width: _kColResultado,
+      child: Row(
+        children: [
+          if (isDoubtful) ...[
+            const StatusChip('Duvidosa', kind: StatusKind.warning),
+            const SizedBox(width: 6),
+          ],
+          Expanded(
+            child: _ResultButton(
+              label: 'Prenhe',
+              color: AppColors.primary,
+              onColor: AppColors.onGreen,
+              selected: lastResult == DgResult.pregnant,
+              enabled: !_saving,
+              onTap: () => _registerDg([m.animalId], DgResult.pregnant),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ResultButton(
+              label: 'Vazia',
+              color: AppColors.danger,
+              onColor: AppColors.onDanger,
+              selected: lastResult == DgResult.notPregnant,
+              enabled: !_saving,
+              onTap: () => _registerDg([m.animalId], DgResult.notPregnant),
+            ),
+          ),
         ],
       ),
     );
@@ -263,6 +508,54 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
         builder: (_) => AtfAnimalSelectionScreen(
           atfId: widget.atf.id,
           atfName: widget.atf.name,
+        ),
+      ),
+    );
+  }
+}
+
+/// Botão inline de resultado (Prenhe/Vazia), h32 r8 — outline em [color]
+/// quando não selecionado, preenchido com [color]/[onColor] quando
+/// selecionado (assunção 8).
+class _ResultButton extends StatelessWidget {
+  const _ResultButton({
+    required this.label,
+    required this.color,
+    required this.onColor,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final Color onColor;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? color : AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: selected ? BorderSide.none : BorderSide(color: color),
+      ),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 32,
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: selected ? onColor : color,
+            ),
+          ),
         ),
       ),
     );
