@@ -44,3 +44,22 @@ bool isVeterinarian(
       .firstOrNull;
   return role == 'veterinarian';
 }
+
+/// The project's second two-role permission gate, after `canManageExpenses`
+/// (D-23). Locked decision: veterinarian **and** owner may invite, remove
+/// and change the role of members; reader may only view. The real
+/// enforcement is the `get_role(...) IN ('veterinarian','owner')` check
+/// inside the RPCs of `20260814_11_membership_lifecycle.sql` — this
+/// predicate only decides whether a control renders. Per project
+/// convention, a denied role sees the control **absent**, never disabled.
+bool canManageMembers(
+  SelectedProperty? current,
+  List<PropertyMembership>? members,
+) {
+  if (current == null || members == null) return false;
+  final role = members
+      .where((m) => m.property.id == current.id)
+      .map((m) => m.role)
+      .firstOrNull;
+  return role == 'veterinarian' || role == 'owner';
+}
