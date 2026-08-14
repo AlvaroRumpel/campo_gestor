@@ -57,6 +57,16 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Reset the mestre-detalhe ATF selection when the active property
+    // actually changes — guarded so the first resolve (null -> A) is a
+    // no-op.
+    ref.listen(currentPropertyProvider, (prev, next) {
+      final prevId = prev?.value?.id;
+      final nextId = next.value?.id;
+      if (prevId == null || nextId == null || prevId == nextId) return;
+      setState(() => _selectedAtfId = null);
+    });
+
     final atfsAsync = ref.watch(atfListByPropertyProvider);
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);

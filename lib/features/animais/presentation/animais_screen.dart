@@ -120,6 +120,20 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Reset the local lote/piquete filters and the mestre-detalhe selection
+    // when the active property actually changes — guarded so the first
+    // resolve (null -> A) is a no-op.
+    ref.listen(currentPropertyProvider, (prev, next) {
+      final prevId = prev?.value?.id;
+      final nextId = next.value?.id;
+      if (prevId == null || nextId == null || prevId == nextId) return;
+      setState(() {
+        _lotId = null;
+        _paddockId = null;
+      });
+      ref.invalidate(_selectedAnimalIdProvider);
+    });
+
     final animalsAsync = ref.watch(animalListByPropertyProvider);
     final paddocksAsync = ref.watch(paddockListProvider);
     final currentPropAsync = ref.watch(currentPropertyProvider);
