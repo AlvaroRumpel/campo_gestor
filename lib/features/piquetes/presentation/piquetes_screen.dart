@@ -17,11 +17,13 @@ import '../../../features/lotes/presentation/lote_detail_panel.dart';
 import '../../../features/lotes/presentation/lote_form_dialog.dart';
 import '../../../features/lotes/presentation/lotes_list_view.dart';
 import '../../../features/lotes/presentation/lotes_table_view.dart';
+import '../../../features/lotes/presentation/mover_lote_dialog.dart';
 import '../../../features/sanitario/data/sanitary_application_repository.dart';
 import '../../../features/sanitario/data/sanitary_calculations.dart';
 import '../data/piquete_model.dart';
 import '../data/piquete_repository.dart';
 import 'paddock_form_dialog.dart';
+import 'piquetes_board_view.dart';
 
 String _fmt1(double v) => v.toStringAsFixed(1).replaceAll('.', ',');
 
@@ -57,10 +59,9 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= Breakpoints.rail;
-        final showDesktopLots = isDesktop && _showLots;
 
-        final Widget body = showDesktopLots
-            ? _buildDesktopLots(
+        final Widget body = isDesktop
+            ? _buildDesktop(
                 context,
                 paddocks: paddocksAsync.asData?.value ?? const <Paddock>[],
                 lots: lotsAsync.asData?.value ??
@@ -157,11 +158,12 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
     );
   }
 
-  /// Branch mestre-detalhe desktop (>=Breakpoints.rail) da aba Lotes:
-  /// LotesTableView + LoteDetailPanel opcional. Deriva os agregados a
+  /// Branch mestre-detalhe desktop (>=Breakpoints.rail): quadro de piquetes
+  /// (PiquetesBoardView) ou tabela de lotes (LotesTableView), com
+  /// LoteDetailPanel opcional servindo as duas abas. Deriva os agregados a
   /// partir dos providers que a tela já observa — zero método novo de
   /// repositório.
-  Widget _buildDesktopLots(
+  Widget _buildDesktop(
     BuildContext context, {
     required List<Paddock> paddocks,
     required List<LotWithPaddockCount> lots,
@@ -205,21 +207,32 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: LotesTableView(
-            lots: lots,
-            animalsByLot: animalsByLot,
-            paddocks: paddocks,
-            overloadedPaddockIds: overloadedPaddockIds,
-            lastApplicationByLot: lastApplicationByLot,
-            paddockCount: paddockCount,
-            lotCount: lotCount,
-            showLots: _showLots,
-            onShowLotsChanged: (v) => setState(() => _showLots = v),
-            selectedId: _selectedLotId,
-            onSelect: (id) => setState(() => _selectedLotId = id),
-            canEdit: canEdit,
-            onCreate: () => _onCreateLot(context, paddocks, currentProp),
-          ),
+          child: _showLots
+              ? LotesTableView(
+                  lots: lots,
+                  animalsByLot: animalsByLot,
+                  paddocks: paddocks,
+                  overloadedPaddockIds: overloadedPaddockIds,
+                  lastApplicationByLot: lastApplicationByLot,
+                  paddockCount: paddockCount,
+                  lotCount: lotCount,
+                  showLots: _showLots,
+                  onShowLotsChanged: (v) => setState(() => _showLots = v),
+                  selectedId: _selectedLotId,
+                  onSelect: (id) => setState(() => _selectedLotId = id),
+                  canEdit: canEdit,
+                  onCreate: () => _onCreateLot(context, paddocks, currentProp),
+                )
+              : PiquetesBoardView(
+                  paddocks: paddocks,
+                  lots: lots,
+                  animalsByLot: animalsByLot,
+                  onShowLotsChanged: (v) => setState(() => _showLots = v),
+                  selectedLotId: _selectedLotId,
+                  onSelectLot: (id) => setState(() => _selectedLotId = id),
+                  onMoveLot: (item, target) => _onDropLot(context, item, target),
+                  canEdit: canEdit,
+                ),
         ),
         if (selected != null)
           LoteDetailPanel(
@@ -231,6 +244,33 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
             onClose: () => setState(() => _selectedLotId = null),
           ),
       ],
+    );
+  }
+
+  /// Soltar um card de lote em outra coluna do quadro: abre o
+  /// MoverLoteDialog existente com o piquete de destino pré-selecionado —
+  /// a tela nunca chama o repositório de lotes diretamente, o diálogo é o
+  /// único caminho de escrita.
+  Future<void> _onDropLot(
+    BuildContext context,
+    LotWithPaddockCount item,
+    Paddock target,
+  ) async {
+    final result = await showAdaptiveForm<Map<String, String>>(
+      context: context,
+      builder: (_) => MoverLoteDialog(
+        lot: item.lot,
+        activeAnimalCount: item.activeAnimalCount,
+        initialPaddock: target,
+      ),
+    );
+    if (result == null || !context.mounted) return;
+    ref.invalidate(loteWithPaddockListByPropertyProvider);
+    ref.invalidate(animalListByPropertyProvider);
+    ref.invalidate(paddockListProvider);
+    final paddockName = result['paddockName'] ?? '';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Lote movido para $paddockName')),
     );
   }
 

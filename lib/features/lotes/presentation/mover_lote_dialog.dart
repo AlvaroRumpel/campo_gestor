@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../animais/data/animal_repository.dart';
+import '../../piquetes/data/piquete_model.dart';
 import '../../piquetes/data/piquete_repository.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
@@ -26,10 +27,16 @@ class MoverLoteDialog extends ConsumerStatefulWidget {
     super.key,
     required this.lot,
     required this.activeAnimalCount,
+    this.initialPaddock,
   });
 
   final Lot lot;
   final int activeAnimalCount;
+
+  /// Piquete de destino pré-selecionado (D-quadro-desktop): quando o
+  /// diálogo é aberto a partir de um drop no quadro de piquetes, abre já
+  /// com esse piquete selecionado, servindo de tela de confirmação.
+  final Paddock? initialPaddock;
 
   @override
   ConsumerState<MoverLoteDialog> createState() => _MoverLoteDialogState();
@@ -39,6 +46,13 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
   String? _selectedPaddockId;
   String? _selectedPaddockName;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPaddockId = widget.initialPaddock?.id;
+    _selectedPaddockName = widget.initialPaddock?.name;
+  }
 
   Future<void> _submit() async {
     final paddockId = _selectedPaddockId;
