@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/auth/role_gates.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -37,6 +38,13 @@ class _MobileDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final alerts =
         ref.watch(dashboardAlertsProvider).asData?.value ?? const [];
+    // Ambos os tipos de alerta (DG pendente, UA acima da capacidade) só se
+    // resolvem com uma ação vet-only (salvar DG, mover lote) — o banner
+    // inteiro some para os demais papéis, sem filtrar por tipo.
+    final isVet = isVeterinarian(
+      ref.watch(currentPropertyProvider).asData?.value,
+      ref.watch(memberPropertiesProvider).asData?.value,
+    );
     return Scaffold(
       body: ListView(
         padding: EdgeInsets.zero,
@@ -47,7 +55,7 @@ class _MobileDashboard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (alerts.isNotEmpty) ...[
+                if (isVet && alerts.isNotEmpty) ...[
                   _AlertsBanner(alerts: alerts),
                   const SizedBox(height: 12),
                 ],
@@ -677,6 +685,13 @@ class _DesktopDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final alerts =
         ref.watch(dashboardAlertsProvider).asData?.value ?? const [];
+    // Ambos os tipos de alerta (DG pendente, UA acima da capacidade) só se
+    // resolvem com uma ação vet-only (salvar DG, mover lote) — o banner
+    // inteiro some para os demais papéis, sem filtrar por tipo.
+    final isVet = isVeterinarian(
+      ref.watch(currentPropertyProvider).asData?.value,
+      ref.watch(memberPropertiesProvider).asData?.value,
+    );
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
@@ -691,7 +706,7 @@ class _DesktopDashboard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (alerts.isNotEmpty) ...[
+                    if (isVet && alerts.isNotEmpty) ...[
                       _AlertsBanner(alerts: alerts, desktop: true),
                       const SizedBox(height: 16),
                     ],

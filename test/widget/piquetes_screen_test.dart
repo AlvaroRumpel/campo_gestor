@@ -1,7 +1,9 @@
 // PROP-02 UI — PiquetesScreen redesign (spec 4.5/4.6): segmented control
 // Piquetes/Lotes, cards de piquete com semáforo de lotação e empty states.
+import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
+import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/features/gastos/data/expense_repository.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
@@ -13,6 +15,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 // ignore: depend_on_referenced_packages
 import 'package:riverpod/misc.dart' show Override;
+
+const _prop = SelectedProperty(id: 'prop-1', name: 'Fazenda Alpha');
+const _vetMembership = PropertyMembership(property: _prop, role: 'veterinarian');
+const _readerMembership = PropertyMembership(property: _prop, role: 'reader');
 
 final _paddock = Paddock(
   id: 'pad-1',
@@ -49,6 +55,7 @@ Widget _buildScreen({
   List<Paddock> paddocks = const [],
   List<LotWithPaddockCount> lots = const [],
   List<AnimalWithContext> animals = const [],
+  bool canEdit = true,
   List<Override> extra = const [],
 }) {
   return ProviderScope(
@@ -57,6 +64,10 @@ Widget _buildScreen({
       loteWithPaddockListByPropertyProvider.overrideWith((ref) async => lots),
       animalListByPropertyProvider.overrideWith((ref) async => animals),
       paddockMonthExpenseTotalProvider.overrideWith((ref, id) async => 980.0),
+      // Single membership -> CurrentPropertyNotifier auto-selects it.
+      memberPropertiesProvider.overrideWith(
+        (ref) async => [canEdit ? _vetMembership : _readerMembership],
+      ),
       ...extra,
     ],
     child: const MaterialApp(home: PiquetesScreen()),
@@ -74,6 +85,23 @@ void main() {
           'Adicione piquetes para começar a organizar os lotes da fazenda.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'PiquetesScreen empty state offers a create button for a veterinarian',
+      (tester) async {
+    await tester.pumpWidget(_buildScreen());
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, 'Criar piquete'), findsOneWidget);
+  });
+
+  testWidgets(
+      'PiquetesScreen empty state has no create button for a non-veterinarian',
+      (tester) async {
+    await tester.pumpWidget(_buildScreen(canEdit: false));
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhum piquete cadastrado ainda.'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Criar piquete'), findsNothing);
   });
 
   testWidgets(

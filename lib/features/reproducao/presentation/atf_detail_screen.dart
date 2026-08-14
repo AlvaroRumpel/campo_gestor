@@ -894,17 +894,25 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
                 const StatusChip('não salvo', kind: StatusKind.warning),
                 const SizedBox(width: 2),
               ],
-              IconButton(
-                icon: const Icon(Icons.event, size: 20),
-                tooltip: 'Alterar data deste animal',
-                onPressed: editable ? () => _pickRowDate(m.animalId) : null,
-              ),
-              IconButton(
-                icon: const Icon(Icons.notes, size: 20),
-                tooltip: 'Adicionar observação',
-                onPressed:
-                    editable ? () => _toggleObservation(m.animalId) : null,
-              ),
+              // Papel negado (widget.canEdit false) vê estes dois controles
+              // AUSENTES, nunca desabilitados — segue o mesmo padrão de
+              // `canRemove` logo abaixo. `editable` (que também considera
+              // `_saving`) governaria a variante desabilitada durante o
+              // save, mas isso só se aplica ao veterinário; o gate de
+              // presença/ausência é sempre `widget.canEdit`.
+              if (widget.canEdit) ...[
+                IconButton(
+                  icon: const Icon(Icons.event, size: 20),
+                  tooltip: 'Alterar data deste animal',
+                  onPressed: editable ? () => _pickRowDate(m.animalId) : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.notes, size: 20),
+                  tooltip: 'Adicionar observação',
+                  onPressed:
+                      editable ? () => _toggleObservation(m.animalId) : null,
+                ),
+              ],
               if (canRemove)
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
@@ -915,22 +923,46 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: Row(
-              children: [
-                for (final r in DgResult.values) ...[
-                  if (r != DgResult.values.first) const SizedBox(width: 8),
-                  Expanded(
-                    child: DgSegmentButton(
-                      result: r,
-                      selected: selected == r,
-                      onTap: editable
-                          ? () => setState(() => _staged[m.animalId] = r)
-                          : null,
-                    ),
+            child: widget.canEdit
+                ? Row(
+                    children: [
+                      for (final r in DgResult.values) ...[
+                        if (r != DgResult.values.first)
+                          const SizedBox(width: 8),
+                        Expanded(
+                          child: DgSegmentButton(
+                            result: r,
+                            selected: selected == r,
+                            onTap: editable
+                                ? () =>
+                                    setState(() => _staged[m.animalId] = r)
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                // Papel negado: resultado do DG como texto estático, nunca
+                // um segmento desabilitado (T-g9j-09).
+                : Align(
+                    alignment: Alignment.centerLeft,
+                    child: selected == null
+                        ? const Text(
+                            'Sem DG',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          )
+                        : StatusChip(
+                            selected.label,
+                            kind: switch (selected) {
+                              DgResult.pregnant => StatusKind.positive,
+                              DgResult.notPregnant => StatusKind.danger,
+                              DgResult.doubtful => StatusKind.warning,
+                            },
+                          ),
                   ),
-                ],
-              ],
-            ),
           ),
           if (expanded && _obsControllers[m.animalId] != null)
             Padding(

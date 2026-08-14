@@ -305,7 +305,8 @@ void main() {
     });
 
     testWidgets(
-        'zero-doses backstop: the picker explains no dose exists and the CTA stays disabled',
+        '260814-g9j: zero-doses backstop opens the dose form directly '
+        'instead of an empty picker sheet, and the CTA stays disabled',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(animals: [_animal(id: 'a1', number: 1)], doses: const []),
@@ -320,9 +321,11 @@ void main() {
 
       await tester.tap(find.text('Selecionar'));
       await tester.pumpAndSettle();
+      // Dose form opens directly (260814-g9j) — no dead-end empty picker.
+      expect(find.text('Nova dose'), findsOneWidget);
       expect(
         find.text('Nenhuma dose cadastrada — cadastre uma dose primeiro'),
-        findsOneWidget,
+        findsNothing,
       );
     });
 
