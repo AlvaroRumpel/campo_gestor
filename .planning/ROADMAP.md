@@ -410,6 +410,18 @@ Plans:
 
 **Status:** executado (analyze limpo, 360/360 testes) — aguardando deploy + validação visual (UAT) pelo usuário.
 
+### Phase 10: Gestão de Membros e Ciclo de Vida da Propriedade
+
+**Goal:** Fechar a maior lacuna SaaS do v1: membros de uma fazenda podem ser convidados, gerenciados e removidos pela UI (hoje `owner` e `reader` são papéis inalcançáveis — só existe o vet criador), e a fazenda tem ciclo de vida seguro (arquivar com confirmação forte + restaurar).
+**Requirements**: MEMB-01 convite por e-mail com papel (veterinario/proprietario/leitor) e aceite/recusa pelo convidado; convite revogável · MEMB-02 listar membros com papel; trocar papel; remover membro; sair da fazenda (self-service) · MEMB-03 guarda de último vet no banco (rejeitar remover/rebaixar/sair do único veterinário) · PROPV-01 arquivar fazenda com confirmação forte (digitar o nome) · PROPV-02 restaurar fazenda arquivada pela UI (visível a vets ex-membros)
+**Decisões travadas (2026-08-14):** convite com aceite (tabela de convites pendentes, sem e-mail transacional no MVP — convite aparece in-app para o convidado logado); vet E proprietário gerenciam membros; proprietário pode remover vet desde que não seja o último; sem trilha de auditoria; sem mudança em `is_member_of`; toda escrita em `property_members`/convites via RPC SECURITY DEFINER.
+**Depends on:** Phase 9
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 10 to break down)
+
 ---
 
 ## Notes
