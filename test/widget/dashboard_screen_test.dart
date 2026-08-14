@@ -8,6 +8,9 @@ import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/features/auth/providers/auth_provider.dart';
 import 'package:campo_gestor/features/dashboard/data/dashboard_providers.dart';
 import 'package:campo_gestor/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:campo_gestor/features/membros/data/membro_models.dart';
+import 'package:campo_gestor/features/membros/data/membro_repository.dart';
+import 'package:campo_gestor/features/membros/presentation/invite_banner.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_model.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
@@ -17,6 +20,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+// Override is not re-exported by flutter_riverpod in Riverpod 3.x; riverpod is
+// a transitive dependency, not a direct one — import the specific file.
+// ignore: depend_on_referenced_packages
+import 'package:riverpod/misc.dart' show Override;
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
 // ---------------------------------------------------------------------------
@@ -25,6 +32,22 @@ import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
 const _prop = SelectedProperty(id: 'prop-1', name: 'Fazenda Alpha');
 const _vetMembership = PropertyMembership(property: _prop, role: 'veterinarian');
+const _readerMembership = PropertyMembership(property: _prop, role: 'reader');
+
+final _invite1 = MyInvite(
+  id: 'invite-1',
+  propertyId: 'prop-2',
+  propertyName: 'Fazenda Beta',
+  role: 'veterinarian',
+  createdAt: DateTime(2026, 1, 1),
+);
+final _invite2 = MyInvite(
+  id: 'invite-2',
+  propertyId: 'prop-3',
+  propertyName: 'Fazenda Gama',
+  role: 'reader',
+  createdAt: DateTime(2026, 1, 2),
+);
 
 final _paddockOver = Paddock(
   id: 'pad-1',
@@ -93,15 +116,18 @@ Widget _buildScreen({
   List<AnimalWithContext> animals = const [],
   List<AtfSummary> atfs = const [],
   MonthExpenses month = const MonthExpenses(total: 0, perAnimal: null),
+  PropertyMembership membership = _vetMembership,
+  Override? inviteOverride,
 }) {
   return ProviderScope(
     overrides: [
-      memberPropertiesProvider.overrideWith((ref) async => [_vetMembership]),
+      memberPropertiesProvider.overrideWith((ref) async => [membership]),
       authNotifierProvider.overrideWith(_FakeAuthNotifier.new),
       paddockListProvider.overrideWith((ref) async => paddocks),
       animalListByPropertyProvider.overrideWith((ref) async => animals),
       atfListByPropertyProvider.overrideWith((ref) async => atfs),
       monthExpensesProvider.overrideWith((ref) async => month),
+      inviteOverride ?? myInvitesProvider.overrideWith((ref) async => const []),
     ],
     child: const MaterialApp(
       localizationsDelegates: [
@@ -219,5 +245,96 @@ void main() {
     expect(find.text('Lotação por piquete'), findsOneWidget);
     expect(find.text('11 de 18 DGs · ATF Outubro'), findsOneWidget);
     expect(find.text('R\$ 12.480,00'), findsOneWidget);
+  });
+
+  // ---------------------------------------------------------------------
+  // MEMB-01 — banner de convites pendentes (10-09)
+  // ---------------------------------------------------------------------
+
+  testWidgets('mobile: sem convites, nenhum InviteBanner é renderizado',
+      (tester) async {
+    _setSize(tester, const Size(400, 900));
+    await tester.pumpWidget(_buildScreen());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InviteBanner), findsNothing);
+  });
+
+  testWidgets(
+      'mobile: um convite pendente mostra InviteBanner acima do '
+      '_AlertsBanner', (tester) async {
+    _setSize(tester, const Size(400, 900));
+    await tester.pumpWidget(_buildScreen(
+      paddocks: [_paddockOver],
+      animals: _animals,
+      atfs: [_atfOutubro],
+      inviteOverride: myInvitesProvider.overrideWith((ref) async => [_invite1]),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InviteBanner), findsOneWidget);
+    expect(find.text('PRECISA DE VOCÊ HOJE'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byType(InviteBanner)).dy,
+      lessThan(tester.getTopLeft(find.text('PRECISA DE VOCÊ HOJE')).dy),
+    );
+  });
+
+  testWidgets('mobile: dois convites pendentes mostram dois InviteBanner',
+      (tester) async {
+    _setSize(tester, const Size(400, 900));
+    await tester.pumpWidget(_buildScreen(
+      inviteOverride: myInvitesProvider
+          .overrideWith((ref) async => [_invite1, _invite2]),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InviteBanner), findsNWidgets(2));
+  });
+
+  testWidgets(
+      'mobile: banner de convite aparece mesmo com papel não-veterinário',
+      (tester) async {
+    _setSize(tester, const Size(400, 900));
+    await tester.pumpWidget(_buildScreen(
+      membership: _readerMembership,
+      inviteOverride: myInvitesProvider.overrideWith((ref) async => [_invite1]),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InviteBanner), findsOneWidget);
+  });
+
+  testWidgets(
+      'mobile: myInvitesProvider em erro não renderiza banner e não quebra',
+      (tester) async {
+    _setSize(tester, const Size(400, 900));
+    await tester.pumpWidget(_buildScreen(
+      inviteOverride:
+          myInvitesProvider.overrideWith((ref) async => throw Exception('x')),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InviteBanner), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'desktop: convite pendente mostra InviteBanner na coluna principal, '
+      'acima do _AlertsBanner', (tester) async {
+    _setSize(tester, const Size(1000, 800));
+    await tester.pumpWidget(_buildScreen(
+      paddocks: [_paddockOver],
+      animals: _animals,
+      atfs: [_atfOutubro],
+      inviteOverride: myInvitesProvider.overrideWith((ref) async => [_invite1]),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InviteBanner), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byType(InviteBanner)).dy,
+      lessThan(tester.getTopLeft(find.text('PRECISA DE VOCÊ HOJE')).dy),
+    );
   });
 }

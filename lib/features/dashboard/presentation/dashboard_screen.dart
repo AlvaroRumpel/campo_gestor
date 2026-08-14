@@ -10,6 +10,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/property_selector.dart';
 import '../../../core/widgets/ui.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../membros/data/membro_models.dart';
+import '../../membros/data/membro_repository.dart';
+import '../../membros/presentation/invite_banner.dart';
 import '../../reproducao/data/atf_repository.dart';
 import '../../sanitario/data/sanitary_calculations.dart';
 import '../data/dashboard_providers.dart';
@@ -45,6 +48,10 @@ class _MobileDashboard extends ConsumerWidget {
       ref.watch(currentPropertyProvider).asData?.value,
       ref.watch(memberPropertiesProvider).asData?.value,
     );
+    // Convite é endereçado à pessoa, não à fazenda ativa — ao contrário do
+    // _AlertsBanner (vet-only), aparece para qualquer papel.
+    final invites =
+        ref.watch(myInvitesProvider).asData?.value ?? const <MyInvite>[];
     return Scaffold(
       body: ListView(
         padding: EdgeInsets.zero,
@@ -55,6 +62,10 @@ class _MobileDashboard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                for (final invite in invites) ...[
+                  InviteBanner(invite: invite),
+                  const SizedBox(height: 12),
+                ],
                 if (isVet && alerts.isNotEmpty) ...[
                   _AlertsBanner(alerts: alerts),
                   const SizedBox(height: 12),
@@ -692,6 +703,10 @@ class _DesktopDashboard extends ConsumerWidget {
       ref.watch(currentPropertyProvider).asData?.value,
       ref.watch(memberPropertiesProvider).asData?.value,
     );
+    // Convite é endereçado à pessoa, não à fazenda ativa — ao contrário do
+    // _AlertsBanner (vet-only), aparece para qualquer papel.
+    final invites =
+        ref.watch(myInvitesProvider).asData?.value ?? const <MyInvite>[];
     return Scaffold(
       body: ListView(
         padding: const EdgeInsets.fromLTRB(28, 24, 28, 24),
@@ -706,6 +721,10 @@ class _DesktopDashboard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    for (final invite in invites) ...[
+                      InviteBanner(invite: invite),
+                      const SizedBox(height: 16),
+                    ],
                     if (isVet && alerts.isNotEmpty) ...[
                       _AlertsBanner(alerts: alerts, desktop: true),
                       const SizedBox(height: 16),
