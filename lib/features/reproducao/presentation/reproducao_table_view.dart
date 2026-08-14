@@ -338,29 +338,32 @@ class AtfScopeChip extends StatelessWidget {
       selected: selected,
       showCheckmark: false,
       onSelected: (_) => onTap(),
-      label: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: label,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? AppColors.onGreen : AppColors.ink,
-              ),
+      // Text + Text separados (não Text.rich com um único TextSpan): mantém
+      // `label` como texto exato-igual (`find.text(label)`), condição de
+      // que widgets consumidores (ex.: PiquetesScreen desktop) dependem
+      // para localizar o chip por nome sem ambiguidade com a contagem.
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              color: selected ? AppColors.onGreen : AppColors.ink,
             ),
-            TextSpan(
-              text: ' $count',
-              style: monoStyle(
-                size: 11.5,
-                weight: FontWeight.w600,
-                color: selected
-                    ? AppColors.onGreenSecondary
-                    : AppColors.textTertiary,
-              ),
+          ),
+          Text(
+            ' $count',
+            style: monoStyle(
+              size: 11.5,
+              weight: FontWeight.w600,
+              color: selected
+                  ? AppColors.onGreenSecondary
+                  : AppColors.textTertiary,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
