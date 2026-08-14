@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/property_selector.dart';
 import '../../../core/widgets/ui.dart';
@@ -621,6 +622,9 @@ class _GastosCard extends ConsumerWidget {
     final monthName = DateFormat('MMMM', 'pt_BR').format(DateTime.now());
     return SectionCard(
       title: 'Gastos · $monthName',
+      onTap: () => context.go(AppRoutes.gastos),
+      trailing: const Icon(Icons.chevron_right,
+          size: 20, color: AppColors.textSecondary),
       child: monthAsync.when(
         loading: () => const SizedBox(
           height: 40,

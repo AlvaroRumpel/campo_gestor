@@ -1,3 +1,4 @@
+import 'package:campo_gestor/core/router/router.dart';
 import 'package:campo_gestor/core/router/routes.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -32,4 +33,30 @@ void main() {
   // requires Supabase.initialize(). That is exercised in the integration smoke
   // test where main() runs end-to-end. _RouterRefreshNotifier is private and
   // tested indirectly via the integration smoke test.
+
+  group('safeReturnTo (T-g9j-08: open-redirect guard)', () {
+    test('accepts an internal path', () {
+      expect(safeReturnTo('/piquetes'), '/piquetes');
+    });
+
+    test('falls back to /dashboard when from is null', () {
+      expect(safeReturnTo(null), AppRoutes.dashboard);
+    });
+
+    test('falls back to /dashboard for an auth route', () {
+      expect(safeReturnTo('/login'), AppRoutes.dashboard);
+    });
+
+    test('falls back to /dashboard for /sem-acesso', () {
+      expect(safeReturnTo('/sem-acesso'), AppRoutes.dashboard);
+    });
+
+    test('falls back to /dashboard for an absolute external URL', () {
+      expect(safeReturnTo('https://evil.tld'), AppRoutes.dashboard);
+    });
+
+    test('falls back to /dashboard for a protocol-relative URL', () {
+      expect(safeReturnTo('//evil.tld'), AppRoutes.dashboard);
+    });
+  });
 }
