@@ -93,7 +93,7 @@ Role badge colors (StatusChip, not part of the 10% accent budget — these are n
 | Primary CTA — arquivar | "Arquivar fazenda" |
 | Primary CTA — restaurar | "Restaurar fazenda" |
 | Field labels — invite form | "E-mail do convidado *" (validator: obrigatório + formato de e-mail), "Papel" (dropdown: Veterinário / Proprietário / Leitor) |
-| Member row actions (overflow menu, vet/owner only) | "Trocar papel", "Remover", and on the current user's own row: "Sair da fazenda" instead of "Remover" |
+| Member row actions (overflow menu, vet/owner only) | "Trocar papel", "Remover membro", and on the current user's own row: "Sair da fazenda" instead of "Remover membro" |
 | Empty state — convites pendentes (visão do gestor, dentro da tela Membros) | Heading: "Nenhum convite pendente" · Body: "Convide um veterinário, proprietário ou leitor pelo e-mail." |
 | Empty state — convites do usuário (`/sem-acesso`) | Heading: "Nenhum convite no momento" · Body: "Peça para um veterinário da fazenda te convidar pelo seu e-mail de cadastro." (replaces the old "Entre em contato com o proprietário..." copy — CONTEXT.md instructs this screen must evolve) |
 | Empty state — fazendas arquivadas | Heading: "Nenhuma fazenda arquivada" · Body: "Fazendas arquivadas por você aparecem aqui para restaurar quando precisar." |
