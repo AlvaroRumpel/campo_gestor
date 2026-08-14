@@ -1,6 +1,13 @@
+import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/core/router/router.dart';
 import 'package:campo_gestor/core/router/routes.dart';
+import 'package:campo_gestor/features/membros/presentation/membros_screen.dart';
+import 'package:campo_gestor/features/propriedades/data/propriedade_repository.dart';
+import 'package:campo_gestor/features/propriedades/presentation/propriedades_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +20,64 @@ void main() {
     expect(AppRoutes.all, contains('/reproducao'));
     expect(AppRoutes.all, contains('/sanitario'));
     expect(AppRoutes.all, contains('/gastos'));
+  });
+
+  group('AppRoutes.membrosById / membros (Phase 10, MEMB-02 root-level route)', () {
+    test('membrosById template and membros(id) helper', () {
+      expect(AppRoutes.membrosById, '/propriedades/:propertyId/membros');
+      expect(AppRoutes.membros('abc-123'), '/propriedades/abc-123/membros');
+    });
+
+    test('membrosById does not leak into AppRoutes.all', () {
+      expect(AppRoutes.all, isNot(contains(AppRoutes.membrosById)));
+      expect(AppRoutes.all.length, 6);
+    });
+
+    // Two-segment root-level route must coexist with /propriedades without
+    // swallowing it — mirrors the gastosById/gastos coexistence test above.
+    GoRouter buildRouter(String location) => GoRouter(
+          initialLocation: location,
+          routes: [
+            GoRoute(
+              path: AppRoutes.propriedades,
+              builder: (ctx, _) => const PropriedadesScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.membrosById,
+              builder: (ctx, state) => MembrosScreen(
+                propertyId: state.pathParameters['propertyId']!,
+              ),
+            ),
+          ],
+        );
+
+    Widget buildApp(GoRouter router) => ProviderScope(
+          overrides: [
+            propertyListProvider.overrideWith((ref) async => []),
+            archivedPropertyListProvider.overrideWith((ref) async => []),
+            memberPropertiesProvider.overrideWith((ref) async => []),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        );
+
+    testWidgets(
+        '/propriedades/abc-123/membros renders MembrosScreen with propertyId from the path',
+        (tester) async {
+      await tester.pumpWidget(buildApp(buildRouter('/propriedades/abc-123/membros')));
+      await tester.pump();
+
+      final screen = tester.widget<MembrosScreen>(find.byType(MembrosScreen));
+      expect(screen.propertyId, 'abc-123');
+    });
+
+    testWidgets('/propriedades still renders PropriedadesScreen (not swallowed by the detail route)',
+        (tester) async {
+      await tester.pumpWidget(buildApp(buildRouter('/propriedades')));
+      await tester.pump();
+
+      expect(find.byType(PropriedadesScreen), findsOneWidget);
+      expect(find.byType(MembrosScreen), findsNothing);
+    });
   });
 
   test('AppRoutes.atfById / atfDetail (Phase 5, D-02 root-level route)', () {

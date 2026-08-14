@@ -19,6 +19,7 @@ import '../../features/gastos/presentation/gastos_property_screen.dart';
 import '../../features/gastos/presentation/gastos_screen.dart';
 import '../../features/piquetes/presentation/paddock_detail_screen.dart';
 import '../../features/lotes/presentation/lote_detail_screen.dart';
+import '../../features/membros/presentation/membros_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/reproducao/presentation/atf_detail_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
@@ -161,6 +162,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.propriedades,
         builder: (ctx, _) => const PropriedadesScreen(),
+      ),
+      // Phase 10 detail route — root-level, outside any shell branch
+      // (MEMB-02): the property card's context menu links directly to a
+      // farm's member list, mirroring loteById/atfById/aplicacaoById/
+      // gastosById above.
+      GoRoute(
+        path: AppRoutes.membrosById,
+        builder: (ctx, state) => MembrosScreen(
+          propertyId: state.pathParameters['propertyId']!,
+        ),
       ),
       // Phase 3 detail routes — root-level, outside any shell branch (D-03)
       GoRoute(
