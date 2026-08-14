@@ -10,6 +10,7 @@ import '../../../core/widgets/ui.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../data/propriedade_model.dart';
 import '../data/propriedade_repository.dart';
+import 'archive_confirm_dialog.dart';
 import 'property_form_dialog.dart';
 
 class PropriedadesScreen extends ConsumerStatefulWidget {
@@ -110,7 +111,7 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
                     canEdit: canEdit,
                     archived: _showArchived,
                     onEdit: () => _openForm(property: properties[i]),
-                    onDelete: () => _confirmDelete(properties[i]),
+                    onArchive: () => _confirmArchive(properties[i]),
                     onRestore: () => _restore(properties[i]),
                   ),
                 );
@@ -164,55 +165,27 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
     }
   }
 
-  Future<void> _confirmDelete(Property property) async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _confirmArchive(Property property) async {
+    final confirmed = await showAdaptiveForm<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.dangerContainer,
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: const Icon(
-                Icons.delete_outline,
-                size: 21,
-                color: AppColors.danger,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('Remover fazenda')),
-          ],
-        ),
-        content: Text(
-          'Tem certeza que deseja remover "${property.name}"? Esta ação não pode ser desfeita.',
-        ),
-        actions: [
-          OutlinedButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.danger,
-              foregroundColor: AppColors.onDanger,
-            ),
-            child: const Text('Remover'),
-          ),
-        ],
-      ),
+      width: FormWidth.confirm,
+      builder: (_) => ArchiveConfirmDialog(propertyName: property.name),
     );
-    if (confirmed == true) {
+    if (confirmed != true) return;
+    try {
       await ref
           .read(propertyRepositoryProvider)
           .softDeleteProperty(property.id);
       ref.invalidate(propertyListProvider);
+      ref.invalidate(archivedPropertyListProvider);
       ref.invalidate(memberPropertiesProvider);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao arquivar a fazenda. Tente novamente.'),
+        ),
+      );
     }
   }
 
@@ -279,7 +252,7 @@ class _PropertyCard extends StatelessWidget {
     required this.property,
     required this.canEdit,
     required this.onEdit,
-    required this.onDelete,
+    required this.onArchive,
     required this.onRestore,
     this.archived = false,
   });
@@ -287,7 +260,7 @@ class _PropertyCard extends StatelessWidget {
   final bool canEdit;
   final bool archived;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback onArchive;
   final VoidCallback onRestore;
 
   @override
@@ -345,14 +318,14 @@ class _PropertyCard extends StatelessWidget {
             PopupMenuButton<String>(
               onSelected: (v) {
                 if (v == 'edit') onEdit();
-                if (v == 'delete') onDelete();
+                if (v == 'archive') onArchive();
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'edit', child: Text('Editar')),
                 const PopupMenuItem(
-                  value: 'delete',
+                  value: 'archive',
                   child: Text(
-                    'Remover',
+                    'Arquivar',
                     style: TextStyle(color: AppColors.danger),
                   ),
                 ),

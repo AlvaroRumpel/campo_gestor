@@ -17,11 +17,21 @@ class _FakePropertyRepository extends PropertyRepository {
 
   int restoreCallCount = 0;
   String? restoredId;
+  int archiveCallCount = 0;
+  String? archivedId;
+  bool throwOnArchive = false;
 
   @override
   Future<void> restoreProperty(String id) async {
     restoreCallCount++;
     restoredId = id;
+  }
+
+  @override
+  Future<void> softDeleteProperty(String id) async {
+    if (throwOnArchive) throw Exception('boom');
+    archiveCallCount++;
+    archivedId = id;
   }
 }
 
@@ -165,5 +175,114 @@ void main() {
 
     expect(find.text('Restaurar fazenda'), findsNothing);
     expect(find.byType(PopupMenuButton<String>), findsNothing);
+  });
+
+  testWidgets('active card menu item is Arquivar, not Remover', (tester) async {
+    await tester.pumpWidget(_buildScreen(active: [_property()]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Arquivar'), findsOneWidget);
+    expect(find.text('Remover'), findsNothing);
+  });
+
+  testWidgets('selecting Arquivar opens ArchiveConfirmDialog with the property name', (tester) async {
+    await tester.pumpWidget(_buildScreen(active: [_property(name: 'Fazenda Alpha')]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Arquivar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Arquivar fazenda'), findsOneWidget);
+    expect(find.textContaining('Fazenda Alpha'), findsWidgets);
+  });
+
+  testWidgets('cancelling the dialog does not call softDeleteProperty', (tester) async {
+    final fakeRepo = _FakePropertyRepository();
+    await tester.pumpWidget(
+      _buildScreen(active: [_property()], repository: fakeRepo),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Arquivar'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+
+    expect(fakeRepo.archiveCallCount, 0);
+  });
+
+  testWidgets('typing the exact name and confirming calls softDeleteProperty once', (tester) async {
+    final fakeRepo = _FakePropertyRepository();
+    await tester.pumpWidget(
+      _buildScreen(
+        active: [_property(id: 'prop-7', name: 'Fazenda Alpha')],
+        repository: fakeRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Arquivar'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Fazenda Alpha');
+    await tester.pumpAndSettle();
+    // Two "Arquivar" texts on screen at this point: the dialog heading and
+    // the confirm button label — the button is the tappable FilledButton.
+    await tester.tap(
+      find.descendant(of: find.byType(FilledButton), matching: find.text('Arquivar')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(fakeRepo.archiveCallCount, 1);
+    expect(fakeRepo.archivedId, 'prop-7');
+  });
+
+  testWidgets('archive error shows an authored SnackBar, no raw db text', (tester) async {
+    final fakeRepo = _FakePropertyRepository()..throwOnArchive = true;
+    await tester.pumpWidget(
+      _buildScreen(
+        active: [_property(name: 'Fazenda Alpha')],
+        repository: fakeRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Arquivar'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Fazenda Alpha');
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(FilledButton), matching: find.text('Arquivar')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Erro ao arquivar a fazenda. Tente novamente.'), findsOneWidget);
+  });
+
+  testWidgets('propriedades_screen.dart no longer contains an AlertDialog', (tester) async {
+    // Regression guard for the removed generic confirmation dialog — a
+    // widget-tree assertion mirroring the acceptance criteria's source scan.
+    await tester.pumpWidget(_buildScreen(active: [_property()]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Arquivar'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
   });
 }
