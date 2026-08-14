@@ -22,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 // Override is not re-exported by flutter_riverpod in Riverpod 3.x; riverpod is
 // a transitive dependency, not a direct one — import the specific file.
+// ignore: depend_on_referenced_packages
 import 'package:riverpod/misc.dart' show Override;
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
