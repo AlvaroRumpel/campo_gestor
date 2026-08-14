@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/auth/role_gates.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
@@ -34,6 +35,10 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
     final membersAsync = ref.watch(memberPropertiesProvider);
 
     final canEdit = _canEditProperties(
+      currentPropAsync.asData?.value,
+      membersAsync.asData?.value,
+    );
+    final canManageMembersHere = canManageMembers(
       currentPropAsync.asData?.value,
       membersAsync.asData?.value,
     );
@@ -109,10 +114,13 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
                   itemBuilder: (context, i) => _PropertyCard(
                     property: properties[i],
                     canEdit: canEdit,
+                    canManageMembers: canManageMembersHere,
                     archived: _showArchived,
                     onEdit: () => _openForm(property: properties[i]),
                     onArchive: () => _confirmArchive(properties[i]),
                     onRestore: () => _restore(properties[i]),
+                    onMembers: () =>
+                        context.push(AppRoutes.membros(properties[i].id)),
                   ),
                 );
               },
@@ -251,17 +259,21 @@ class _PropertyCard extends StatelessWidget {
   const _PropertyCard({
     required this.property,
     required this.canEdit,
+    required this.canManageMembers,
     required this.onEdit,
     required this.onArchive,
     required this.onRestore,
+    required this.onMembers,
     this.archived = false,
   });
   final Property property;
   final bool canEdit;
+  final bool canManageMembers;
   final bool archived;
   final VoidCallback onEdit;
   final VoidCallback onArchive;
   final VoidCallback onRestore;
+  final VoidCallback onMembers;
 
   @override
   Widget build(BuildContext context) {
@@ -314,21 +326,26 @@ class _PropertyCard extends StatelessWidget {
               icon: const Icon(Icons.unarchive_outlined, size: 18),
               label: const Text('Restaurar fazenda'),
             )
-          else if (canEdit)
+          else if (!archived && (canEdit || canManageMembers))
             PopupMenuButton<String>(
               onSelected: (v) {
+                if (v == 'members') onMembers();
                 if (v == 'edit') onEdit();
                 if (v == 'archive') onArchive();
               },
               itemBuilder: (_) => [
-                const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                const PopupMenuItem(
-                  value: 'archive',
-                  child: Text(
-                    'Arquivar',
-                    style: TextStyle(color: AppColors.danger),
+                if (canManageMembers)
+                  const PopupMenuItem(value: 'members', child: Text('Membros')),
+                if (canEdit) ...[
+                  const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  const PopupMenuItem(
+                    value: 'archive',
+                    child: Text(
+                      'Arquivar',
+                      style: TextStyle(color: AppColors.danger),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
         ],

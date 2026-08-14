@@ -1,6 +1,8 @@
-// PROPV-01, PROPV-02 — PropriedadesScreen: alternador Ativas/Arquivadas,
-// arquivamento com confirmação forte, restauração pela UI.
+// PROPV-01, PROPV-02, MEMB-02 — PropriedadesScreen: alternador
+// Ativas/Arquivadas, arquivamento com confirmação forte, restauração pela
+// UI, e o item "Membros" no menu do cartão (Fase 10 Plano 10).
 import 'package:campo_gestor/core/providers/current_property_provider.dart';
+import 'package:campo_gestor/core/router/routes.dart';
 import 'package:campo_gestor/core/services/supabase_service.dart';
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/features/propriedades/data/propriedade_model.dart';
@@ -9,6 +11,7 @@ import 'package:campo_gestor/features/propriedades/presentation/propriedades_scr
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 // SupabaseService() is safe to construct — client getter is never called
 // because every overridden method below avoids it.
@@ -43,6 +46,10 @@ Property _property({
 const _prop = SelectedProperty(id: 'prop-1', name: 'Fazenda Alpha');
 const _vetMembership = PropertyMembership(property: _prop, role: 'veterinarian');
 const _readerMembership = PropertyMembership(property: _prop, role: 'owner');
+// MEMB-02 (Task 2): canManageMembers is vet OR owner — distinct from
+// _readerMembership above (misnamed pre-existing const, role is 'owner').
+// This one carries the real 'reader' role for the two-gate coexistence tests.
+const _trueReaderMembership = PropertyMembership(property: _prop, role: 'reader');
 
 Widget _buildScreen({
   List<Property> active = const [],
@@ -60,6 +67,37 @@ Widget _buildScreen({
         propertyRepositoryProvider.overrideWithValue(repository),
     ],
     child: const MaterialApp(home: PropriedadesScreen()),
+  );
+}
+
+// Navigation-capable variant for the "selecting Membros navigates" test —
+// mirrors the router harness in test/core/router_test.dart.
+Widget _buildScreenWithRouter({
+  List<Property> active = const [],
+  List<PropertyMembership> members = const [_vetMembership],
+}) {
+  final router = GoRouter(
+    initialLocation: AppRoutes.propriedades,
+    routes: [
+      GoRoute(
+        path: AppRoutes.propriedades,
+        builder: (ctx, _) => const PropriedadesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.membrosById,
+        builder: (ctx, state) => Scaffold(
+          body: Text('membros-${state.pathParameters['propertyId']}'),
+        ),
+      ),
+    ],
+  );
+  return ProviderScope(
+    overrides: [
+      propertyListProvider.overrideWith((ref) async => active),
+      archivedPropertyListProvider.overrideWith((ref) async => []),
+      memberPropertiesProvider.overrideWith((ref) async => members),
+    ],
+    child: MaterialApp.router(routerConfig: router),
   );
 }
 
@@ -284,5 +322,82 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  group('"Membros" no menu do cartão (MEMB-02, Fase 10 Plano 10)', () {
+    testWidgets('veterinarian: menu contains Membros, Editar and Arquivar', (tester) async {
+      await tester.pumpWidget(_buildScreen(active: [_property()]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Membros'), findsOneWidget);
+      expect(find.text('Editar'), findsOneWidget);
+      expect(find.text('Arquivar'), findsOneWidget);
+    });
+
+    testWidgets('owner: menu contains Membros but not Editar/Arquivar', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(active: [_property()], members: const [_readerMembership]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Membros'), findsOneWidget);
+      expect(find.text('Editar'), findsNothing);
+      expect(find.text('Arquivar'), findsNothing);
+    });
+
+    testWidgets('reader: no PopupMenuButton at all', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(active: [_property()], members: const [_trueReaderMembership]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PopupMenuButton<String>), findsNothing);
+    });
+
+    testWidgets('selecting Membros navigates to /propriedades/{id}/membros', (tester) async {
+      await tester.pumpWidget(
+        _buildScreenWithRouter(active: [_property(id: 'prop-9')]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Membros'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('membros-prop-9'), findsOneWidget);
+    });
+
+    testWidgets('archived card does not offer Membros, only Restaurar fazenda', (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(archived: [_property(id: 'prop-2', name: 'Arquivada')]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Arquivadas'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Membros'), findsNothing);
+      expect(find.text('Restaurar fazenda'), findsOneWidget);
+      expect(find.byType(PopupMenuButton<String>), findsNothing);
+    });
+
+    testWidgets('_canEditProperties stays veterinarian-only (owner still cannot Editar/Arquivar)',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(active: [_property()], members: const [_readerMembership]),
+      );
+      await tester.pumpAndSettle();
+
+      // Not empty memberships and current prop set -> FAB gated by canEdit,
+      // which must stay false for owner (vet-only).
+      expect(find.byType(FloatingActionButton), findsNothing);
+    });
   });
 }
