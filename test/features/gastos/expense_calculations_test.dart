@@ -232,4 +232,68 @@ void main() {
           rangeForPreset(ExpensePeriodPreset.mesAtual, now).start);
     });
   });
+
+  group('lastMonthsTotals (redesign, gastos consolidados)', () {
+    test('returns a fixed length of 6 by default', () {
+      final result = lastMonthsTotals(const [], DateTime(2026, 6, 15));
+      expect(result.length, 6);
+    });
+
+    test('is ordered oldest to newest, ending on now\'s month', () {
+      final now = DateTime(2026, 6, 15);
+      final result = lastMonthsTotals(const [], now);
+
+      expect(result.map((m) => (m.year, m.month)).toList(), [
+        (2026, 1),
+        (2026, 2),
+        (2026, 3),
+        (2026, 4),
+        (2026, 5),
+        (2026, 6),
+      ]);
+    });
+
+    test('a month with no matching item still appears with total zero', () {
+      final now = DateTime(2026, 6, 1);
+      final items = [_manual(amount: 50.0, expenseDate: DateTime(2026, 6, 1))];
+
+      final result = lastMonthsTotals(items, now);
+
+      final january = result.firstWhere((m) => m.month == 1);
+      expect(january.total, 0.0);
+    });
+
+    test('sums two items in the same month', () {
+      final now = DateTime(2026, 6, 1);
+      final items = [
+        _manual(id: 'a', amount: 30.0, expenseDate: DateTime(2026, 6, 5)),
+        _manual(id: 'b', amount: 20.0, expenseDate: DateTime(2026, 6, 20)),
+      ];
+
+      final result = lastMonthsTotals(items, now);
+
+      final june = result.firstWhere((m) => m.month == 6);
+      expect(june.total, 50.0);
+    });
+
+    test('crosses a year boundary when now is in February', () {
+      final now = DateTime(2026, 2, 10);
+      final items = [
+        _manual(amount: 75.0, expenseDate: DateTime(2025, 9, 15)),
+      ];
+
+      final result = lastMonthsTotals(items, now);
+
+      expect(result.map((m) => (m.year, m.month)).toList(), [
+        (2025, 9),
+        (2025, 10),
+        (2025, 11),
+        (2025, 12),
+        (2026, 1),
+        (2026, 2),
+      ]);
+      final september = result.firstWhere((m) => m.year == 2025 && m.month == 9);
+      expect(september.total, 75.0);
+    });
+  });
 }

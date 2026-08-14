@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/current_property_provider.dart';
 import '../../../core/providers/supabase_providers.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../sanitario/data/sanitary_application_model.dart';
@@ -232,6 +233,30 @@ final unifiedExpenseListWithDeletedByPaddockProvider =
     applications: applications,
     paddockId: paddockId,
   );
+});
+
+/// The unified manual+sanitary list for the whole property — source of the
+/// consolidated `/gastos` screen (redesign 2026-08-13: reverts the Fase 7
+/// decision against a 6a shell branch, see `routes.dart`). Twin of
+/// [unifiedExpenseListByPaddockProvider] with no paddock filter; inherits the
+/// same D-18 ceiling (client-side sum over the already-loaded list). Not a
+/// family — resolves [currentPropertyProvider] internally, the established
+/// project rule for property-wide providers.
+final unifiedExpenseListByPropertyProvider =
+    FutureProvider<List<ExpenseListItem>>((ref) async {
+  final property = await ref.watch(currentPropertyProvider.future);
+  if (property == null) return const [];
+  final expenses = await ref
+      .watch(expenseRepositoryProvider)
+      .fetchExpensesByProperty(property.id);
+  final applications =
+      await ref.watch(sanitaryApplicationListByPropertyProvider.future);
+  final items = <ExpenseListItem>[
+    for (final e in expenses) ExpenseListItem.manual(e),
+    for (final a in visibleApplications(applications, showReversed: false))
+      ExpenseListItem.sanitary(a),
+  ];
+  return sortExpenseItemsDesc(items);
 });
 
 /// The current-month total for [paddockId], derived from the same
