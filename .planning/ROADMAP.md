@@ -18,7 +18,7 @@
 - [x] **Phase 6: Sanitary Module (Snapshot)** — Doses, aplicação sanitária com snapshot congelado, desmarcar individuais, histórico por lote e por animal
 - [x] **Phase 7: Expenses by Paddock** — Lançamento de gasto vinculado a piquete, total por período (completed 2026-08-11)
 - [x] **Phase 8: Animal Dossier Consolidation** — Ficha consolidada do animal cruzando lote atual + histórico reprodutivo + histórico sanitário num único view (completed 2026-08-11)
-- [x] **Phase 9: Redesign UI/UX musgo evoluído** — executed 2026-08-14; UAT visual pendente (usuário)
+- [x] **Phase 9: Redesign UI/UX musgo evoluído** — completed 2026-08-15 (UAT visual aprovada pelo usuário no deploy)
 - [x] **Phase 10: Gestão de Membros e Ciclo de Vida da Propriedade** — convite com aceite, gestão de membros, guarda de último vet, arquivar/restaurar (completed 2026-08-15; 11/11 planos, pgTAP 81/81, UAT humana com 4 gaps fechados na 260815-h9w)
 
 ---

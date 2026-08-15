@@ -2,7 +2,7 @@
 
 **Executado:** 2026-08-13/14 · fora do fluxo plan/execute (instrução direta do usuário: implementar o design importado do Claude Design)
 **Fonte do design:** projeto Claude Design `0caf54e3-086f-46c7-a4c8-1f528faf6428`, arquivo `Campo Gestor - Redesign.dc.html` (20 frames, 1595 linhas, 100% lidas). Spec extraída completa em artefato de sessão (tokens, tipografia, anatomia por tela).
-**Status:** código executado e verificado (analyze limpo, **360/360 testes**); **deploy + validação visual (UAT) pendentes com o usuário**.
+**Status:** completa — UAT visual aprovada pelo usuário no deploy em 2026-08-15 (fontes, breakpoints, sanitário de uma tela, dashboard com dados reais, DG em massa).
 
 ## O que foi entregue
 
