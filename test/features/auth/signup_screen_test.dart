@@ -51,7 +51,8 @@ void main() {
   });
 
   testWidgets(
-      'successful signUp shows confirm-email SnackBar and navigates to /login',
+      'successful signUp with pending confirmation shows the e-mail in a '
+      'terminal screen and does not navigate away',
       (tester) async {
     when(() => repo.signUp(
           email: any(named: 'email'),
@@ -61,7 +62,12 @@ void main() {
     await tester.pumpWidget(_buildScreen(repo));
     await _fillAndSubmit(tester);
 
-    expect(find.text('Confirme seu email para ativar a conta'), findsOneWidget);
+    expect(find.textContaining('a@b.com'), findsOneWidget);
+    expect(find.text('login-screen'), findsNothing);
+
+    await tester.tap(find.text('Voltar para entrar'));
+    await tester.pumpAndSettle();
+
     expect(find.text('login-screen'), findsOneWidget);
   });
 
