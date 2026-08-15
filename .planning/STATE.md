@@ -43,6 +43,7 @@ See: .planning/PROJECT.md
 | 7 | Expenses by Paddock | complete (8/8 plans, UAT 7/7 — 2026-08-11) |
 | 8 | Animal Dossier Consolidation | complete (5/5 plans, UAT 15/15 — 2026-08-11); verification `passed` — SC-1 4G e banner 360px confirmados por UAT humana |
 | 9 | Redesign UI/UX musgo evoluído | executed (7 commits, analyze limpo, 360/360 testes — 2026-08-14); deploy + UAT visual pendentes (usuário) |
+| 10 | Gestão de Membros e Ciclo de Vida da Propriedade | complete (11/11 planos, migration 20260814_11 + corretivas 12/13 em PROD, pgTAP 81/81, UAT humana 2026-08-15 com 4 gaps fechados em 260815-h9w) |
 
 ---
 
