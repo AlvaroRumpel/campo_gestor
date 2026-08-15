@@ -28,11 +28,18 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(
-      _showArchived ? archivedPropertyListProvider : propertyListProvider,
-    );
+    final activeAsync = ref.watch(propertyListProvider);
+    final archivedAsync = ref.watch(archivedPropertyListProvider);
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);
+
+    // G-10-04: the archived query is already veterinarian-scoped
+    // (fetchArchivedProperties), so "has something archived" doubles as the
+    // role gate — a reader/owner always resolves an empty list here, and the
+    // alternador (plus Restaurar) disappears with it, per role_gates.dart's
+    // convention of an absent control rather than a disabled one.
+    final canSeeArchived = archivedAsync.asData?.value.isNotEmpty ?? false;
+    final showArchived = _showArchived && canSeeArchived;
 
     final canEdit = _canEditProperties(
       currentPropAsync.asData?.value,
@@ -56,32 +63,33 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
-            child: Row(
-              children: [
-                _ScopeChip(
-                  label: 'Ativas',
-                  selected: !_showArchived,
-                  onTap: () => setState(() => _showArchived = false),
-                ),
-                const SizedBox(width: 8),
-                _ScopeChip(
-                  label: 'Arquivadas',
-                  selected: _showArchived,
-                  onTap: () => setState(() => _showArchived = true),
-                ),
-              ],
+          if (canSeeArchived)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+              child: Row(
+                children: [
+                  _ScopeChip(
+                    label: 'Ativas',
+                    selected: !showArchived,
+                    onTap: () => setState(() => _showArchived = false),
+                  ),
+                  const SizedBox(width: 8),
+                  _ScopeChip(
+                    label: 'Arquivadas',
+                    selected: showArchived,
+                    onTap: () => setState(() => _showArchived = true),
+                  ),
+                ],
+              ),
             ),
-          ),
           Expanded(
-            child: propertiesAsync.when(
+            child: (showArchived ? archivedAsync : activeAsync).when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (err, _) => Center(
                 child: ErrorRetry(
                   message: 'Erro ao carregar fazendas.',
                   onRetry: () => ref.invalidate(
-                    _showArchived
+                    showArchived
                         ? archivedPropertyListProvider
                         : propertyListProvider,
                   ),
@@ -89,19 +97,12 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
               ),
               data: (properties) {
                 if (properties.isEmpty) {
-                  return _showArchived
-                      ? const EmptyState(
-                          icon: Icons.archive_outlined,
-                          title: 'Nenhuma fazenda arquivada',
-                          message:
-                              'Fazendas arquivadas por você aparecem aqui para restaurar quando precisar.',
-                        )
-                      : const EmptyState(
-                          icon: Icons.landscape_outlined,
-                          title: 'Nenhuma fazenda cadastrada',
-                          message:
-                              'Crie sua primeira fazenda para começar a organizar o rebanho.',
-                        );
+                  return const EmptyState(
+                    icon: Icons.landscape_outlined,
+                    title: 'Nenhuma fazenda cadastrada',
+                    message:
+                        'Crie sua primeira fazenda para começar a organizar o rebanho.',
+                  );
                 }
                 return ListView.separated(
                   padding: const EdgeInsets.symmetric(
@@ -115,7 +116,7 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
                     property: properties[i],
                     canEdit: canEdit,
                     canManageMembers: canManageMembersHere,
-                    archived: _showArchived,
+                    archived: showArchived,
                     onEdit: () => _openForm(property: properties[i]),
                     onArchive: () => _confirmArchive(properties[i]),
                     onRestore: () => _restore(properties[i]),
@@ -128,7 +129,7 @@ class _PropriedadesScreenState extends ConsumerState<PropriedadesScreen> {
           ),
         ],
       ),
-      floatingActionButton: canEdit && !_showArchived
+      floatingActionButton: canEdit && !showArchived
           ? FloatingActionButton.extended(
               onPressed: () => _openForm(
                 isFirstProperty: membersAsync.asData?.value.isEmpty ?? false,
@@ -316,7 +317,7 @@ class _PropertyCard extends StatelessWidget {
               ],
             ),
           ),
-          if (canEdit && archived)
+          if (archived)
             FilledButton.icon(
               onPressed: onRestore,
               style: FilledButton.styleFrom(
