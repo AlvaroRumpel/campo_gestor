@@ -43,7 +43,16 @@ Executado pelo orquestrador (plano `autonomous: false`), projeto PROD `wrdwzychj
 
 ## Task 3 — Checkpoint humano (UAT)
 
-Pendente — 11 passos apresentados ao usuário (fluxo A: convite p/ conta inexistente; fluxo B: arquivar/restaurar; checagens de papel e guarda de último vet). Resultado será registrado aqui.
+**Resultado (2026-08-15, testado no deploy campo-gestor.pages.dev):** fluxos A e B funcionam ponta a ponta (convite → conta nova → aceite → acesso; arquivar com nome digitado → aba Arquivadas → restaurar), com **4 gaps**:
+
+| # | Gap | Severidade |
+|---|-----|-----------|
+| G-10-01 | Tela "Fazendas" abre sem mudar a URL (screenshot mostra `/piquetes` no address bar com a tela de Fazendas renderizada) — navegação por cima do shell sem rota própria; deep link/refresh quebram | média |
+| G-10-02 | Fluxo de cadastro: criar conta volta pro login **sem avisar** que precisa confirmar o e-mail; após confirmar, login automático (ok). Falta mensagem pós-signup | média |
+| G-10-03 | Lista de membros/convites do vet não atualiza depois que o convidado aceita em outra sessão — exigiu reload manual. Providers sem autoDispose/refresh na reentrada | média |
+| G-10-04 | **Leitor vê a aba "Arquivadas" com a fazenda arquivada e o botão "Restaurar fazenda"** — PROPV-02 diz "visível a vets"; o banco bloqueia o restore de não-vet (policy), mas a UI vaza a lista e mostra controle que a convenção manda estar ausente | **alta** |
+
+Gaps encaminhados para correção (quick task de gap-closure na mesma sessão).
 
 ## Desvios
 
