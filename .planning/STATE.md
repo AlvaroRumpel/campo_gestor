@@ -6,13 +6,13 @@ current_phase: 10
 current_plan: 1
 status: milestone-complete
 stopped_at: Phase 10 UI-SPEC approved
-last_updated: "2026-08-14T18:03:59.420Z"
+last_updated: "2026-08-15T15:54:47.884Z"
 last_activity: 2026-08-14
 progress:
   total_phases: 11
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 76
-  completed_plans: 65
+  completed_plans: 76
 last_activity_desc: "Completed quick task 260814-g9j: findings médios do review (migration 20260814_10 pendente de aplicar)"
 ---
 
@@ -150,6 +150,7 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 | 260814-d79 | Alinhar Gastos ao padrão mestre-detalhe (painel 380 border-left, chips de período, tabela full-bleed) — feedback de produção | 2026-08-14 | bb9debe | [260814-d79-alinhar-gastospropertyscreen-ao-padrao-m](./quick/260814-d79-alinhar-gastospropertyscreen-ao-padrao-m/) |
 | 260814-f2v | Hardening multi-tenant (migration 20260814_09: drop self_insert_membership, lot_id NOT NULL, property_id imutável, CHECK categoria + guarda ATF, baixa-trigger SECURITY DEFINER — aplicada em PROD via MCP) + UX campo (ErrorRetry em 26 sites, reset de filtros na troca de propriedade) | 2026-08-14 | 6c302e5 | [260814-f2v-corrigir-findings-do-review-seguranca-mu](./quick/260814-f2v-corrigir-findings-do-review-seguranca-mu/) |
 | 260814-g9j | Findings médios (migration 20260814_10: drop INSERT direto em properties, guarda arquivar lote, TOCTOU move_lot, datas futuras, created_by, REVOKE anon, search_path) + Flutter (card Gastos navegável, nav sem seleção falsa, deep link login, DG somente-leitura, banner vet-only, empty states por papel) | 2026-08-14 | d75defd | [260814-g9j-corrigir-findings-medios-do-review-banco](./quick/260814-g9j-corrigir-findings-medios-do-review-banco/) |
+| 17 | 260815-h9w \| Gaps da UAT fase 10 fechados: G-10-04 arquivadas vet-only, G-10-01 optionURLReflectsImperativeAPIs (URL do push), G-10-02 aviso de confirmação de e-mail, G-10-03 ação Atualizar em Membros \| 2026-08-15 \| 658d27d \| [260815-h9w-fechar-gaps-da-uat-da-fase-10-g-10-04-ab](./quick/260815-h9w-fechar-gaps-da-uat-da-fase-10-g-10-04-ab/) | 2026-08-15 | 23f9b58 | — |
 
 ---
 
