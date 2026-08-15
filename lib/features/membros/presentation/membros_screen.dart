@@ -198,6 +198,21 @@ class _MembrosScreenState extends ConsumerState<MembrosScreen> {
               }
               context.go(AppRoutes.dashboard);
             },
+            // G-10-03: a tela pode ficar montada enquanto um convite é
+            // aceito em outra sessão — os providers são auto-dispose, mas só
+            // refazem o fetch ao remontar. Atualizar refaz os três fetches
+            // que essa tela e o redirect do router dependem.
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Atualizar',
+                onPressed: () {
+                  _invalidateMembers();
+                  _invalidateInvites();
+                  _invalidateMemberships();
+                },
+              ),
+            ],
           ),
           body: membersAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
