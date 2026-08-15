@@ -475,5 +475,38 @@ void main() {
       expect(find.byType(FloatingActionButton), findsNothing);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+        'G-10-03: tapping the Atualizar action refetches propertyMembersProvider',
+        (tester) async {
+      var fetchCount = 0;
+      await _pump(
+        tester,
+        ProviderScope(
+          retry: (retryCount, error) => null,
+          overrides: [
+            membroRepositoryProvider.overrideWithValue(_FakeMembroRepository()),
+            propertyMembersProvider('prop-1').overrideWith((ref) async {
+              fetchCount++;
+              return [_self];
+            }),
+            propertyInvitesProvider('prop-1').overrideWith((ref) async => []),
+            memberPropertiesProvider.overrideWith(
+              (ref) async => const [_vetMembership],
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: _buildRouter()),
+        ),
+      );
+
+      expect(fetchCount, 1);
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.refresh));
+      await tester.pumpAndSettle();
+
+      expect(fetchCount, 2);
+      expect(find.text('vet@example.com'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

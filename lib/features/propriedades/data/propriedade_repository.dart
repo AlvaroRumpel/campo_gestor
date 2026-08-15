@@ -79,19 +79,27 @@ class PropertyRepository {
         .eq('id', id);
   }
 
-  /// Fetch all archived (soft-deleted) properties the user is a member of —
-  /// the exact inverse of [fetchProperties]. The read RLS policy
-  /// (`members_can_read_their_properties USING (is_member_of(id))`) does not
-  /// reference `deleted_at`, so a member keeps seeing an archived property
-  /// here — that is PROPV-02's requirement.
+  /// Fetch all archived (soft-deleted) properties where the user is a
+  /// veterinarian member — the exact inverse of [fetchProperties], scoped by
+  /// role (PROPV-02, gap G-10-04). Queried via `property_members` (not
+  /// `properties` directly) because only that table's row-level policy
+  /// (`members_read_own_memberships USING (user_id = auth.uid())`) knows the
+  /// caller's role in each property; `properties`' own read policy
+  /// (`is_member_of(id)`) returns an archived property to ANY member
+  /// regardless of role, which is exactly the leak this scopes away.
   Future<List<Property>> fetchArchivedProperties() async {
     final rows = await _service.client
-        .from('properties')
-        .select()
-        .not('deleted_at', 'is', null)
-        .order('name');
+        .from('property_members')
+        .select('properties!inner(*)')
+        .eq('role', 'veterinarian')
+        .not('properties.deleted_at', 'is', null)
+        .order('properties(name)');
     return (rows as List)
-        .map((r) => Property.fromJson(r as Map<String, dynamic>))
+        .map(
+          (r) => Property.fromJson(
+            (r as Map<String, dynamic>)['properties'] as Map<String, dynamic>,
+          ),
+        )
         .toList();
   }
 

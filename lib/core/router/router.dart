@@ -64,6 +64,13 @@ final _shellGastosKey = GlobalKey<NavigatorState>(debugLabel: 'gastos');
 ///   to avoid bouncing users on cold start. Pitfall 2: passwordRecovery is
 ///   checked BEFORE isLoggedIn so the user lands on /reset-password.
 final routerProvider = Provider<GoRouter>((ref) {
+  // G-10-01: without this, restoreRouteInformation reports the browser's
+  // address bar from the last go(), so any context.push (e.g. /propriedades
+  // from the selector) renders correctly but leaves the URL on the previous
+  // screen. Safe globally here: every push target in this app is a
+  // root-level route that resolves fully from its own path.
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+
   final authStream = Supabase.instance.client.auth.onAuthStateChange;
 
   final router = GoRouter(

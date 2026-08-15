@@ -133,20 +133,6 @@ void main() {
     expect(find.text('Ativa'), findsNothing);
   });
 
-  testWidgets('empty archived tab shows Nenhuma fazenda arquivada copy', (tester) async {
-    await tester.pumpWidget(_buildScreen(active: [_property()]));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('Arquivadas'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Nenhuma fazenda arquivada'), findsOneWidget);
-    expect(
-      find.text('Fazendas arquivadas por você aparecem aqui para restaurar quando precisar.'),
-      findsOneWidget,
-    );
-  });
-
   testWidgets('archived card shows Restaurar fazenda button, not PopupMenuButton', (tester) async {
     await tester.pumpWidget(_buildScreen(archived: [_property(id: 'prop-2', name: 'Arquivada')]));
     await tester.pumpAndSettle();
@@ -199,21 +185,46 @@ void main() {
     expect(find.byType(FloatingActionButton), findsNothing);
   });
 
-  testWidgets('archived tab with non-veterinarian role hides Restaurar fazenda button', (tester) async {
-    await tester.pumpWidget(
-      _buildScreen(
-        archived: [_property(id: 'prop-2', name: 'Arquivada')],
-        members: const [_readerMembership],
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'non-veterinarian gate: empty archived (what the query returns for a '
+    'reader) hides the alternador entirely',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          active: [_property()],
+          members: const [_trueReaderMembership],
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Arquivadas'));
-    await tester.pumpAndSettle();
+      expect(find.text('Ativas'), findsNothing);
+      expect(find.text('Arquivadas'), findsNothing);
+      expect(find.text('Restaurar fazenda'), findsNothing);
+    },
+  );
 
-    expect(find.text('Restaurar fazenda'), findsNothing);
-    expect(find.byType(PopupMenuButton<String>), findsNothing);
-  });
+  testWidgets(
+    'veterinarian gate: non-empty archived shows the alternador and still '
+    'switches lists',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildScreen(
+          active: [_property()],
+          archived: [_property(id: 'prop-2', name: 'Arquivada')],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ativas'), findsOneWidget);
+      expect(find.text('Arquivadas'), findsOneWidget);
+
+      await tester.tap(find.text('Arquivadas'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Arquivada'), findsOneWidget);
+      expect(find.text('Restaurar fazenda'), findsOneWidget);
+    },
+  );
 
   testWidgets('active card menu item is Arquivar, not Remover', (tester) async {
     await tester.pumpWidget(_buildScreen(active: [_property()]));

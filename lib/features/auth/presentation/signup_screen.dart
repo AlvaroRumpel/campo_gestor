@@ -21,6 +21,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _confirmCtrl = TextEditingController();
   bool _busy = false;
   bool _obscure = true;
+  // G-10-02: when signup requires email confirmation, the screen ends in
+  // this terminal state instead of a SnackBar + context.go(login) — a
+  // SnackBar doesn't survive a route change, so the message was silently
+  // lost and the user just landed back on /login with no explanation.
+  String? _sentTo;
 
   @override
   void dispose() {
@@ -34,17 +39,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).signUp(
-            email: _emailCtrl.text.trim(),
+      final email = _emailCtrl.text.trim();
+      final response = await ref.read(authRepositoryProvider).signUp(
+            email: email,
             password: _passCtrl.text,
           );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Confirme seu email para ativar a conta'),
-        ),
-      );
-      context.go(AppRoutes.login);
+      if (response.session != null) {
+        // Confirmation disabled on this project: user is already
+        // authenticated. refreshListenable's router redirect takes it from here.
+        return;
+      }
+      setState(() => _sentTo = email);
     } on AuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -62,8 +68,41 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
   }
 
+  static final ButtonStyle _primaryButtonStyle = FilledButton.styleFrom(
+    minimumSize: const Size.fromHeight(54),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+    textStyle: const TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (_sentTo != null) {
+      return AuthScaffold(
+        title: 'Confirme seu e-mail',
+        tagline: 'Campo Gestor — gestão do rebanho no campo.',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Enviamos um link de confirmação para $_sentTo. '
+              'Confirme por lá antes de entrar.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 18),
+            FilledButton(
+              onPressed: () => context.go(AppRoutes.login),
+              style: _primaryButtonStyle,
+              child: const Text('Voltar para entrar'),
+            ),
+          ],
+        ),
+      );
+    }
     return AuthScaffold(
       title: 'Criar conta',
       tagline: 'Campo Gestor — gestão do rebanho no campo.',
@@ -112,16 +151,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             const SizedBox(height: 18),
             FilledButton(
               onPressed: _busy ? null : _submit,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(54),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              style: _primaryButtonStyle,
               child: _busy
                   ? const SizedBox(
                       width: 20,

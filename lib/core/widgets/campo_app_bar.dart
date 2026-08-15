@@ -43,11 +43,16 @@ class DetailAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.parentLabel,
     this.contextPill,
     this.onBack,
+    this.actions,
   });
 
   final String parentLabel;
   final Widget? contextPill;
   final VoidCallback? onBack;
+
+  /// Ações extras (ex.: recarregar) renderizadas à direita do contextPill.
+  /// Opcional para não afetar os demais usos de [DetailAppBar] (G-10-03).
+  final List<Widget>? actions;
 
   @override
   Size get preferredSize => const Size.fromHeight(48);
@@ -75,6 +80,7 @@ class DetailAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           ?contextPill,
+          ...?actions,
           const SizedBox(width: 8),
         ],
       ),
