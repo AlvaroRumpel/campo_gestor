@@ -84,11 +84,16 @@ class LoteRepository {
   }
 
   /// Soft-delete: set deleted_at = now(). Hard DELETE not granted.
+  /// `.select().single()` faz 0 linhas afetadas virar erro em vez de sucesso
+  /// silencioso — RLS filtrando por USING, ou trg_lots_archive_guard
+  /// (20260814_10) recusando o arquivamento, precisam chegar na UI.
   Future<void> softDeleteLot(String id) async {
     await _service.client
         .from('lots')
         .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
   }
 
   /// Move a lot to a different paddock atomically via plpgsql RPC (MOV-02, D-08).
