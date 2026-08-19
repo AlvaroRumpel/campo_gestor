@@ -1,11 +1,11 @@
 {
-    "name": "campo_gestor",
-    "short_name": "campo_gestor",
+    "name": "Campo Gestor",
+    "short_name": "Campo Gestor",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F5F3EB",
+    "theme_color": "#3D5435",
+    "description": "Gestão de propriedades rurais — piquetes, lotes, animais, reprodução e sanidade.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
