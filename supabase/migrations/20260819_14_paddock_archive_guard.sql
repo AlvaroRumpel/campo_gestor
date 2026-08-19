@@ -13,8 +13,8 @@
 -- nível acima na hierarquia. Forward-only — não editar migrations já
 -- aplicadas.
 --
--- PENDENTE DE APLICAÇÃO MANUAL — este arquivo não foi rodado (sem
--- `supabase db push`, sem MCP `apply_migration`).
+-- APLICADA EM PROD 2026-08-19 via SQL editor (verificado: trigger presente,
+-- 0 piquetes órfãos). Sem registro no ledger, como as anteriores.
 
 -- ============================================================
 -- 1. Reparo dos órfãos já existentes

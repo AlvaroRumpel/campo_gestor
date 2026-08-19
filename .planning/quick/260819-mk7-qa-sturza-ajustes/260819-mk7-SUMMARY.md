@@ -8,7 +8,7 @@ commits:
   - fbd6a74 fix(listas) — helper central de invalidação em 26 sites
   - 49c02bf fix(piquetes) — guarda de remoção (migration + UI) e reparo de órfãos
   - 5539098 feat(lotes) — ação "Arquivar lote" no menu do card
-migrations_pending:
+migrations_applied_prod_2026_08_19:
   - supabase/migrations/20260819_14_paddock_archive_guard.sql
 tests: 538 passing
 analyze: 4 issues (todas pré-existentes, idênticas à baseline em e0eb335)
