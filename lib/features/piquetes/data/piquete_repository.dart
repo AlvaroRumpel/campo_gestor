@@ -79,11 +79,18 @@ class PaddockRepository {
   }
 
   /// Soft-delete: set deleted_at = now(). Hard DELETE not granted.
+  ///
+  /// `.select().single()` faz 0 linhas afetadas virar erro em vez de sucesso
+  /// silencioso — RLS filtrando por USING, ou o trigger
+  /// trg_paddocks_archive_guard (20260819_14) recusando o arquivamento,
+  /// precisam chegar na UI (mesmo padrão de DoseRepository.archiveDose).
   Future<void> softDeletePaddock(String id) async {
     await _service.client
         .from('paddocks')
         .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
   }
 }
 
