@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
@@ -79,7 +80,7 @@ class LotsSection extends ConsumerWidget {
       ),
     );
     if (ok == true) {
-      ref.invalidate(loteListByPaddockProvider(paddockId));
+      ref.invalidatePropertyData();
     }
   }
 }

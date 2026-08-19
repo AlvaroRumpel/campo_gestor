@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/breakpoints.dart';
@@ -63,7 +64,7 @@ class _AnimalDetailScreenState extends ConsumerState<AnimalDetailScreen> {
       builder: (_) => AnimalEditDialog(animal: animal),
     );
     if (ok == true) {
-      ref.invalidate(animalByIdProvider(widget.animalId));
+      ref.invalidatePropertyData();
     }
   }
 
@@ -73,7 +74,7 @@ class _AnimalDetailScreenState extends ConsumerState<AnimalDetailScreen> {
       builder: (_) => BaixaDialog(animal: animal),
     );
     if (ok == true) {
-      ref.invalidate(animalByIdProvider(widget.animalId));
+      ref.invalidatePropertyData();
     }
   }
 
@@ -84,7 +85,7 @@ class _AnimalDetailScreenState extends ConsumerState<AnimalDetailScreen> {
     );
     if (result != null && mounted) {
       final lotName = result['lotName'] ?? '';
-      ref.invalidate(animalByIdProvider(widget.animalId));
+      ref.invalidatePropertyData();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Animal movido para $lotName')),
       );

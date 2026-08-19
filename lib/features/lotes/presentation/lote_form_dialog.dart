@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
@@ -101,7 +102,7 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
           id: widget.existing!.id,
           name: _nameCtrl.text.trim(),
         );
-        ref.invalidate(loteListByPaddockProvider(widget.paddockId));
+        ref.invalidatePropertyData();
         if (mounted) Navigator.pop(context, true);
         return;
       }
@@ -128,8 +129,7 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
         startNumber: startNum,
       );
 
-      ref.invalidate(loteListByPaddockProvider(widget.paddockId));
-      ref.invalidate(loteWithPaddockListByPropertyProvider);
+      ref.invalidatePropertyData();
       if (mounted) Navigator.pop(context, true);
     } on AnimalNumberConflictException catch (e) {
       if (!mounted) return;

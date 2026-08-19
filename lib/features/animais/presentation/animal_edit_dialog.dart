@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
@@ -53,8 +54,7 @@ class _AnimalEditDialogState extends ConsumerState<AnimalEditDialog> {
             bodyCondition: _ec,
             observation: obsText.isEmpty ? null : obsText,
           );
-      ref.invalidate(animalByIdProvider(widget.animal.id));
-      ref.invalidate(animalListByPropertyProvider);
+      ref.invalidatePropertyData();
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;

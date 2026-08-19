@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../data/dose_model.dart';
 import '../data/dose_repository.dart';
 import '../data/kg_per_ua_resolver.dart';
@@ -127,11 +128,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
         );
       }
 
-      // Both providers invalidated — an edit can touch an archived dose
-      // (edit icon stays visible under "Mostrar arquivadas"), so either
-      // list may hold this row.
-      ref.invalidate(doseListByPropertyProvider);
-      ref.invalidate(archivedDoseListByPropertyProvider);
+      ref.invalidatePropertyData();
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;

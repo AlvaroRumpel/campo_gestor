@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
@@ -291,9 +292,7 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
       ),
     );
     if (result == null || !context.mounted) return;
-    ref.invalidate(loteWithPaddockListByPropertyProvider);
-    ref.invalidate(animalListByPropertyProvider);
-    ref.invalidate(paddockListProvider);
+    ref.invalidatePropertyData();
     final paddockName = result['paddockName'] ?? '';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Lote movido para $paddockName')),
@@ -331,7 +330,7 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
       ),
     );
     if (ok == true) {
-      ref.invalidate(loteWithPaddockListByPropertyProvider);
+      ref.invalidatePropertyData();
     }
   }
 
@@ -353,7 +352,7 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
       builder: (_) => PaddockFormDialog(existing: paddock),
     );
     if (result == true) {
-      ref.invalidate(paddockListProvider);
+      ref.invalidatePropertyData();
     }
   }
 
@@ -383,7 +382,7 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
     );
     if (confirmed == true) {
       await ref.read(paddockRepositoryProvider).softDeletePaddock(paddock.id);
-      ref.invalidate(paddockListProvider);
+      ref.invalidatePropertyData();
     }
   }
 }

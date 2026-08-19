@@ -3,15 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
-import '../../animais/data/animal_repository.dart';
 import '../../reproducao/data/atf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
-import '../../sanitario/data/sanitary_application_repository.dart';
 import '../../sanitario/presentation/aplicacao_form_dialog.dart';
 import '../data/lote_repository.dart';
 import 'mover_lote_dialog.dart';
@@ -53,11 +52,7 @@ class LoteDetailPanel extends ConsumerStatefulWidget {
 }
 
 class _LoteDetailPanelState extends ConsumerState<LoteDetailPanel> {
-  void _invalidate() {
-    ref.invalidate(loteWithPaddockListByPropertyProvider);
-    ref.invalidate(animalListByPropertyProvider);
-    ref.invalidate(sanitaryApplicationListByPropertyProvider);
-  }
+  void _invalidate() => ref.invalidatePropertyData();
 
   Future<void> _onAplicacao() async {
     final lotId = widget.item.lot.id;
@@ -68,7 +63,6 @@ class _LoteDetailPanelState extends ConsumerState<LoteDetailPanel> {
         onRegistered: (count) {
           if (!mounted) return;
           _invalidate();
-          ref.invalidate(sanitaryApplicationsByLotProvider(lotId));
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(sanitaryRegisteredMessage(count))),
           );

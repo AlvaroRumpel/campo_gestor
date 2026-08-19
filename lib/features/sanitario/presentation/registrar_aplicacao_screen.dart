@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
@@ -17,16 +17,9 @@ import '../data/sanitary_application_repository.dart';
 import '../data/sanitary_calculations.dart';
 import 'dose_form_dialog.dart';
 
-/// Resolves the active property's lots with each one's active-animal count
-/// (D-18's gate mirrored here: a lot with zero active animals cannot be an
-/// application target).
-final _lotsWithActiveAnimalsProvider =
-    FutureProvider<List<LotWithPaddockCount>>((ref) async {
-      final property = await ref.watch(currentPropertyProvider.future);
-      if (property == null) return const [];
-      final repo = ref.watch(loteRepositoryProvider);
-      return repo.fetchLotsWithCountByProperty(property.id);
-    });
+/// Sentinela devolvida pelo [_PickerSheet] quando o usuário toca no item
+/// "Cadastrar nova dose" em vez de escolher uma linha existente.
+const Object _pickerCreateNew = Object();
 
 /// Registro sanitário em UMA tela (spec 4.10) — substitui o antigo fluxo em
 /// 3 passos (AplicacaoFormDialog → SanitaryAnimalSelectionScreen →
@@ -90,7 +83,8 @@ class _RegistrarAplicacaoScreenState
   // ---------------------------------------------------------------------
 
   Future<void> _pickLot() async {
-    final lots = await ref.read(_lotsWithActiveAnimalsProvider.future);
+    final lots =
+        await ref.read(loteWithPaddockListByPropertyProvider.future);
     if (!mounted) return;
     final eligible = lots.where((l) => l.activeAnimalCount > 0).toList();
     final picked = await showModalBottomSheet<LotWithPaddockCount>(
@@ -125,17 +119,11 @@ class _RegistrarAplicacaoScreenState
     // FAB vet-only de sanitario_screen.dart, então nenhuma checagem de
     // papel entra aqui — seria um gate morto.
     if (doses.isEmpty) {
-      final saved = await showAdaptiveForm<bool>(
-        context: context,
-        builder: (_) => const DoseFormDialog(),
-      );
-      if (saved != true || !mounted) return;
-      ref.invalidate(doseListByPropertyProvider);
-      await _pickDose();
+      await _createDoseAndReopen();
       return;
     }
 
-    final picked = await showModalBottomSheet<Dose>(
+    final picked = await showModalBottomSheet<Object>(
       context: context,
       builder: (ctx) => _PickerSheet<Dose>(
         title: 'Dose',
@@ -143,10 +131,30 @@ class _RegistrarAplicacaoScreenState
         emptyMessage: 'Nenhuma dose cadastrada — cadastre uma dose primeiro',
         labelOf: (d) => d.name,
         detailOf: (d) => d.activeIngredient ?? '',
+        createLabel: 'Cadastrar nova dose',
       ),
     );
     if (picked == null || !mounted) return;
-    setState(() => _dose = picked);
+    if (identical(picked, _pickerCreateNew)) {
+      await _createDoseAndReopen();
+      return;
+    }
+    setState(() => _dose = picked as Dose);
+  }
+
+  /// Abre o DoseFormDialog e, se algo foi salvo, força o refetch da lista
+  /// antes de reabrir o seletor — sem o `refresh` a dose recém-criada só
+  /// aparecia depois de um F5 (QA 2026-08-19, item 3).
+  Future<void> _createDoseAndReopen() async {
+    final saved = await showAdaptiveForm<bool>(
+      context: context,
+      builder: (_) => const DoseFormDialog(),
+    );
+    if (saved != true || !mounted) return;
+    ref.invalidate(doseListByPropertyProvider);
+    await ref.read(doseListByPropertyProvider.future);
+    if (!mounted) return;
+    await _pickDose();
   }
 
   Future<void> _pickDate() async {
@@ -303,11 +311,7 @@ class _RegistrarAplicacaoScreenState
             animalIds: [for (final a in selected) a.id],
           );
       if (!mounted) return;
-      ref.invalidate(sanitaryApplicationListByPropertyProvider);
-      ref.invalidate(sanitaryApplicationsByLotProvider(lotId));
-      for (final animal in selected) {
-        ref.invalidate(sanitaryHistoryByAnimalProvider(animal.id));
-      }
+      ref.invalidatePropertyData();
       Navigator.pop(context, selected.length);
     } catch (e) {
       if (!mounted) return;
@@ -797,6 +801,7 @@ class _PickerSheet<T> extends StatelessWidget {
     required this.emptyMessage,
     required this.labelOf,
     required this.detailOf,
+    this.createLabel,
   });
 
   final String title;
@@ -804,6 +809,10 @@ class _PickerSheet<T> extends StatelessWidget {
   final String emptyMessage;
   final String Function(T) labelOf;
   final String Function(T) detailOf;
+
+  /// Quando não-nulo, acrescenta um último item que devolve
+  /// [_pickerCreateNew] em vez de uma opção da lista.
+  final String? createLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -845,6 +854,12 @@ class _PickerSheet<T> extends StatelessWidget {
                     ),
                 ],
               ),
+            ),
+          if (createLabel != null)
+            ListTile(
+              leading: const Icon(Icons.add, size: 22),
+              title: Text(createLabel!),
+              onTap: () => Navigator.pop(context, _pickerCreateNew),
             ),
         ],
       ),

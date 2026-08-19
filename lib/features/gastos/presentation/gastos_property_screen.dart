@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/role_gates.dart';
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/breakpoints.dart';
@@ -56,9 +57,7 @@ class _GastosPropertyScreenState extends ConsumerState<GastosPropertyScreen> {
   // tendo o intervalo livre.
   ExpensePeriodPreset _preset = ExpensePeriodPreset.mesAtual;
 
-  void _invalidate() {
-    ref.invalidate(unifiedExpenseListByPropertyProvider);
-  }
+  void _invalidate() => ref.invalidatePropertyData();
 
   Future<void> _openNewExpenseFlow(String propertyId) async {
     final paddocks =

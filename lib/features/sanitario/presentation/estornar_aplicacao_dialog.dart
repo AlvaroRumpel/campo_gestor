@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/sanitary_application_exception.dart';
@@ -31,12 +32,7 @@ Future<void> confirmEstorno(
     ),
   );
   if (confirmed != true || !context.mounted) return;
-  ref.invalidate(sanitaryApplicationByIdProvider(app.id));
-  ref.invalidate(sanitaryApplicationsByLotProvider(app.lotId));
-  ref.invalidate(sanitaryApplicationListByPropertyProvider);
-  for (final entry in app.compositionSnapshot) {
-    ref.invalidate(sanitaryHistoryByAnimalProvider(entry.animalId));
-  }
+  ref.invalidatePropertyData();
   ScaffoldMessenger.of(
     context,
   ).showSnackBar(const SnackBar(content: Text('Aplicação estornada.')));
@@ -117,7 +113,7 @@ class _EstornarAplicacaoDialogState
         // The cached by-lot list predates this race — invalidate it so
         // `_ErrorSlot` resolves the sibling reversal row the other user
         // just created, instead of the stale (pre-race) snapshot (WR-02).
-        ref.invalidate(sanitaryApplicationsByLotProvider(widget.lotId));
+        ref.invalidatePropertyData();
       }
       setState(() => _error = exception);
     } finally {

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/auth/role_gates.dart';
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
@@ -44,13 +45,7 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
       ? ExpenseDateRange(start: _customRange!.start, end: _customRange!.end)
       : rangeForPreset(_preset, DateTime.now());
 
-  void _invalidateProviders() {
-    ref.invalidate(unifiedExpenseListByPaddockProvider(widget.paddockId));
-    ref.invalidate(
-      unifiedExpenseListWithDeletedByPaddockProvider(widget.paddockId),
-    );
-    ref.invalidate(paddockMonthExpenseTotalProvider(widget.paddockId));
-  }
+  void _invalidateProviders() => ref.invalidatePropertyData();
 
   Future<void> _openCreateDialog(String propertyId) async {
     final saved = await showAdaptiveForm<bool>(

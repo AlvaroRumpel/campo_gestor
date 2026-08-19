@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
@@ -154,13 +155,7 @@ class _AtfAnimalSelectionScreenState
             animalIds: _selectedIds.toList(),
           );
       if (!mounted) return;
-      ref.invalidate(atfActiveMembershipsProvider(widget.atfId));
-      ref.invalidate(atfMembershipsProvider(widget.atfId));
-      ref.invalidate(atfListByPropertyProvider);
-      // The newly-added animals' fichas should now show this ATF (WR-01).
-      for (final animalId in _selectedIds) {
-        ref.invalidate(reproductiveHistoryByAnimalProvider(animalId));
-      }
+      ref.invalidatePropertyData();
       final count = _selectedIds.length;
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);

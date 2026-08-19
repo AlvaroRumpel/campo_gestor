@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
 import '../data/atf_repository.dart';
@@ -132,7 +133,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
             : (selectedBull != null ? _bullLabel(selectedBull) : null),
         observation: obsText.isEmpty ? null : obsText,
       );
-      ref.invalidate(atfListByPropertyProvider);
+      ref.invalidatePropertyData();
       if (mounted) Navigator.pop<String>(context, created.id);
     } catch (_) {
       if (!mounted) return;

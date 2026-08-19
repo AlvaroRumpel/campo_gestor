@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../lotes/data/lote_repository.dart';
 import '../data/animal_constants.dart';
@@ -115,8 +116,7 @@ class _AnimalFormDialogState extends ConsumerState<AnimalFormDialog> {
                 ? null
                 : _observationCtrl.text.trim(),
           );
-      ref.invalidate(animalListByLotProvider(lotId));
-      ref.invalidate(animalListByPropertyProvider);
+      ref.invalidatePropertyData();
       if (mounted) Navigator.pop(context, true);
     } on AnimalNumberConflictException catch (e) {
       if (!mounted) return;

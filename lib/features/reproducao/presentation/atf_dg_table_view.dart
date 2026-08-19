@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
@@ -125,12 +126,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
             records: records,
           );
       if (!mounted) return;
-      ref.invalidate(dgRecordsByAtfProvider(widget.atf.id));
-      ref.invalidate(atfByIdProvider(widget.atf.id));
-      ref.invalidate(atfListByPropertyProvider);
-      for (final id in filtered) {
-        ref.invalidate(reproductiveHistoryByAnimalProvider(id));
-      }
+      ref.invalidatePropertyData();
       setState(_selectedIds.clear);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('DGs registrados.')),
@@ -183,12 +179,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
           repo.removeAnimalFromAtf(atfBatchId: widget.atf.id, animalId: id),
       ]);
       if (!mounted) return;
-      ref.invalidate(atfActiveMembershipsProvider(widget.atf.id));
-      ref.invalidate(atfMembershipsProvider(widget.atf.id));
-      ref.invalidate(atfListByPropertyProvider);
-      for (final id in ids) {
-        ref.invalidate(reproductiveHistoryByAnimalProvider(id));
-      }
+      ref.invalidatePropertyData();
       setState(_selectedIds.clear);
     } catch (_) {
       if (!mounted) return;

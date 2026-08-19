@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../../../features/gastos/presentation/paddock_expense_summary_card.dart';
-import '../../../features/lotes/data/lote_repository.dart';
 import '../../../features/lotes/presentation/_lots_section.dart';
 import '../../../features/lotes/presentation/lote_form_dialog.dart';
 import '../data/piquete_model.dart';
@@ -92,7 +92,7 @@ class PaddockDetailScreen extends ConsumerWidget {
                         ),
                       );
                       if (ok == true) {
-                        ref.invalidate(loteListByPaddockProvider(paddockId));
+                        ref.invalidatePropertyData();
                       }
                     },
               icon: const Icon(Icons.add, size: 22),

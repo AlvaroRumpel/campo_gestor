@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../data/atf_repository.dart';
 
 /// Manual encerramento confirmation dialog (D-15, 05-UI-SPEC section 5/E7).
@@ -38,26 +39,10 @@ class _EncerrarAtfDialogState extends ConsumerState<EncerrarAtfDialog> {
       _saving = true;
       _failed = false;
     });
-    // Snapshot the active members before closing — close_atf deactivates
-    // every one of them, and each member's ficha status badge
-    // (Ativo -> Encerrado) needs to refresh (WR-01).
-    final memberIds = ref
-            .read(atfActiveMembershipsProvider(widget.atfId))
-            .asData
-            ?.value
-            .map((m) => m.animalId)
-            .toList() ??
-        const <String>[];
     try {
       await ref.read(atfRepositoryProvider).closeAtf(widget.atfId);
       if (!mounted) return;
-      ref.invalidate(atfByIdProvider(widget.atfId));
-      ref.invalidate(atfActiveMembershipsProvider(widget.atfId));
-      ref.invalidate(atfMembershipsProvider(widget.atfId));
-      ref.invalidate(atfListByPropertyProvider);
-      for (final animalId in memberIds) {
-        ref.invalidate(reproductiveHistoryByAnimalProvider(animalId));
-      }
+      ref.invalidatePropertyData();
       Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;

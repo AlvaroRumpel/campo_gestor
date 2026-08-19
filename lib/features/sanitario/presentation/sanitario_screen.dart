@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/breakpoints.dart';
@@ -107,7 +108,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
       ),
     );
     if (count == null || !mounted) return;
-    ref.invalidate(sanitaryApplicationListByPropertyProvider);
+    ref.invalidatePropertyData();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(sanitaryRegisteredMessage(count))),
     );
@@ -119,8 +120,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
       builder: (_) => DoseFormDialog(existing: existing),
     );
     if (saved != true || !mounted) return;
-    ref.invalidate(doseListByPropertyProvider);
-    ref.invalidate(archivedDoseListByPropertyProvider);
+    ref.invalidatePropertyData();
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Dose salva.')));
@@ -134,8 +134,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
       } else {
         await repo.archiveDose(dose.id);
       }
-      ref.invalidate(doseListByPropertyProvider);
-      ref.invalidate(archivedDoseListByPropertyProvider);
+      ref.invalidatePropertyData();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

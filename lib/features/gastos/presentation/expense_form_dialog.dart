@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../sanitario/data/sanitary_calculations.dart';
@@ -145,13 +146,7 @@ class _ExpenseFormDialogState extends ConsumerState<ExpenseFormDialog> {
         );
       }
 
-      // Both providers invalidated — an edit can touch an archived expense
-      // (edit affordance stays visible under "Mostrar excluídos"), so either
-      // list may hold this row (mirrors `DoseFormDialog`'s dual invalidate).
-      ref.invalidate(unifiedExpenseListByPaddockProvider(widget.paddockId));
-      ref.invalidate(
-        unifiedExpenseListWithDeletedByPaddockProvider(widget.paddockId),
-      );
+      ref.invalidatePropertyData();
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;

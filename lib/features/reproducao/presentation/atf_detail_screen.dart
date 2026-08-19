@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/breakpoints.dart';
@@ -672,11 +673,7 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
             animalId: membership.animalId,
           );
       if (!mounted) return;
-      ref.invalidate(atfActiveMembershipsProvider(widget.atf.id));
-      ref.invalidate(atfMembershipsProvider(widget.atf.id));
-      ref.invalidate(atfListByPropertyProvider);
-      ref.invalidate(
-          reproductiveHistoryByAnimalProvider(membership.animalId));
+      ref.invalidatePropertyData();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -713,12 +710,7 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
             records: records,
           );
       if (!mounted) return;
-      ref.invalidate(dgRecordsByAtfProvider(widget.atf.id));
-      ref.invalidate(atfByIdProvider(widget.atf.id));
-      ref.invalidate(atfListByPropertyProvider);
-      for (final animalId in changed) {
-        ref.invalidate(reproductiveHistoryByAnimalProvider(animalId));
-      }
+      ref.invalidatePropertyData();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('DGs registrados.')),
       );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../reproducao/data/atf_repository.dart';
 import '../data/animal_constants.dart';
@@ -84,20 +85,9 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
             date: _date,
             observation: obsText.isEmpty ? null : obsText,
           );
-      ref.invalidate(animalByIdProvider(widget.animal.id));
-      ref.invalidate(animalListByPropertyProvider);
-      // D-19: baixa may have deactivated an active ATF membership server side
-      // (trg_animals_baixa_deactivates_atf). The reproductive history section
-      // on this same screen reads this provider (WR-01).
-      ref.invalidate(reproductiveHistoryByAnimalProvider(widget.animal.id));
-      // G-05-1/D-19: BaixaDialog only knows the animal, not its atfBatchId,
-      // so unlike encerrar_atf_dialog.dart / atf_animal_selection_screen.dart
-      // (which invalidate per-id because they know the ATF) this invalidates
-      // the whole family — the only option without plumbing an ATF id
-      // through the animais feature.
-      ref.invalidate(atfActiveMembershipsProvider);
-      ref.invalidate(atfMembershipsProvider);
-      ref.invalidate(atfListByPropertyProvider);
+      // D-19: a baixa também desativa a participação em ATF ativo no servidor
+      // (trg_animals_baixa_deactivates_atf), então nada escapa do refetch.
+      ref.invalidatePropertyData();
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
       if (!mounted) return;

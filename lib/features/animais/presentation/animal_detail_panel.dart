@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
@@ -10,7 +11,6 @@ import '../../reproducao/data/atf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
-import '../data/animal_repository.dart';
 import 'animal_edit_dialog.dart';
 import 'animal_timeline.dart';
 import 'baixa_dialog.dart';
@@ -44,11 +44,7 @@ class _AnimalDetailPanelState extends ConsumerState<AnimalDetailPanel> {
   AnimalTimelineFilter _filter = AnimalTimelineFilter.tudo;
   bool _showAllEvents = false;
 
-  void _invalidate() {
-    ref.invalidate(animalListByPropertyProvider);
-    ref.invalidate(animalByIdProvider(widget.item.animal.id));
-    ref.invalidate(animalReproStatusByPropertyProvider);
-  }
+  void _invalidate() => ref.invalidatePropertyData();
 
   Future<void> _onEdit() async {
     final ok = await showAdaptiveForm<bool>(

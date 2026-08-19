@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../animais/data/animal_repository.dart';
 import '../../piquetes/data/piquete_model.dart';
 import '../../piquetes/data/piquete_repository.dart';
 import '../data/lote_model.dart';
@@ -58,7 +58,6 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
     final paddockId = _selectedPaddockId;
     if (paddockId == null) return; // button disabled — defensive
 
-    final oldPaddockId = widget.lot.paddockId; // capture BEFORE async (Pitfall 2)
     final selectedName = _selectedPaddockName ?? '';
 
     setState(() => _saving = true);
@@ -68,13 +67,7 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
             newPaddockId: paddockId,
           );
       if (!mounted) return; // WR-03: check before touching ref
-      // D-12: invalidate old + new paddock-scoped lot lists and the lot itself
-      ref.invalidate(loteByIdProvider(widget.lot.id));
-      ref.invalidate(loteListByPaddockProvider(oldPaddockId));
-      ref.invalidate(loteListByPaddockProvider(paddockId));
-      // WR-01/WR-02: a lot's paddock change affects both cross-feature lists
-      ref.invalidate(animalListByPropertyProvider);
-      ref.invalidate(loteListByPropertyProvider);
+      ref.invalidatePropertyData();
       Navigator.pop(context, {'paddockName': selectedName});
     } catch (_) {
       if (!mounted) return;

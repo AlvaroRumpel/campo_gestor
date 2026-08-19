@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../lotes/data/lote_model.dart';
 import '../../lotes/data/lote_repository.dart';
@@ -36,7 +37,6 @@ class _MoverAnimalDialogState extends ConsumerState<MoverAnimalDialog> {
     final lotId = _selectedLotId;
     if (lotId == null) return; // button is disabled — defensive
 
-    final oldLotId = widget.animal.lotId; // capture BEFORE async (Pitfall 2)
     final selectedName = _selectedLotName ?? '';
 
     setState(() => _saving = true);
@@ -46,11 +46,7 @@ class _MoverAnimalDialogState extends ConsumerState<MoverAnimalDialog> {
             newLotId: lotId,
           );
       if (!mounted) return; // WR-03: check before touching ref
-      // D-11: invalidate old + new lots, the animal itself, and the property list
-      ref.invalidate(animalByIdProvider(widget.animal.id));
-      ref.invalidate(animalListByLotProvider(oldLotId));
-      ref.invalidate(animalListByLotProvider(lotId));
-      ref.invalidate(animalListByPropertyProvider);
+      ref.invalidatePropertyData();
       Navigator.pop(context, {'lotName': selectedName});
     } catch (_) {
       if (!mounted) return;

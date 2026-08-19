@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/campo_app_bar.dart';
@@ -13,7 +14,6 @@ import '../../../features/animais/data/animal_repository.dart';
 import '../../../features/animais/presentation/animal_form_dialog.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../../../features/piquetes/data/piquete_repository.dart';
-import '../../sanitario/data/sanitary_application_repository.dart';
 import '../../sanitario/presentation/aplicacao_form_dialog.dart';
 import '../../sanitario/presentation/sanitary_history_section.dart';
 import '../data/lote_model.dart';
@@ -141,8 +141,7 @@ class LoteDetailScreen extends ConsumerWidget {
                   ),
                 );
                 if (ok == true) {
-                  ref.invalidate(animalListByLotProvider(loteId));
-                  ref.invalidate(animalListByPropertyProvider);
+                  ref.invalidatePropertyData();
                 }
               },
               icon: const Icon(Icons.add, size: 22),
@@ -167,7 +166,7 @@ class LoteDetailScreen extends ConsumerWidget {
     );
     if (result != null && context.mounted) {
       final paddockName = result['paddockName'] ?? '';
-      ref.invalidate(loteByIdProvider(loteId));
+      ref.invalidatePropertyData();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lote movido para $paddockName')),
       );
@@ -181,8 +180,7 @@ class LoteDetailScreen extends ConsumerWidget {
         lotId: loteId,
         onRegistered: (count) {
           if (!context.mounted) return;
-          ref.invalidate(animalListByLotProvider(loteId));
-          ref.invalidate(sanitaryApplicationsByLotProvider(loteId));
+          ref.invalidatePropertyData();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(sanitaryRegisteredMessage(count))),
           );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../piquetes/data/piquete_model.dart';
@@ -9,7 +10,6 @@ import '../../reproducao/data/atf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
-import '../data/animal_repository.dart';
 import 'animais_filters.dart';
 import 'animal_edit_dialog.dart';
 import 'baixa_dialog.dart';
@@ -122,11 +122,8 @@ class AnimaisTableView extends ConsumerWidget {
     }
   }
 
-  void _invalidateAfterAction(WidgetRef ref, String animalId) {
-    ref.invalidate(animalListByPropertyProvider);
-    ref.invalidate(animalByIdProvider(animalId));
-    ref.invalidate(animalReproStatusByPropertyProvider);
-  }
+  void _invalidateAfterAction(WidgetRef ref, String animalId) =>
+      ref.invalidatePropertyData();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
