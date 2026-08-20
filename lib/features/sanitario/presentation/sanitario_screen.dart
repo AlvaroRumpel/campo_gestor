@@ -14,6 +14,7 @@ import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../auth/data/property_repository.dart';
 import '../../planilhas/domain/sheet_schema.dart';
+import '../../planilhas/presentation/doses_grid_view.dart';
 import '../../planilhas/presentation/export_button.dart';
 import '../../lotes/data/lote_model.dart';
 import '../../lotes/data/lote_repository.dart';
@@ -50,6 +51,8 @@ class SanitarioScreen extends ConsumerStatefulWidget {
 }
 
 class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
+  bool _dosesGridMode = false;
+
   /// 0 = Aplicações, 1 = Doses (segmented control, spec 4.11).
   int _tab = 0;
 
@@ -615,10 +618,38 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
 
     return Column(
       children: [
-        _buildToggleRow(
-          label: 'Mostrar arquivadas',
-          value: _showArchived,
-          onChanged: (v) => setState(() => _showArchived = v),
+        Row(
+          children: [
+            Expanded(
+              child: _buildToggleRow(
+                label: 'Mostrar arquivadas',
+                value: _showArchived,
+                onChanged: (v) => setState(() => _showArchived = v),
+              ),
+            ),
+            if (isDesktop && canEdit)
+              Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      icon: Icon(Icons.view_list_outlined, size: 18),
+                      tooltip: 'Lista',
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: Icon(Icons.grid_on, size: 18),
+                      tooltip: 'Editar em grade',
+                    ),
+                  ],
+                  selected: {_dosesGridMode},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (sel) =>
+                      setState(() => _dosesGridMode = sel.first),
+                ),
+              ),
+          ],
         ),
         Expanded(
           child: dosesAsync.when(
@@ -645,6 +676,14 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
               }
 
               if (isDesktop) {
+                final property =
+                    ref.read(currentPropertyProvider).asData?.value;
+                if (_dosesGridMode && canEdit && property != null) {
+                  return DosesGridView(
+                    doses: doses,
+                    propertyId: property.id,
+                  );
+                }
                 return DosesTableView(
                   doses: doses,
                   kgPerUa: kgPerUa,
