@@ -277,6 +277,13 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
           _buildExportButton(currentProperty),
           if (canEdit && currentProperty != null) ...[
             const SizedBox(width: 10),
+            OutlinedButton.icon(
+              onPressed: () => context.push(AppRoutes.importarFor(
+                  _tab == 0 ? 'sanitario' : 'doses')),
+              icon: const Icon(Icons.upload_outlined, size: 20),
+              label: const Text('Importar'),
+            ),
+            const SizedBox(width: 10),
             FilledButton.icon(
               onPressed:
                   _tab == 0 ? _openRegistrarAplicacao : () => _openDoseForm(),

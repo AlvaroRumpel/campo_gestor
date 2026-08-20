@@ -386,6 +386,8 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
                       onToggleSort: () =>
                           setState(() => _sortDescending = !_sortDescending),
                       propertyName: currentProperty?.name ?? '',
+                      onImport: () =>
+                          context.push(AppRoutes.importarFor('animais')),
                     ),
                   ),
                   if (selected != null)

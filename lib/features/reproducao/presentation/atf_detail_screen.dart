@@ -145,6 +145,14 @@ class AtfDetailScreen extends ConsumerWidget {
                       allMembershipsAsync.asData?.value ?? const [],
                   dgRecords: dgRecords,
                 ),
+                if (canEdit)
+                  IconButton(
+                    icon: const Icon(Icons.upload_outlined,
+                        color: AppColors.onGreen),
+                    tooltip: 'Importar DG de planilha',
+                    onPressed: () => context.push(
+                        AppRoutes.importarFor('dg', atfId: atf.id)),
+                  ),
                 if (showEncerrarAction)
                   IconButton(
                     icon: const Icon(Icons.event_busy,
