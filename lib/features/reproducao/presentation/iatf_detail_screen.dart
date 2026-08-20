@@ -14,31 +14,31 @@ import '../../animais/data/animal_constants.dart';
 import '../../auth/data/property_repository.dart';
 import '../../planilhas/domain/sheet_schema.dart';
 import '../../planilhas/presentation/export_button.dart';
-import '../data/atf_model.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_model.dart';
+import '../data/iatf_repository.dart';
 import '../data/dg_record_model.dart';
 import '../data/dg_summary.dart';
-import 'atf_animal_selection_screen.dart';
-import 'atf_dg_table_view.dart';
-import 'encerrar_atf_dialog.dart';
+import 'iatf_animal_selection_screen.dart';
+import 'iatf_dg_table_view.dart';
+import 'encerrar_iatf_dialog.dart';
 
-/// ATF detail screen (`/atf/:atfId`, root-level per D-02) — redesign spec 4.9
+/// IATF detail screen (`/iatf/:iatfId`, root-level per D-02) — redesign spec 4.9
 /// ("celular no brete"): green header with the % prenhez KPI, the DG session
 /// banner, ONE merged composição list where every animal row carries its
 /// three DG segment buttons, and a fixed save footer.
 ///
 /// The composição header count keeps counting ACTIVE memberships only, while
 /// the row list reads the UNFILTERED membership roster (minus archived
-/// animals, G-05-2) so a closed ATF still shows its full roster for DG
+/// animals, G-05-2) so a closed IATF still shows its full roster for DG
 /// correction (D-16).
-class AtfDetailScreen extends ConsumerWidget {
-  const AtfDetailScreen({super.key, required this.atfId});
-  final String atfId;
+class IatfDetailScreen extends ConsumerWidget {
+  const IatfDetailScreen({super.key, required this.iatfId});
+  final String iatfId;
 
   /// Exporta o DG mais recente por animal do roster (membros não deletados).
   Widget _buildDgExportButton({
-    required AtfBatch atf,
-    required List<AtfMembershipView> memberships,
+    required IatfBatch iatf,
+    required List<IatfMembershipView> memberships,
     required List<DgRecord> dgRecords,
   }) {
     final latestByAnimal = <String, DgRecord>{};
@@ -64,17 +64,17 @@ class AtfDetailScreen extends ConsumerWidget {
       schema: dgSchema,
       compact: true,
       iconColor: AppColors.onGreen,
-      fileName: exportFileName('dg', atf.name),
+      fileName: exportFileName('dg', iatf.name),
       rows: rows,
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final atfAsync = ref.watch(atfByIdProvider(atfId));
-    final membershipsAsync = ref.watch(atfActiveMembershipsProvider(atfId));
-    final allMembershipsAsync = ref.watch(atfMembershipsProvider(atfId));
-    final dgRecordsAsync = ref.watch(dgRecordsByAtfProvider(atfId));
+    final iatfAsync = ref.watch(iatfByIdProvider(iatfId));
+    final membershipsAsync = ref.watch(iatfActiveMembershipsProvider(iatfId));
+    final allMembershipsAsync = ref.watch(iatfMembershipsProvider(iatfId));
+    final dgRecordsAsync = ref.watch(dgRecordsByIatfProvider(iatfId));
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);
     final canEdit = _canEdit(
@@ -82,7 +82,7 @@ class AtfDetailScreen extends ConsumerWidget {
       membersAsync.asData?.value,
     );
 
-    return atfAsync.when(
+    return iatfAsync.when(
       loading: () => Scaffold(
         appBar: _appBar(context),
         body: const Center(child: CircularProgressIndicator()),
@@ -93,12 +93,12 @@ class AtfDetailScreen extends ConsumerWidget {
           child: ErrorRetry(
             message:
                 'Erro ao carregar. Verifique sua conexão e tente novamente.',
-            onRetry: () => ref.invalidate(atfByIdProvider(atfId)),
+            onRetry: () => ref.invalidate(iatfByIdProvider(iatfId)),
           ),
         ),
       ),
-      data: (atf) {
-        if (atf == null) {
+      data: (iatf) {
+        if (iatf == null) {
           return Scaffold(
             appBar: _appBar(context),
             body: const Center(
@@ -110,8 +110,8 @@ class AtfDetailScreen extends ConsumerWidget {
         final activeMemberships = membershipsAsync.asData?.value ?? const [];
         final dgRecords = dgRecordsAsync.asData?.value ?? const [];
         // `summarizeDg(...).pending` counts every animal that EVER had a DG
-        // for this ATF, including ones since removed or baixa'd (D-20 —
-        // correct for the % prenhez header on AtfHeaderCard below). As a
+        // for this IATF, including ones since removed or baixa'd (D-20 —
+        // correct for the % prenhez header on IatfHeaderCard below). As a
         // live "is every CURRENT member covered" question it answers a
         // different one: when composition churns, the historical total can
         // reach the new composition count and clamp `pending` to 0 even
@@ -123,11 +123,11 @@ class AtfDetailScreen extends ConsumerWidget {
             .where((m) => !dgAnimalIds.contains(m.animalId))
             .length;
         // Encerramento affordances (AppBar action + banner) are gated on
-        // atf.active AND the veterinarian role — never on the banner's own
+        // iatf.active AND the veterinarian role — never on the banner's own
         // condition, since the AppBar action must stay reachable even when
         // DGs are pending (T-05-49, T-05-53).
-        final showEncerrarAction = atf.active && canEdit;
-        final showBanner = atf.active &&
+        final showEncerrarAction = iatf.active && canEdit;
+        final showBanner = iatf.active &&
             canEdit &&
             activeMemberships.isNotEmpty &&
             pendingMembers == 0;
@@ -138,9 +138,9 @@ class AtfDetailScreen extends ConsumerWidget {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _GlassStatusPill(active: atf.active),
+                _GlassStatusPill(active: iatf.active),
                 _buildDgExportButton(
-                  atf: atf,
+                  iatf: iatf,
                   memberships:
                       allMembershipsAsync.asData?.value ?? const [],
                   dgRecords: dgRecords,
@@ -151,17 +151,17 @@ class AtfDetailScreen extends ConsumerWidget {
                         color: AppColors.onGreen),
                     tooltip: 'Importar DG de planilha',
                     onPressed: () => context.push(
-                        AppRoutes.importarFor('dg', atfId: atf.id)),
+                        AppRoutes.importarFor('dg', iatfId: iatf.id)),
                   ),
                 if (showEncerrarAction)
                   IconButton(
                     icon: const Icon(Icons.event_busy,
                         color: AppColors.onGreen),
-                    tooltip: 'Encerrar ATF',
+                    tooltip: 'Encerrar IATF',
                     onPressed: () => _showEncerrarDialog(
                       context,
-                      atfId: atf.id,
-                      atfName: atf.name,
+                      iatfId: iatf.id,
+                      iatfName: iatf.name,
                       pendingCount: pendingMembers,
                     ),
                   ),
@@ -178,8 +178,8 @@ class AtfDetailScreen extends ConsumerWidget {
                 // green header + merged composição/DG list below.
                 final visibleRows =
                     allMemberships.where((m) => !m.animalDeleted).toList();
-                return AtfDgTableView(
-                  atf: atf,
+                return IatfDgTableView(
+                  iatf: iatf,
                   rows: visibleRows,
                   activeMemberships: activeMemberships,
                   dgRecords: dgRecords,
@@ -189,14 +189,14 @@ class AtfDetailScreen extends ConsumerWidget {
               }
               return Column(
                 children: [
-                  AtfHeaderCard(
-                    atf: atf,
+                  IatfHeaderCard(
+                    iatf: iatf,
                     activeMemberships: activeMemberships,
                     dgRecords: dgRecords,
                   ),
                   Expanded(
-                    child: _AtfDgBody(
-                      atf: atf,
+                    child: _IatfDgBody(
+                      iatf: iatf,
                       activeMemberships: activeMemberships,
                       memberships: allMemberships,
                       dgRecords: dgRecords,
@@ -219,7 +219,7 @@ class AtfDetailScreen extends ConsumerWidget {
     return DetailAppBar(
       parentLabel: 'Reprodução',
       contextPill: trailing,
-      // `/atf/:atfId` is a root-level GoRoute reached via `context.go(...)`,
+      // `/iatf/:iatfId` is a root-level GoRoute reached via `context.go(...)`,
       // which replaces the whole nav stack, so `canPop()` is false on
       // arrival (G-05-1-nav). Falls back to the reproducao shell branch.
       onBack: () {
@@ -271,43 +271,43 @@ class _GlassStatusPill extends StatelessWidget {
   }
 }
 
-/// Opens [EncerrarAtfDialog] and shows the success confirmation
-/// (05-UI-SPEC section 5: "On success ... SnackBar: 'ATF encerrado.'").
+/// Opens [EncerrarIatfDialog] and shows the success confirmation
+/// (05-UI-SPEC section 5: "On success ... SnackBar: 'IATF encerrado.'").
 /// Provider invalidation happens inside the dialog itself — this helper only
 /// surfaces the confirmation once the dialog pops `true`.
 Future<void> _showEncerrarDialog(
   BuildContext context, {
-  required String atfId,
-  required String atfName,
+  required String iatfId,
+  required String iatfName,
   required int pendingCount,
 }) async {
   final confirmed = await showAdaptiveForm<bool>(
     context: context,
-    builder: (_) => EncerrarAtfDialog(
-      atfId: atfId,
-      atfName: atfName,
+    builder: (_) => EncerrarIatfDialog(
+      iatfId: iatfId,
+      iatfName: iatfName,
       pendingCount: pendingCount,
     ),
   );
   if (confirmed == true && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('ATF encerrado.')),
+      const SnackBar(content: Text('IATF encerrado.')),
     );
   }
 }
 
-/// Green header block (spec 4.9): ATF name, % prenhez KPI (REPR-04),
+/// Green header block (spec 4.9): IATF name, % prenhez KPI (REPR-04),
 /// implantação/inseminação dates, touro link (D-05/WR-01) and observação.
-class AtfHeaderCard extends StatelessWidget {
-  const AtfHeaderCard({
+class IatfHeaderCard extends StatelessWidget {
+  const IatfHeaderCard({
     super.key,
-    required this.atf,
+    required this.iatf,
     required this.activeMemberships,
     required this.dgRecords,
   });
 
-  final AtfBatch atf;
-  final List<AtfMembershipView> activeMemberships;
+  final IatfBatch iatf;
+  final List<IatfMembershipView> activeMemberships;
   final List<DgRecord> dgRecords;
 
   @override
@@ -319,7 +319,7 @@ class AtfHeaderCard extends StatelessWidget {
       compositionCount: activeMemberships.length,
     );
     final percent = summary.percent;
-    // A closed ATF has zero active memberships — never show "de 0" under a
+    // A closed IATF has zero active memberships — never show "de 0" under a
     // non-zero DG total.
     final denominator = activeMemberships.length > summary.total
         ? activeMemberships.length
@@ -333,7 +333,7 @@ class AtfHeaderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            atf.name,
+            iatf.name,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -394,14 +394,14 @@ class AtfHeaderCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _DateLine(label: 'impl. ', value: dateFmt.format(atf.implantationDate)),
+                  _DateLine(label: 'impl. ', value: dateFmt.format(iatf.implantationDate)),
                   const SizedBox(height: 2),
-                  _DateLine(label: 'insem. ', value: dateFmt.format(atf.inseminationDate)),
+                  _DateLine(label: 'insem. ', value: dateFmt.format(iatf.inseminationDate)),
                 ],
               ),
             ],
           ),
-          if (atf.bullName != null || atf.bullAnimalId != null) ...[
+          if (iatf.bullName != null || iatf.bullAnimalId != null) ...[
             const SizedBox(height: 10),
             Row(
               children: [
@@ -416,7 +416,7 @@ class AtfHeaderCard extends StatelessWidget {
               ],
             ),
           ],
-          if (atf.observation != null) ...[
+          if (iatf.observation != null) ...[
             const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,7 +431,7 @@ class AtfHeaderCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    atf.observation!,
+                    iatf.observation!,
                     style: const TextStyle(
                       fontSize: 12.5,
                       color: AppColors.onGreen,
@@ -447,15 +447,15 @@ class AtfHeaderCard extends StatelessWidget {
   }
 
   Widget _buildBullValue(BuildContext context) {
-    if (atf.bullAnimalId != null) {
+    if (iatf.bullAnimalId != null) {
       // WR-01: bullAnimalId is a navigation target only — it must never be
       // rendered as user-facing text. A legacy row created before the
       // WR-01 fix has bullAnimalId set with bullName null; fall back to a
       // readable link placeholder instead of the raw uuid.
       return InkWell(
-        onTap: () => context.go(AppRoutes.animalDetail(atf.bullAnimalId!)),
+        onTap: () => context.go(AppRoutes.animalDetail(iatf.bullAnimalId!)),
         child: Text(
-          atf.bullName ?? 'Ver touro',
+          iatf.bullName ?? 'Ver touro',
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -469,7 +469,7 @@ class AtfHeaderCard extends StatelessWidget {
       );
     }
     return Text(
-      atf.bullName ?? '—',
+      iatf.bullName ?? '—',
       style: const TextStyle(fontSize: 13, color: AppColors.onGreen),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -563,19 +563,19 @@ class DgSegmentButton extends StatelessWidget {
 /// suggestion banner, the merged composição + DG list (D-06..D-16, REPR-02,
 /// REPR-03) and the fixed save footer.
 ///
-/// Reads the UNFILTERED [memberships] list (`atfMembershipsProvider`, not the
-/// active-only one) so a closed ATF still shows its full roster for
+/// Reads the UNFILTERED [memberships] list (`iatfMembershipsProvider`, not the
+/// active-only one) so a closed IATF still shows its full roster for
 /// correction (D-16, RESEARCH Pattern 3) — that half of the "unfiltered"
 /// claim is about `active` and stays true. It is NOT true of archived
 /// animals: [build] filters out any membership whose
-/// [AtfMembershipView.animalDeleted] is true, so a baixa'd animal stops
+/// [IatfMembershipView.animalDeleted] is true, so a baixa'd animal stops
 /// appearing as an editable row (G-05-2). Do not "simplify" this into a
 /// single filter on `active` — that would resurrect the D-16 regression
 /// this split exists to prevent. [canEdit] gates on role only, never on
-/// `atf.active` — DG correction stays possible after encerramento.
-class _AtfDgBody extends ConsumerStatefulWidget {
-  const _AtfDgBody({
-    required this.atf,
+/// `iatf.active` — DG correction stays possible after encerramento.
+class _IatfDgBody extends ConsumerStatefulWidget {
+  const _IatfDgBody({
+    required this.iatf,
     required this.activeMemberships,
     required this.memberships,
     required this.dgRecords,
@@ -585,13 +585,13 @@ class _AtfDgBody extends ConsumerStatefulWidget {
     required this.pendingMembers,
   });
 
-  final AtfBatch atf;
-  final List<AtfMembershipView> activeMemberships;
-  final List<AtfMembershipView> memberships;
+  final IatfBatch iatf;
+  final List<IatfMembershipView> activeMemberships;
+  final List<IatfMembershipView> memberships;
   final List<DgRecord> dgRecords;
 
-  /// Animal ids with at least one PERSISTED DG for this ATF — hoisted once in
-  /// [AtfDetailScreen.build] and shared with the encerrar banner gate, the
+  /// Animal ids with at least one PERSISTED DG for this IATF — hoisted once in
+  /// [IatfDetailScreen.build] and shared with the encerrar banner gate, the
   /// AppBar pending count, and the per-row remove gate (G-05-3), so they can
   /// never drift from each other.
   final Set<String> dgAnimalIds;
@@ -600,10 +600,10 @@ class _AtfDgBody extends ConsumerStatefulWidget {
   final int pendingMembers;
 
   @override
-  ConsumerState<_AtfDgBody> createState() => _AtfDgBodyState();
+  ConsumerState<_IatfDgBody> createState() => _IatfDgBodyState();
 }
 
-class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
+class _IatfDgBodyState extends ConsumerState<_IatfDgBody> {
   // dd/MM/yyyy pattern doesn't need locale symbol data — safe to create eagerly.
   final _dateFmt = DateFormat('dd/MM/yyyy');
   // yyyy-MM-dd, no timezone conversion — for the date-only exam_date field
@@ -629,9 +629,9 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
     super.dispose();
   }
 
-  /// Most-recent DG for [animalId] in this ATF (D-12's tie-breaker: the
+  /// Most-recent DG for [animalId] in this IATF (D-12's tie-breaker: the
   /// exam-date rule in [isLaterDg], G-05-4). Delegates to [latestDgFor] —
-  /// the single shared implementation `AtfDgTableView` also uses.
+  /// the single shared implementation `IatfDgTableView` also uses.
   DgResult? _mostRecentDg(String animalId) {
     final latest = latestDgFor(widget.dgRecords, animalId);
     return latest == null ? null : DgResult.fromDb(latest.result);
@@ -701,15 +701,15 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AtfAnimalSelectionScreen(
-          atfId: widget.atf.id,
-          atfName: widget.atf.name,
+        builder: (_) => IatfAnimalSelectionScreen(
+          iatfId: widget.iatf.id,
+          iatfName: widget.iatf.name,
         ),
       ),
     );
   }
 
-  Future<void> _confirmRemove(AtfMembershipView membership) async {
+  Future<void> _confirmRemove(IatfMembershipView membership) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => _RemoveAnimalConfirmDialog(
@@ -718,8 +718,8 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
     );
     if (confirmed != true) return;
     try {
-      await ref.read(atfRepositoryProvider).removeAnimalFromAtf(
-            atfBatchId: widget.atf.id,
+      await ref.read(iatfRepositoryProvider).removeAnimalFromIatf(
+            iatfBatchId: widget.iatf.id,
             animalId: membership.animalId,
           );
       if (!mounted) return;
@@ -755,8 +755,8 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
 
     setState(() => _saving = true);
     try {
-      await ref.read(atfRepositoryProvider).saveDgRecords(
-            atfBatchId: widget.atf.id,
+      await ref.read(iatfRepositoryProvider).saveDgRecords(
+            iatfBatchId: widget.iatf.id,
             records: records,
           );
       if (!mounted) return;
@@ -781,13 +781,13 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
   @override
   Widget build(BuildContext context) {
     // Archived animals never render a row (G-05-2) — NOT gated on the
-    // `active` flag, since a closed ATF's rows report active:false yet must
+    // `active` flag, since a closed IATF's rows report active:false yet must
     // still render for D-16 correction.
     final rows = widget.memberships.where((m) => !m.animalDeleted).toList();
 
     final editable = widget.canEdit && !_saving;
     final changedIds = _changedAnimalIds();
-    final showAddButton = widget.atf.active && widget.canEdit;
+    final showAddButton = widget.iatf.active && widget.canEdit;
     final activeCount = widget.activeMemberships.length;
 
     return Column(
@@ -807,8 +807,8 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
                     child: _EncerrarBanner(
-                      atfId: widget.atf.id,
-                      atfName: widget.atf.name,
+                      iatfId: widget.iatf.id,
+                      iatfName: widget.iatf.name,
                       pendingCount: widget.pendingMembers,
                     ),
                   ),
@@ -850,7 +850,7 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Nenhum animal neste ATF.'),
+                        const Text('Nenhum animal neste IATF.'),
                         if (showAddButton) ...[
                           const SizedBox(height: 10),
                           OutlinedButton(
@@ -879,7 +879,7 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
   }
 
   Widget _buildRow(
-    AtfMembershipView m,
+    IatfMembershipView m,
     bool editable,
     Set<String> changedIds,
   ) {
@@ -887,7 +887,7 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
     final expanded = _expandedObservation.contains(m.animalId);
     final hasDg = widget.dgAnimalIds.contains(m.animalId);
     final canRemove =
-        widget.atf.active && widget.canEdit && m.active && !hasDg;
+        widget.iatf.active && widget.canEdit && m.active && !hasDg;
     final changed = changedIds.contains(m.animalId);
 
     return Container(
@@ -958,7 +958,7 @@ class _AtfDgBodyState extends ConsumerState<_AtfDgBody> {
               if (canRemove)
                 IconButton(
                   icon: const Icon(Icons.close, size: 20),
-                  tooltip: 'Remover do ATF',
+                  tooltip: 'Remover do IATF',
                   onPressed: () => _confirmRemove(m),
                 ),
             ],
@@ -1165,7 +1165,7 @@ class _SaveFooter extends StatelessWidget {
   }
 }
 
-/// Minimal confirm dialog for removing an animal from the ATF (D-08).
+/// Minimal confirm dialog for removing an animal from the IATF (D-08).
 ///
 /// Unlike `BaixaDialog`, this is a correction, not data loss — the confirm
 /// button keeps the default primary color rather than `colorScheme.error`.
@@ -1177,7 +1177,7 @@ class _RemoveAnimalConfirmDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Remover #$animalNumber do ATF?'),
+      title: Text('Remover #$animalNumber do IATF?'),
       content: const Text('O animal deixa de fazer parte deste ciclo.'),
       actions: [
         TextButton(
@@ -1195,7 +1195,7 @@ class _RemoveAnimalConfirmDialog extends StatelessWidget {
 
 /// Encerramento suggestion banner (D-15, 05-UI-SPEC section 3): a suggestion,
 /// never an action taken on the vet's behalf. Rendered by the parent only
-/// when the ATF is active, the viewer is a veterinarian, the composition is
+/// when the IATF is active, the viewer is a veterinarian, the composition is
 /// non-empty, and every CURRENT member has a DG ([pendingCount] is zero) —
 /// the caller computes and gates on that condition; this widget only owns
 /// its own session-local dismissal state.
@@ -1205,13 +1205,13 @@ class _RemoveAnimalConfirmDialog extends StatelessWidget {
 /// the next visit" while the underlying condition still holds — A-BANNER-PERSIST).
 class _EncerrarBanner extends StatefulWidget {
   const _EncerrarBanner({
-    required this.atfId,
-    required this.atfName,
+    required this.iatfId,
+    required this.iatfName,
     required this.pendingCount,
   });
 
-  final String atfId;
-  final String atfName;
+  final String iatfId;
+  final String iatfName;
 
   /// Same per-current-member pending count the parent gated `showBanner` on
   /// (G-05-3). Passed straight through to [_showEncerrarDialog] so the
@@ -1249,11 +1249,11 @@ class _EncerrarBannerState extends State<_EncerrarBanner> {
             TextButton(
               onPressed: () => _showEncerrarDialog(
                 context,
-                atfId: widget.atfId,
-                atfName: widget.atfName,
+                iatfId: widget.iatfId,
+                iatfName: widget.iatfName,
                 pendingCount: widget.pendingCount,
               ),
-              child: const Text('Encerrar ATF'),
+              child: const Text('Encerrar IATF'),
             ),
             IconButton(
               icon: const Icon(Icons.close, size: 20),

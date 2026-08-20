@@ -2,35 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/invalidate_property_data.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_repository.dart';
 
 /// Manual encerramento confirmation dialog (D-15, 05-UI-SPEC section 5/E7).
 ///
 /// Sheet-style content shown via `showAdaptiveForm` (redesign): title 20/700,
 /// footer Cancelar outline + "Encerrar" filled h52 r14. The confirm button
 /// keeps the default primary color instead of `colorScheme.error` — closing
-/// an ATF is a routine workflow step, not data loss.
+/// an IATF is a routine workflow step, not data loss.
 ///
-/// Does not dismiss optimistically: `close_atf` deactivates N membership
+/// Does not dismiss optimistically: `close_iatf` deactivates N membership
 /// rows in one transaction, so the dialog stays mounted until the RPC
 /// returns, and pops with `true` only after a successful await.
-class EncerrarAtfDialog extends ConsumerStatefulWidget {
-  const EncerrarAtfDialog({
+class EncerrarIatfDialog extends ConsumerStatefulWidget {
+  const EncerrarIatfDialog({
     super.key,
-    required this.atfId,
-    required this.atfName,
+    required this.iatfId,
+    required this.iatfName,
     required this.pendingCount,
   });
 
-  final String atfId;
-  final String atfName;
+  final String iatfId;
+  final String iatfName;
   final int pendingCount;
 
   @override
-  ConsumerState<EncerrarAtfDialog> createState() => _EncerrarAtfDialogState();
+  ConsumerState<EncerrarIatfDialog> createState() => _EncerrarIatfDialogState();
 }
 
-class _EncerrarAtfDialogState extends ConsumerState<EncerrarAtfDialog> {
+class _EncerrarIatfDialogState extends ConsumerState<EncerrarIatfDialog> {
   bool _saving = false;
   bool _failed = false;
 
@@ -40,7 +40,7 @@ class _EncerrarAtfDialogState extends ConsumerState<EncerrarAtfDialog> {
       _failed = false;
     });
     try {
-      await ref.read(atfRepositoryProvider).closeAtf(widget.atfId);
+      await ref.read(iatfRepositoryProvider).closeIatf(widget.iatfId);
       if (!mounted) return;
       ref.invalidatePropertyData();
       Navigator.pop(context, true);
@@ -69,7 +69,7 @@ class _EncerrarAtfDialogState extends ConsumerState<EncerrarAtfDialog> {
               child: LinearProgressIndicator(),
             ),
           Text(
-            'Encerrar ATF "${widget.atfName}"?',
+            'Encerrar IATF "${widget.iatfName}"?',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -100,7 +100,7 @@ class _EncerrarAtfDialogState extends ConsumerState<EncerrarAtfDialog> {
                   if (_failed) ...[
                     const SizedBox(height: 16),
                     Text(
-                      'Não foi possível encerrar o ATF. Tente novamente.',
+                      'Não foi possível encerrar o IATF. Tente novamente.',
                       style: theme.textTheme.bodyMedium
                           ?.copyWith(color: colorScheme.error),
                     ),

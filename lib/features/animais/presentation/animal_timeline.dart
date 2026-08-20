@@ -6,8 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
-import '../../reproducao/data/atf_model.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_model.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../reproducao/data/dg_record_model.dart';
 import '../../sanitario/data/sanitary_application_model.dart';
 import '../../sanitario/data/sanitary_application_repository.dart';
@@ -138,18 +138,18 @@ List<_TimelineEvent> _reproEvents(List<ReproductiveHistoryEntry> entries) {
       if (entry.bullName != null && entry.bullName!.trim().isNotEmpty)
         'touro: ${entry.bullName}',
       'insem. ${shortFmt.format(entry.inseminationDate)}',
-      entry.atfActive ? 'ciclo ativo' : 'ciclo encerrado',
+      entry.iatfActive ? 'ciclo ativo' : 'ciclo encerrado',
     ];
     return _TimelineEvent(
       date: date,
       kind: _EventKind.reproducao,
-      title: 'DG — ${entry.atfName}',
+      title: 'DG — ${entry.iatfName}',
       detail: detailParts.join(' · '),
       icon: Icons.favorite,
       circleBg: circleBg,
       iconColor: iconColor,
       chip: chip,
-      route: AppRoutes.atfDetail(entry.atfBatchId),
+      route: AppRoutes.iatfDetail(entry.iatfBatchId),
     );
   }
 
@@ -174,17 +174,17 @@ List<_TimelineEvent> _reproEvents(List<ReproductiveHistoryEntry> entries) {
         if (entry.bullName != null && entry.bullName!.trim().isNotEmpty)
           'touro: ${entry.bullName}',
         'aguardando DG',
-        entry.atfActive ? 'ciclo ativo' : 'ciclo encerrado',
+        entry.iatfActive ? 'ciclo ativo' : 'ciclo encerrado',
       ];
       events.add(_TimelineEvent(
         date: entry.inseminationDate,
         kind: _EventKind.reproducao,
-        title: 'Inseminação — ${entry.atfName}',
+        title: 'Inseminação — ${entry.iatfName}',
         detail: detailParts.join(' · '),
         icon: Icons.favorite,
         circleBg: AppColors.positiveChipBg,
         iconColor: AppColors.primary,
-        route: AppRoutes.atfDetail(entry.atfBatchId),
+        route: AppRoutes.iatfDetail(entry.iatfBatchId),
       ));
     }
   }

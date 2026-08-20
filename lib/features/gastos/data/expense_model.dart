@@ -15,7 +15,7 @@ sealed class Expense with _$Expense {
   const factory Expense({
     required String id,
     required String propertyId,
-    required String paddockId,
+    String? paddockId,
     required String category,
     required double amount,
     required DateTime expenseDate,

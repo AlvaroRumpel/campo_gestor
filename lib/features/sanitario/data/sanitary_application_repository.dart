@@ -2,7 +2,7 @@
 // Reason: `use_null_aware_elements` suggests `'key'?: value` syntax which
 // causes compiler errors in Dart 3.11 (the feature was proposed but not
 // finalized as map-literal syntax). The `if (x != null) 'key': x` pattern is
-// the correct idiom. Mirrors atf_repository.dart's identical suppression.
+// the correct idiom. Mirrors iatf_repository.dart's identical suppression.
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,7 +36,7 @@ class SanitaryApplicationRepository {
   /// All applications (registrations and reversals alike) for [propertyId],
   /// newest applied date first, creation time as the tie-breaker (D-06).
   /// "Mostrar estornadas" filters in memory via `visibleApplications`,
-  /// mirroring `AtfRepository`'s archived-toggle idiom.
+  /// mirroring `IatfRepository`'s archived-toggle idiom.
   Future<List<SanitaryApplication>> fetchApplicationsByProperty(
     String propertyId,
   ) async {
@@ -137,7 +137,7 @@ class SanitaryApplicationRepository {
   /// Freezes a new registration via `register_sanitary_application`
   /// (SANI-02). [animalIds] is sent as a plain list and the client
   /// serializes it into the RPC's jsonb parameter — the same idiom
-  /// `AtfRepository.addAnimalsToAtf` uses. [appliedAt] is sent date-only
+  /// `IatfRepository.addAnimalsToIatf` uses. [appliedAt] is sent date-only
   /// (WR-03 lesson). Does not catch — the calling widget maps any error via
   /// `asSanitaryException` with its own surface-specific fallback message
   /// (D-35), since the right generic-failure sentence differs per screen.

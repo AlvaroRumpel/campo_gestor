@@ -1,13 +1,13 @@
-// REPR-02 — AtfAnimalSelectionScreen widget tests (05-UI-SPEC.md E3,
+// REPR-02 — IatfAnimalSelectionScreen widget tests (05-UI-SPEC.md E3,
 // ROADMAP SC-2). Covers both halves of SC-2: only vacas/novilhas are ever
-// offered (D-09), and an animal already in another active ATF stays visible
+// offered (D-09), and an animal already in another active IATF stays visible
 // with its reason rather than being silently filtered out (D-07).
 import 'package:campo_gestor/core/services/supabase_service.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
-import 'package:campo_gestor/features/reproducao/presentation/atf_animal_selection_screen.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
+import 'package:campo_gestor/features/reproducao/presentation/iatf_animal_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,20 +16,20 @@ import 'package:flutter_test/flutter_test.dart';
 // Fake repository
 // ---------------------------------------------------------------------------
 
-class _FakeAtfRepo extends AtfRepository {
-  _FakeAtfRepo({this.shouldThrow = false}) : super(SupabaseService());
+class _FakeIatfRepo extends IatfRepository {
+  _FakeIatfRepo({this.shouldThrow = false}) : super(SupabaseService());
 
   final bool shouldThrow;
-  String? capturedAtfBatchId;
+  String? capturedIatfBatchId;
   List<String>? capturedAnimalIds;
 
   @override
-  Future<void> addAnimalsToAtf({
-    required String atfBatchId,
+  Future<void> addAnimalsToIatf({
+    required String iatfBatchId,
     required List<String> animalIds,
   }) async {
     if (shouldThrow) throw Exception('boom');
-    capturedAtfBatchId = atfBatchId;
+    capturedIatfBatchId = iatfBatchId;
     capturedAnimalIds = animalIds;
   }
 }
@@ -68,25 +68,25 @@ Lot _lot(String id, String name) => Lot(
 Widget _buildScreen({
   required List<EligibleAnimal> eligible,
   required List<Lot> lots,
-  AtfRepository? repo,
+  IatfRepository? repo,
 }) {
   return ProviderScope(
     overrides: [
-      atfRepositoryProvider.overrideWithValue(repo ?? _FakeAtfRepo()),
-      eligibleAnimalsForAtfProvider.overrideWith((ref, id) async => eligible),
+      iatfRepositoryProvider.overrideWithValue(repo ?? _FakeIatfRepo()),
+      eligibleAnimalsForIatfProvider.overrideWith((ref, id) async => eligible),
       loteListByPropertyProvider.overrideWith((ref) async => lots),
-      atfActiveMembershipsProvider.overrideWith((ref, id) async => const []),
-      atfMembershipsProvider.overrideWith((ref, id) async => const []),
-      atfListByPropertyProvider.overrideWith((ref) async => const []),
+      iatfActiveMembershipsProvider.overrideWith((ref, id) async => const []),
+      iatfMembershipsProvider.overrideWith((ref, id) async => const []),
+      iatfListByPropertyProvider.overrideWith((ref) async => const []),
     ],
     child: const MaterialApp(
       localizationsDelegates: [
         DefaultMaterialLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
       ],
-      home: AtfAnimalSelectionScreen(
-        atfId: 'atf-1',
-        atfName: 'ATF Primavera',
+      home: IatfAnimalSelectionScreen(
+        iatfId: 'iatf-1',
+        iatfName: 'IATF Primavera',
       ),
     ),
   );
@@ -107,7 +107,7 @@ Future<void> _selectLot(WidgetTester tester, String lotName) async {
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('AtfAnimalSelectionScreen (REPR-02, 05-UI-SPEC E3)', () {
+  group('IatfAnimalSelectionScreen (REPR-02, 05-UI-SPEC E3)', () {
     testWidgets('choosing a base lot pre-checks every eligible animal of it',
         (tester) async {
       final eligible = [
@@ -149,12 +149,12 @@ void main() {
     });
 
     testWidgets(
-        'a blocked animal renders a disabled row whose text contains the blocking ATF name',
+        'a blocked animal renders a disabled row whose text contains the blocking IATF name',
         (tester) async {
       final eligible = [
         EligibleAnimal(
           animal: _animal(id: 'a1', lotId: 'lot-a', category: 'vaca', number: 5),
-          blockedByAtfName: 'ATF Outono',
+          blockedByIatfName: 'IATF Outono',
         ),
       ];
       await tester.pumpWidget(
@@ -164,7 +164,7 @@ void main() {
 
       await _selectLot(tester, 'Lote A');
 
-      final rowFinder = find.textContaining('já está no ATF Outono');
+      final rowFinder = find.textContaining('já está no IATF Outono');
       expect(rowFinder, findsOneWidget);
       final tile = tester.widget<CheckboxListTile>(
         find.ancestor(
@@ -180,7 +180,7 @@ void main() {
       final eligible = [
         EligibleAnimal(
           animal: _animal(id: 'a1', lotId: 'lot-a', category: 'vaca', number: 5),
-          blockedByAtfName: 'ATF Outono',
+          blockedByIatfName: 'IATF Outono',
         ),
       ];
       await tester.pumpWidget(
@@ -211,7 +211,7 @@ void main() {
 
       // Pre-checked by choosing the lot (D-06) — button should already be enabled.
       var btn = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Adicionar ao ATF'),
+        find.widgetWithText(FilledButton, 'Adicionar ao IATF'),
       );
       expect(btn.onPressed, isNotNull);
 
@@ -219,14 +219,14 @@ void main() {
       await tester.pumpAndSettle();
 
       btn = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Adicionar ao ATF'),
+        find.widgetWithText(FilledButton, 'Adicionar ao IATF'),
       );
       expect(btn.onPressed, isNull);
     });
 
-    testWidgets('confirming calls addAnimalsToAtf exactly once with the checked ids',
+    testWidgets('confirming calls addAnimalsToIatf exactly once with the checked ids',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       final eligible = [
         EligibleAnimal(animal: _animal(id: 'a1', lotId: 'lot-a', category: 'vaca', number: 1)),
       ];
@@ -236,17 +236,17 @@ void main() {
       await tester.pumpAndSettle();
       await _selectLot(tester, 'Lote A');
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar ao ATF'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar ao IATF'));
       await tester.pumpAndSettle();
 
-      expect(repo.capturedAtfBatchId, 'atf-1');
+      expect(repo.capturedIatfBatchId, 'iatf-1');
       expect(repo.capturedAnimalIds, ['a1']);
-      expect(find.byType(AtfAnimalSelectionScreen), findsNothing);
+      expect(find.byType(IatfAnimalSelectionScreen), findsNothing);
     });
 
     testWidgets('a repository throw keeps the screen mounted and the selection staged',
         (tester) async {
-      final repo = _FakeAtfRepo(shouldThrow: true);
+      final repo = _FakeIatfRepo(shouldThrow: true);
       final eligible = [
         EligibleAnimal(animal: _animal(id: 'a1', lotId: 'lot-a', category: 'vaca', number: 1)),
       ];
@@ -256,10 +256,10 @@ void main() {
       await tester.pumpAndSettle();
       await _selectLot(tester, 'Lote A');
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar ao ATF'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Adicionar ao IATF'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AtfAnimalSelectionScreen), findsOneWidget);
+      expect(find.byType(IatfAnimalSelectionScreen), findsOneWidget);
       expect(find.text('Erro ao adicionar animais. Tente novamente.'), findsOneWidget);
       final tile = tester.widget<CheckboxListTile>(find.byType(CheckboxListTile).first);
       expect(tile.value, isTrue);

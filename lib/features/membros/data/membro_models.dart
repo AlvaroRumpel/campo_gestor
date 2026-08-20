@@ -4,7 +4,7 @@
 /// these are result shapes returned by RPCs (`list_property_members`,
 /// `list_my_invites`) or a plain select (`invites`) — not editable entities —
 /// the same category as `PropertyMembership`, `LotWithPaddockName`, and
-/// `AtfMembershipView` elsewhere in this project. No freezed/json_serializable
+/// `IatfMembershipView` elsewhere in this project. No freezed/json_serializable
 /// codegen (planner decision, 10-03-PLAN.md).
 ///
 /// `role` holds the raw `role_enum` value from Postgres. `isSelf` is computed

@@ -13,7 +13,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../membros/data/membro_models.dart';
 import '../../membros/data/membro_repository.dart';
 import '../../membros/presentation/invite_banner.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../sanitario/data/sanitary_calculations.dart';
 import '../data/dashboard_providers.dart';
 
@@ -473,19 +473,19 @@ class _PaddockRow extends StatelessWidget {
   }
 }
 
-// ───────────────────────── Card Prenhez · ATFs ativos ─────────────────────────
+// ───────────────────────── Card Prenhez · IATFs ativos ─────────────────────────
 
 class _PrenhezCard extends ConsumerWidget {
   const _PrenhezCard({this.large = false});
 
-  /// Desktop: % em 40/700 e demais ATFs ativos listados após um divisor.
+  /// Desktop: % em 40/700 e demais IATFs ativos listados após um divisor.
   final bool large;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final atfsAsync = ref.watch(atfListByPropertyProvider);
+    final atfsAsync = ref.watch(iatfListByPropertyProvider);
     return SectionCard(
-      title: 'Prenhez · ATFs ativos',
+      title: 'Prenhez · IATFs ativos',
       child: atfsAsync.when(
         loading: () => const SizedBox(
           height: 40,
@@ -498,14 +498,14 @@ class _PrenhezCard extends ConsumerWidget {
           ),
         ),
         error: (_, _) => ErrorRetry(
-          message: 'Erro ao carregar ATFs.',
-          onRetry: () => ref.invalidate(atfListByPropertyProvider),
+          message: 'Erro ao carregar IATFs.',
+          onRetry: () => ref.invalidate(iatfListByPropertyProvider),
         ),
         data: (all) {
-          final actives = all.where((s) => s.atf.active).toList();
+          final actives = all.where((s) => s.iatf.active).toList();
           if (actives.isEmpty) {
             return const Text(
-              'Nenhum ATF ativo.',
+              'Nenhum IATF ativo.',
               style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
             );
           }
@@ -532,7 +532,7 @@ class _PrenhezCard extends ConsumerWidget {
 class _PrenhezMain extends StatelessWidget {
   const _PrenhezMain({required this.summary, required this.large});
 
-  final AtfSummary summary;
+  final IatfSummary summary;
   final bool large;
 
   @override
@@ -569,8 +569,8 @@ class _PrenhezMain extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           percent == null
-              ? 'aguardando DG · ${summary.atf.name}'
-              : '${dg.pregnant} de ${dg.total} DGs · ${summary.atf.name}',
+              ? 'aguardando DG · ${summary.iatf.name}'
+              : '${dg.pregnant} de ${dg.total} DGs · ${summary.iatf.name}',
           style: const TextStyle(
             fontSize: 12.5,
             color: AppColors.textSecondary,
@@ -594,7 +594,7 @@ class _PrenhezMain extends StatelessWidget {
 class _PrenhezSecondaryRow extends StatelessWidget {
   const _PrenhezSecondaryRow({required this.summary});
 
-  final AtfSummary summary;
+  final IatfSummary summary;
 
   @override
   Widget build(BuildContext context) {
@@ -614,8 +614,8 @@ class _PrenhezSecondaryRow extends StatelessWidget {
         Expanded(
           child: Text(
             percent == null
-                ? '${summary.atf.name} · aguardando DG'
-                : '${summary.atf.name} · ${dg.pregnant} de ${dg.total} DGs',
+                ? '${summary.iatf.name} · aguardando DG'
+                : '${summary.iatf.name} · ${dg.pregnant} de ${dg.total} DGs',
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12.5,

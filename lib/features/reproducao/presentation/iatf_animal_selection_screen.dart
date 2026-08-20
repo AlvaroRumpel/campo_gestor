@@ -9,37 +9,37 @@ import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../lotes/data/lote_model.dart';
 import '../../lotes/data/lote_repository.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_repository.dart';
 
-/// Animal selection screen for adding animals to an ATF (REPR-02, D-06..D-09)
+/// Animal selection screen for adding animals to an IATF (REPR-02, D-06..D-09)
 /// — redesign spec 4.17: green header with close + "LOTE BASE" glass tile,
 /// info strip, pre-checked lot list, "Avulsos de outros lotes" search
 /// section, fixed footer.
 ///
 /// Pushed via `Navigator.push`, not a GoRoute — transient selection workflow
 /// with no deep-link requirement (05-UI-SPEC section 4). Two data sources
-/// feed the same [eligibleAnimalsForAtfProvider] list: a "Lote base" picker
+/// feed the same [eligibleAnimalsForIatfProvider] list: a "Lote base" picker
 /// that pre-checks every eligible animal of the chosen lot (D-06), and an
 /// "Avulsos" search+filter row for animals from any other lot. An animal
-/// already active in a DIFFERENT ATF renders disabled with its reason
+/// already active in a DIFFERENT IATF renders disabled with its reason
 /// (D-07) — it is never filtered out of either list.
-class AtfAnimalSelectionScreen extends ConsumerStatefulWidget {
-  const AtfAnimalSelectionScreen({
+class IatfAnimalSelectionScreen extends ConsumerStatefulWidget {
+  const IatfAnimalSelectionScreen({
     super.key,
-    required this.atfId,
-    required this.atfName,
+    required this.iatfId,
+    required this.iatfName,
   });
 
-  final String atfId;
-  final String atfName;
+  final String iatfId;
+  final String iatfName;
 
   @override
-  ConsumerState<AtfAnimalSelectionScreen> createState() =>
-      _AtfAnimalSelectionScreenState();
+  ConsumerState<IatfAnimalSelectionScreen> createState() =>
+      _IatfAnimalSelectionScreenState();
 }
 
-class _AtfAnimalSelectionScreenState
-    extends ConsumerState<AtfAnimalSelectionScreen> {
+class _IatfAnimalSelectionScreenState
+    extends ConsumerState<IatfAnimalSelectionScreen> {
   // D-09: the picker only ever offers these two categories.
   static const _eligibleCategories = ['vaca', 'novilha'];
 
@@ -95,7 +95,7 @@ class _AtfAnimalSelectionScreenState
       _selectedLotId = lotId;
       if (lotId != null) {
         for (final e in eligible) {
-          if (e.animal.lotId == lotId && e.blockedByAtfName == null) {
+          if (e.animal.lotId == lotId && e.blockedByIatfName == null) {
             _selectedIds.add(e.animal.id);
           }
         }
@@ -150,8 +150,8 @@ class _AtfAnimalSelectionScreenState
     if (_selectedIds.isEmpty) return;
     setState(() => _saving = true);
     try {
-      await ref.read(atfRepositoryProvider).addAnimalsToAtf(
-            atfBatchId: widget.atfId,
+      await ref.read(iatfRepositoryProvider).addAnimalsToIatf(
+            iatfBatchId: widget.iatfId,
             animalIds: _selectedIds.toList(),
           );
       if (!mounted) return;
@@ -160,7 +160,7 @@ class _AtfAnimalSelectionScreenState
       final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
       messenger.showSnackBar(
-        SnackBar(content: Text('$count animais adicionados ao ATF.')),
+        SnackBar(content: Text('$count animais adicionados ao IATF.')),
       );
     } catch (_) {
       if (!mounted) return;
@@ -178,7 +178,7 @@ class _AtfAnimalSelectionScreenState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final eligibleAsync =
-        ref.watch(eligibleAnimalsForAtfProvider(widget.atfId));
+        ref.watch(eligibleAnimalsForIatfProvider(widget.iatfId));
     final lotsAsync = ref.watch(loteListByPropertyProvider);
     final lots = lotsAsync.asData?.value ?? const <Lot>[];
     final lotNames = {for (final l in lots) l.id: l.name};
@@ -218,7 +218,7 @@ class _AtfAnimalSelectionScreenState
                                 ),
                               ),
                               Text(
-                                '${widget.atfName} · só vacas e novilhas',
+                                '${widget.iatfName} · só vacas e novilhas',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.onGreenSecondary,
@@ -254,7 +254,7 @@ class _AtfAnimalSelectionScreenState
                   message:
                       'Erro ao carregar. Verifique sua conexão e tente novamente.',
                   onRetry: () => ref.invalidate(
-                    eligibleAnimalsForAtfProvider(widget.atfId),
+                    eligibleAnimalsForIatfProvider(widget.iatfId),
                   ),
                 ),
               ),
@@ -384,7 +384,7 @@ class _AtfAnimalSelectionScreenState
   }
 
   Widget _buildRow(EligibleAnimal e, {String? originLabel}) {
-    final blocked = e.blockedByAtfName != null;
+    final blocked = e.blockedByIatfName != null;
     final catLabel = kCategoryLabels[e.animal.category] ?? e.animal.category;
     return CheckboxListTile(
       value: _selectedIds.contains(e.animal.id),
@@ -418,7 +418,7 @@ class _AtfAnimalSelectionScreenState
       ),
       subtitle: blocked
           ? Text(
-              'já está no ${e.blockedByAtfName}',
+              'já está no ${e.blockedByIatfName}',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.accentTextDark,
@@ -497,7 +497,7 @@ class _AtfAnimalSelectionScreenState
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Adicionar ao ATF'),
+                      : const Text('Adicionar ao IATF'),
                 ),
               ),
             ),

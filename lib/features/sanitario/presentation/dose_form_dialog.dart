@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/widgets/ui.dart';
 import '../../../core/providers/invalidate_property_data.dart';
 import '../data/dose_model.dart';
 import '../data/dose_repository.dart';
@@ -38,6 +39,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
   late final TextEditingController _costCtrl;
   final _dosageUaCtrl = TextEditingController();
   final _costUaCtrl = TextEditingController();
+  bool _costSeeded = false;
   bool _saving = false;
   String? _errorMessage;
 
@@ -53,15 +55,18 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
     _dosageCtrl = TextEditingController(
       text: existing != null ? _fmtDouble(existing.dosagePerKg) : '',
     );
-    _costCtrl = TextEditingController(
-      text:
-          existing?.costPerKg != null ? _fmtDouble(existing!.costPerKg!) : '',
-    );
+    // Campo é R$/dose (custo por animal-UA, item 7 dos ajustes 2026-08-20);
+    // o seed na edição acontece no primeiro build, porque a conversão
+    // R$/kg → R$/dose precisa do kg/UA da propriedade ativa (só via ref).
+    _costCtrl = TextEditingController();
     // Listeners recompute the two disabled computed fields live (Task 1
     // truth: "the per-UA dosage field ... recomputes live as the per-kg
     // field is typed").
     _dosageCtrl.addListener(_onNumbersChanged);
     _costCtrl.addListener(_onNumbersChanged);
+    // Rebuild para o DiscardGuard reavaliar `dirty` a cada digitação.
+    _nameCtrl.addListener(_onNumbersChanged);
+    _ingredientCtrl.addListener(_onNumbersChanged);
   }
 
   @override
@@ -108,7 +113,9 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
       final ingredientText = _ingredientCtrl.text.trim();
       final activeIngredient = ingredientText.isEmpty ? null : ingredientText;
       final dosage = _parseDouble(_dosageCtrl.text)!;
-      final cost = _parseDouble(_costCtrl.text);
+      final costPerDose = _parseDouble(_costCtrl.text);
+      final kgPerUa = resolveActiveKgPerUa(ref);
+      final cost = costPerDose != null ? costPerDose / kgPerUa : null;
 
       if (_isEditing) {
         await repo.updateDose(
@@ -147,17 +154,43 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final kgPerUa = resolveActiveKgPerUa(ref);
+    // Seed do campo R$/dose na edição: costPerKg armazenado × kg/UA.
+    if (!_costSeeded) {
+      _costSeeded = true;
+      final storedCost = widget.existing?.costPerKg;
+      if (storedCost != null) {
+        _costCtrl.text = _fmtDouble(storedCost * kgPerUa);
+      }
+    }
     final dosage = _parseDouble(_dosageCtrl.text);
-    final cost = _parseDouble(_costCtrl.text);
+    final costPerDose = _parseDouble(_costCtrl.text);
     final dosageUa = dosage != null ? dosagePerUa(dosage, kgPerUa) : null;
-    final costUa = costPerUa(cost, kgPerUa);
+    // Inversão (item 7): usuário digita R$/dose; R$/kg é o derivado.
+    final costKg = costPerDose != null ? costPerDose / kgPerUa : null;
     _dosageUaCtrl.text = dosageUa != null ? _fmtDouble(dosageUa) : '';
-    _costUaCtrl.text = costUa != null ? _fmtDouble(costUa) : '';
+    _costUaCtrl.text = costKg != null ? _fmtDouble(costKg) : '';
 
     final computedStyle = theme.textTheme.bodyMedium
         ?.copyWith(color: theme.colorScheme.primary);
 
-    return Padding(
+    final existing = widget.existing;
+    final dirty = existing == null
+        ? (_nameCtrl.text.trim().isNotEmpty ||
+            _ingredientCtrl.text.trim().isNotEmpty ||
+            _dosageCtrl.text.trim().isNotEmpty ||
+            _costCtrl.text.trim().isNotEmpty)
+        : (_nameCtrl.text.trim() != existing.name ||
+            _ingredientCtrl.text.trim() !=
+                (existing.activeIngredient ?? '') ||
+            _parseDouble(_dosageCtrl.text) != existing.dosagePerKg ||
+            _parseDouble(_costCtrl.text) !=
+                (existing.costPerKg == null
+                    ? null
+                    : _parseDouble(
+                        _fmtDouble(existing.costPerKg! * kgPerUa))));
+    return DiscardGuard(
+      dirty: dirty && !_saving,
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: Form(
         key: _formKey,
@@ -237,9 +270,9 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                 TextFormField(
                   controller: _costCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Custo (R\$/kg)',
+                    labelText: 'Custo (R\$/dose)',
                     border: OutlineInputBorder(),
-                    hintText: 'Ex: 8,50',
+                    hintText: 'Ex: 3,40 — custo por animal (1 UA)',
                   ),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
@@ -249,19 +282,19 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return null;
                     if (_parseDouble(v) == null) {
-                      return 'Custo (R\$/kg) inválido';
+                      return 'Custo (R\$/dose) inválido';
                     }
                     return null;
                   },
                 ),
-                if (costUa != null) ...[
+                if (costKg != null) ...[
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _costUaCtrl,
                   enabled: false,
                   style: computedStyle,
                   decoration: const InputDecoration(
-                    labelText: 'Custo por UA (calculado)',
+                    labelText: 'Custo (R\$/kg) — calculado',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -322,6 +355,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

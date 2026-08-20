@@ -12,16 +12,16 @@ import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../auth/data/property_repository.dart';
-import '../data/atf_repository.dart';
-import 'atf_detail_panel.dart';
-import 'atf_form_dialog.dart';
+import '../data/iatf_repository.dart';
+import 'iatf_detail_panel.dart';
+import 'iatf_form_dialog.dart';
 import 'reproducao_table_view.dart';
 
-/// ATF list screen (`/reproducao` shell branch, D-01), redesign spec 4.8.
+/// IATF list screen (`/reproducao` shell branch, D-01), redesign spec 4.8.
 ///
-/// Separates active from closed ATFs via the "Ativos N" / "Encerrados N"
+/// Separates active from closed IATFs via the "Ativos N" / "Encerrados N"
 /// filter chips (D-01, D-03). A partir do breakpoint de rail, tabela densa +
-/// [AtfDetailPanel] mestre-detalhe (quick task 260813-r4s).
+/// [IatfDetailPanel] mestre-detalhe (quick task 260813-r4s).
 class ReproducaoScreen extends ConsumerStatefulWidget {
   const ReproducaoScreen({super.key});
 
@@ -31,7 +31,7 @@ class ReproducaoScreen extends ConsumerStatefulWidget {
 
 class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
   bool _showEncerrados = false;
-  String? _selectedAtfId;
+  String? _selectedIatfId;
 
   bool _canEdit(
     SelectedProperty? current,
@@ -48,26 +48,26 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
   Future<void> _openCreateForm(SelectedProperty property) async {
     final newId = await showAdaptiveForm<String>(
       context: context,
-      builder: (_) => AtfFormDialog(propertyId: property.id),
+      builder: (_) => IatfFormDialog(propertyId: property.id),
     );
     if (newId != null && mounted) {
-      context.go(AppRoutes.atfDetail(newId));
+      context.go(AppRoutes.iatfDetail(newId));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Reset the mestre-detalhe ATF selection when the active property
+    // Reset the mestre-detalhe IATF selection when the active property
     // actually changes — guarded so the first resolve (null -> A) is a
     // no-op.
     ref.listen(currentPropertyProvider, (prev, next) {
       final prevId = prev?.value?.id;
       final nextId = next.value?.id;
       if (prevId == null || nextId == null || prevId == nextId) return;
-      setState(() => _selectedAtfId = null);
+      setState(() => _selectedIatfId = null);
     });
 
-    final atfsAsync = ref.watch(atfListByPropertyProvider);
+    final atfsAsync = ref.watch(iatfListByPropertyProvider);
     final currentPropAsync = ref.watch(currentPropertyProvider);
     final membersAsync = ref.watch(memberPropertiesProvider);
 
@@ -86,12 +86,12 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
               child: ErrorRetry(
                 message:
                     'Erro ao carregar. Verifique sua conexão e tente novamente.',
-                onRetry: () => ref.invalidate(atfListByPropertyProvider),
+                onRetry: () => ref.invalidate(iatfListByPropertyProvider),
               ),
             ),
             data: (atfs) {
-              final ativos = atfs.where((s) => s.atf.active).toList();
-              final encerrados = atfs.where((s) => !s.atf.active).toList();
+              final ativos = atfs.where((s) => s.iatf.active).toList();
+              final encerrados = atfs.where((s) => !s.iatf.active).toList();
               final shown = _showEncerrados ? encerrados : ativos;
 
               if (!isDesktop) {
@@ -102,7 +102,7 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
                       padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
                       child: Row(
                         children: [
-                          AtfScopeChip(
+                          IatfScopeChip(
                             label: 'Ativos',
                             count: ativos.length,
                             selected: !_showEncerrados,
@@ -110,7 +110,7 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
                                 setState(() => _showEncerrados = false),
                           ),
                           const SizedBox(width: 8),
-                          AtfScopeChip(
+                          IatfScopeChip(
                             label: 'Encerrados',
                             count: encerrados.length,
                             selected: _showEncerrados,
@@ -125,20 +125,20 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
                           ? (atfs.isEmpty
                               ? const EmptyState(
                                   icon: Icons.favorite_border,
-                                  title: 'Nenhum ATF cadastrado',
+                                  title: 'Nenhum IATF cadastrado',
                                   message:
-                                      'Crie um ATF para iniciar um ciclo reprodutivo.',
+                                      'Crie um IATF para iniciar um ciclo reprodutivo.',
                                 )
                               : _showEncerrados
                                   ? const EmptyState(
                                       icon: Icons.favorite_border,
-                                      title: 'Nenhum ATF encerrado',
+                                      title: 'Nenhum IATF encerrado',
                                       message:
-                                          'ATFs encerrados aparecem aqui como histórico.',
+                                          'IATFs encerrados aparecem aqui como histórico.',
                                     )
                                   : const EmptyState(
                                       icon: Icons.favorite_border,
-                                      title: 'Nenhum ATF ativo',
+                                      title: 'Nenhum IATF ativo',
                                       message:
                                           "Toque em 'Encerrados' para ver o histórico.",
                                     ))
@@ -146,7 +146,7 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               itemCount: shown.length,
                               itemBuilder: (context, i) =>
-                                  _AtfCard(summary: shown[i]),
+                                  _IatfCard(summary: shown[i]),
                             ),
                     ),
                   ],
@@ -155,7 +155,7 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
 
               // >=1024px: tabela densa + painel lateral mestre-detalhe.
               final selected =
-                  shown.where((s) => s.atf.id == _selectedAtfId).firstOrNull;
+                  shown.where((s) => s.iatf.id == _selectedIatfId).firstOrNull;
 
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,8 +168,8 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
                       showEncerrados: _showEncerrados,
                       onShowEncerradosChanged: (v) =>
                           setState(() => _showEncerrados = v),
-                      selectedId: selected?.atf.id,
-                      onSelect: (id) => setState(() => _selectedAtfId = id),
+                      selectedId: selected?.iatf.id,
+                      onSelect: (id) => setState(() => _selectedIatfId = id),
                       canEdit: canEdit,
                       onCreate: currentProperty == null
                           ? () {}
@@ -177,10 +177,10 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
                     ),
                   ),
                   if (selected != null)
-                    AtfDetailPanel(
-                      key: ValueKey(selected.atf.id),
+                    IatfDetailPanel(
+                      key: ValueKey(selected.iatf.id),
                       summary: selected,
-                      onClose: () => setState(() => _selectedAtfId = null),
+                      onClose: () => setState(() => _selectedIatfId = null),
                     ),
                 ],
               );
@@ -190,7 +190,7 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
               (!isDesktop && canEdit && currentProperty != null)
                   ? FloatingActionButton.extended(
                       icon: const Icon(Icons.add),
-                      label: const Text('Novo ATF'),
+                      label: const Text('Novo IATF'),
                       onPressed: () => _openCreateForm(currentProperty),
                     )
                   : null,
@@ -200,27 +200,27 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
   }
 }
 
-/// One ATF card (D-04, spec 4.8). Percentages come exclusively from
+/// One IATF card (D-04, spec 4.8). Percentages come exclusively from
 /// [DgSummary] — no local percentage arithmetic beyond bar fractions.
-class _AtfCard extends StatelessWidget {
-  const _AtfCard({required this.summary});
+class _IatfCard extends StatelessWidget {
+  const _IatfCard({required this.summary});
 
-  final AtfSummary summary;
+  final IatfSummary summary;
 
   @override
   Widget build(BuildContext context) {
     final dateFmt = DateFormat('dd/MM');
-    final atf = summary.atf;
+    final iatf = summary.iatf;
     final dg = summary.dgSummary;
 
-    final hasPending = atf.active && dg.pending > 0;
-    // Closed ATFs report zero active memberships — fall back to the DG total
+    final hasPending = iatf.active && dg.pending > 0;
+    // Closed IATFs report zero active memberships — fall back to the DG total
     // so "N / M DGs feitos" never shows a denominator below the numerator.
     final denominator = math.max(summary.animalCount, dg.total);
     final percent = dg.percent;
 
-    final metaTail = atf.bullName != null
-        ? TextSpan(text: ' · touro: ${atf.bullName}')
+    final metaTail = iatf.bullName != null
+        ? TextSpan(text: ' · touro: ${iatf.bullName}')
         : TextSpan(
             children: [
               const TextSpan(text: ' · '),
@@ -239,7 +239,7 @@ class _AtfCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => context.go(AppRoutes.atfDetail(atf.id)),
+          onTap: () => context.go(AppRoutes.iatfDetail(iatf.id)),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -259,7 +259,7 @@ class _AtfCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                atf.name,
+                                iatf.name,
                                 style: const TextStyle(
                                   fontSize: 17.5,
                                   fontWeight: FontWeight.w700,
@@ -269,7 +269,7 @@ class _AtfCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            if (!atf.active)
+                            if (!iatf.active)
                               const StatusChip('Encerrado',
                                   kind: StatusKind.neutral)
                             else if (hasPending)
@@ -379,7 +379,7 @@ class _AtfCard extends StatelessWidget {
                             children: [
                               const TextSpan(text: 'impl. '),
                               TextSpan(
-                                text: dateFmt.format(atf.implantationDate),
+                                text: dateFmt.format(iatf.implantationDate),
                                 style: monoStyle(
                                   size: 12.5,
                                   weight: FontWeight.w600,
@@ -387,7 +387,7 @@ class _AtfCard extends StatelessWidget {
                               ),
                               const TextSpan(text: ' · insem. '),
                               TextSpan(
-                                text: dateFmt.format(atf.inseminationDate),
+                                text: dateFmt.format(iatf.inseminationDate),
                                 style: monoStyle(
                                   size: 12.5,
                                   weight: FontWeight.w600,
@@ -418,7 +418,7 @@ class _AtfCard extends StatelessWidget {
                                   size: 20),
                               label: const Text('Continuar DGs'),
                               onPressed: () =>
-                                  context.go(AppRoutes.atfDetail(atf.id)),
+                                  context.go(AppRoutes.iatfDetail(iatf.id)),
                             ),
                           ),
                         ],

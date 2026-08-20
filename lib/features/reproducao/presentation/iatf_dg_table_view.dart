@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -8,11 +10,11 @@ import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
-import '../data/atf_model.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_model.dart';
+import '../data/iatf_repository.dart';
 import '../data/dg_record_model.dart';
 import '../data/dg_summary.dart';
-import 'atf_animal_selection_screen.dart';
+import 'iatf_animal_selection_screen.dart';
 
 /// Larguras de coluna declaradas uma vez e reusadas pelo cabeçalho e pelas
 /// linhas (mesma convenção de `animais_table_view.dart`/`reproducao_table_view.dart`).
@@ -28,15 +30,15 @@ final _dateFmtShort = DateFormat('dd/MM/yy');
 final _iaSubtitleFmt = DateFormat('dd/MM');
 final _dateOnlyFmt = DateFormat('yyyy-MM-dd');
 
-/// Tabela desktop densa do detalhe do ATF (>=`Breakpoints.rail`, quick task
+/// Tabela desktop densa do detalhe do IATF (>=`Breakpoints.rail`, quick task
 /// 260813-tos): registro de DG inline por linha + seleção múltipla com barra
-/// contextual, sobre o mesmo `saveDgRecords`/`removeAnimalFromAtf` que o
-/// fluxo mobile usa. Abaixo do corte, `AtfDetailScreen` renderiza o fluxo de
+/// contextual, sobre o mesmo `saveDgRecords`/`removeAnimalFromIatf` que o
+/// fluxo mobile usa. Abaixo do corte, `IatfDetailScreen` renderiza o fluxo de
 /// hoje sem uma linha alterada — este widget é dono de tudo a partir dele.
-class AtfDgTableView extends ConsumerStatefulWidget {
-  const AtfDgTableView({
+class IatfDgTableView extends ConsumerStatefulWidget {
+  const IatfDgTableView({
     super.key,
-    required this.atf,
+    required this.iatf,
     required this.rows,
     required this.activeMemberships,
     required this.dgRecords,
@@ -44,13 +46,13 @@ class AtfDgTableView extends ConsumerStatefulWidget {
     required this.canEdit,
   });
 
-  final AtfBatch atf;
+  final IatfBatch iatf;
 
   /// Roster completo (memberships menos animalDeleted, G-05-2/D-16) — o
   /// pai já filtra, nunca por `active` (D-16: correção continua possível
   /// depois do encerramento).
-  final List<AtfMembershipView> rows;
-  final List<AtfMembershipView> activeMemberships;
+  final List<IatfMembershipView> rows;
+  final List<IatfMembershipView> activeMemberships;
   final List<DgRecord> dgRecords;
 
   /// Contagem por membro ATUAL sem DG (G-05-3) — a mesma que o AppBar e o
@@ -59,12 +61,83 @@ class AtfDgTableView extends ConsumerStatefulWidget {
   final bool canEdit;
 
   @override
-  ConsumerState<AtfDgTableView> createState() => _AtfDgTableViewState();
+  ConsumerState<IatfDgTableView> createState() => _IatfDgTableViewState();
 }
 
-class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
+class _IatfDgTableViewState extends ConsumerState<IatfDgTableView> {
   final Set<String> _selectedIds = {};
   bool _saving = false;
+
+  /// Cliques Prenhe/Vazia acumulados (item 8 dos ajustes 2026-08-20):
+  /// cada clique inline entra aqui e um debounce de 2s dispara UM
+  /// `saveDgRecords` com todos, e UMA snackbar com a contagem.
+  final Map<String, DgResult> _pending = {};
+  Timer? _flushTimer;
+
+  @override
+  void dispose() {
+    _flushTimer?.cancel();
+    if (_pending.isNotEmpty) {
+      // Navegou com pendências: grava sem aguardar (fire-and-forget).
+      _flushNow(showFeedback: false);
+    }
+    super.dispose();
+  }
+
+  void _queueDg(String animalId, DgResult result) {
+    setState(() {
+      final latest = latestDgFor(widget.dgRecords, animalId);
+      final current = _pending[animalId] ??
+          (latest == null ? null : DgResult.fromDb(latest.result));
+      if (current == result && !_pending.containsKey(animalId)) {
+        return; // no-op: já é esse resultado no banco
+      }
+      final saved = latest == null ? null : DgResult.fromDb(latest.result);
+      if (saved == result) {
+        _pending.remove(animalId); // clique de volta cancela o pendente
+      } else {
+        _pending[animalId] = result;
+      }
+    });
+    _flushTimer?.cancel();
+    _flushTimer = Timer(const Duration(seconds: 2), _flushNow);
+  }
+
+  Future<void> _flushNow({bool showFeedback = true}) async {
+    _flushTimer?.cancel();
+    if (_pending.isEmpty) return;
+    final batch = Map<String, DgResult>.of(_pending);
+    _pending.clear();
+    final examDate = _dateOnlyFmt.format(DateTime.now());
+    final records = [
+      for (final e in batch.entries)
+        {
+          'animal_id': e.key,
+          'result': e.value.dbValue,
+          'exam_date': examDate,
+        },
+    ];
+    try {
+      await ref.read(iatfRepositoryProvider).saveDgRecords(
+            iatfBatchId: widget.iatf.id,
+            records: records,
+          );
+      if (!mounted || !showFeedback) return;
+      ref.invalidatePropertyData();
+      final n = batch.length;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(n == 1
+            ? '1 animal atualizado'
+            : '$n animais atualizados'),
+      ));
+    } catch (_) {
+      if (!mounted || !showFeedback) return;
+      setState(() => _pending.addAll(batch)); // devolve para nova tentativa
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao salvar DGs. Tente novamente.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +163,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
           _buildColumnHeader(),
           Expanded(
             child: widget.rows.isEmpty
-                ? const Center(child: Text('Nenhum animal neste ATF.'))
+                ? const Center(child: Text('Nenhum animal neste IATF.'))
                 : ListView.builder(
                     itemCount: widget.rows.length,
                     itemBuilder: (context, i) =>
@@ -121,8 +194,8 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
 
     setState(() => _saving = true);
     try {
-      await ref.read(atfRepositoryProvider).saveDgRecords(
-            atfBatchId: widget.atf.id,
+      await ref.read(iatfRepositoryProvider).saveDgRecords(
+            iatfBatchId: widget.iatf.id,
             records: records,
           );
       if (!mounted) return;
@@ -141,10 +214,10 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
     }
   }
 
-  /// Portão de "Remover do ATF" em lote — mesmo do ícone mobile (assunção
+  /// Portão de "Remover do IATF" em lote — mesmo do ícone mobile (assunção
   /// 13): ativo + canEdit + nenhuma linha selecionada já tem DG.
   bool get _canRemoveSelected {
-    if (!(widget.atf.active && widget.canEdit) || _selectedIds.isEmpty) {
+    if (!(widget.iatf.active && widget.canEdit) || _selectedIds.isEmpty) {
       return false;
     }
     return _selectedIds
@@ -156,7 +229,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Remover ${ids.length} do ATF?'),
+        title: Text('Remover ${ids.length} do IATF?'),
         content: const Text('Os animais deixam de fazer parte deste ciclo.'),
         actions: [
           TextButton(
@@ -172,11 +245,11 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
     );
     if (confirmed != true) return;
 
-    final repo = ref.read(atfRepositoryProvider);
+    final repo = ref.read(iatfRepositoryProvider);
     try {
       await Future.wait([
         for (final id in ids)
-          repo.removeAnimalFromAtf(atfBatchId: widget.atf.id, animalId: id),
+          repo.removeAnimalFromIatf(iatfBatchId: widget.iatf.id, animalId: id),
       ]);
       if (!mounted) return;
       ref.invalidatePropertyData();
@@ -234,7 +307,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
             onPressed:
                 (_saving || !_canRemoveSelected) ? null : _confirmRemoveSelected,
             child: const Text(
-              'Remover do ATF',
+              'Remover do IATF',
               style: TextStyle(color: AppColors.onGreen),
             ),
           ),
@@ -250,18 +323,18 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
   }
 
   Widget _buildTopBlock(DgSummary summary) {
-    final bullSegment = (widget.atf.bullName?.trim().isEmpty ?? true)
+    final bullSegment = (widget.iatf.bullName?.trim().isEmpty ?? true)
         ? null
-        : widget.atf.bullName;
+        : widget.iatf.bullName;
     final percentLabel =
         summary.percent == null ? '—' : '${summary.percent}%';
     final subtitle = [
-      'IA ${_iaSubtitleFmt.format(widget.atf.inseminationDate)}',
+      'IA ${_iaSubtitleFmt.format(widget.iatf.inseminationDate)}',
       if (bullSegment != null) bullSegment,
       '${widget.rows.length} fêmeas',
       'prenhez $percentLabel',
     ].join(' · ');
-    final showAddButton = widget.atf.active && widget.canEdit;
+    final showAddButton = widget.iatf.active && widget.canEdit;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -276,7 +349,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
                   children: [
                     Flexible(
                       child: Text(
-                        widget.atf.name,
+                        widget.iatf.name,
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w600,
@@ -310,11 +383,11 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
     );
   }
 
-  /// Mesma derivação de `_AtfCard`/`ReproducaoTableView`, mas gated em
+  /// Mesma derivação de `_IatfCard`/`ReproducaoTableView`, mas gated em
   /// `widget.pendingMembers` (por membro ATUAL, G-05-3) — nunca
   /// `summarizeDg(...).pending`.
   Widget _statusBadge() {
-    if (!widget.atf.active) {
+    if (!widget.iatf.active) {
       return const StatusChip('Encerrado', kind: StatusKind.neutral);
     }
     if (widget.pendingMembers > 0) {
@@ -371,7 +444,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
   }
 
   Widget _buildRow(
-    AtfMembershipView m,
+    IatfMembershipView m,
     Map<String, AnimalWithContext> animalsById,
   ) {
     final aw = animalsById[m.animalId];
@@ -429,7 +502,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
           SizedBox(
             width: _kColIa,
             child: Text(
-              _dateFmtShort.format(widget.atf.inseminationDate),
+              _dateFmtShort.format(widget.iatf.inseminationDate),
               style: monoStyle(size: 12.5),
             ),
           ),
@@ -450,7 +523,7 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
   /// (assunção 7/12). Com `canEdit`, um chip "Duvidosa" quando o DG mais
   /// recente é `doubtful` (assunção 9, o desktop nunca registra esse
   /// resultado) seguido do par Prenhe/Vazia inline.
-  Widget _buildResultCell(AtfMembershipView m, DgResult? lastResult) {
+  Widget _buildResultCell(IatfMembershipView m, DgResult? lastResult) {
     if (!widget.canEdit) {
       return SizedBox(
         width: _kColResultado,
@@ -458,6 +531,8 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
       );
     }
     final isDoubtful = lastResult == DgResult.doubtful;
+    // Pendente (debounce em voo) vence o último DG salvo na exibição.
+    final effectiveResult = _pending[m.animalId] ?? lastResult;
     return SizedBox(
       width: _kColResultado,
       child: Row(
@@ -471,9 +546,9 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
               label: 'Prenhe',
               color: AppColors.primary,
               onColor: AppColors.onGreen,
-              selected: lastResult == DgResult.pregnant,
+              selected: effectiveResult == DgResult.pregnant,
               enabled: !_saving,
-              onTap: () => _registerDg([m.animalId], DgResult.pregnant),
+              onTap: () => _queueDg(m.animalId, DgResult.pregnant),
             ),
           ),
           const SizedBox(width: 6),
@@ -482,9 +557,9 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
               label: 'Vazia',
               color: AppColors.danger,
               onColor: AppColors.onDanger,
-              selected: lastResult == DgResult.notPregnant,
+              selected: effectiveResult == DgResult.notPregnant,
               enabled: !_saving,
-              onTap: () => _registerDg([m.animalId], DgResult.notPregnant),
+              onTap: () => _queueDg(m.animalId, DgResult.notPregnant),
             ),
           ),
         ],
@@ -496,9 +571,9 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AtfAnimalSelectionScreen(
-          atfId: widget.atf.id,
-          atfName: widget.atf.name,
+        builder: (_) => IatfAnimalSelectionScreen(
+          iatfId: widget.iatf.id,
+          iatfName: widget.iatf.name,
         ),
       ),
     );

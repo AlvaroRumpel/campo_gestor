@@ -7,7 +7,7 @@ import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
@@ -92,7 +92,7 @@ class _AnimalDetailPanelState extends ConsumerState<AnimalDetailPanel> {
         ref.watch(animalReproStatusByPropertyProvider).asData?.value ??
             const <String, AnimalReproStatus>{};
     final reproStatus =
-        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoAtf;
+        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoIatf;
 
     return Container(
       width: 380,

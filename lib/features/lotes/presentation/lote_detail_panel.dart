@@ -9,7 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../../sanitario/presentation/aplicacao_form_dialog.dart';
 import '../data/lote_repository.dart';
@@ -29,7 +29,7 @@ const _compositionColors = [
 
 /// Painel lateral desktop de 380px com o resumo do lote (quick task
 /// 260813-ugd) — mestre-detalhe em `PiquetesScreen` a partir de
-/// `Breakpoints.rail`. Molde: `atf_detail_panel.dart` / `animal_detail_panel.dart`.
+/// `Breakpoints.rail`. Molde: `iatf_detail_panel.dart` / `animal_detail_panel.dart`.
 /// Reusa as ações existentes de `LoteDetailScreen` (Aplicação / Mover lote).
 class LoteDetailPanel extends ConsumerStatefulWidget {
   const LoteDetailPanel({
@@ -329,7 +329,7 @@ class _AnimalRow extends StatelessWidget {
         ? categoryLabel
         : '$categoryLabel · $breed';
     final showRepro =
-        reproStatus != null && reproStatus != AnimalReproStatus.foraDoAtf;
+        reproStatus != null && reproStatus != AnimalReproStatus.foraDoIatf;
 
     return InkWell(
       onTap: () => context.go(AppRoutes.animalDetail(animal.id)),

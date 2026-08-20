@@ -4,7 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_model.dart';
 import '../../reproducao/presentation/reproducao_table_view.dart'
-    show AtfScopeChip;
+    show IatfScopeChip;
 import '../data/piquete_model.dart';
 
 String _fmt1(double v) => v.toStringAsFixed(1).replaceAll('.', ',');
@@ -86,14 +86,14 @@ class PiquetesLotesHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
           child: Row(
             children: [
-              AtfScopeChip(
+              IatfScopeChip(
                 label: 'Piquetes',
                 count: paddockCount,
                 selected: !showLots,
                 onTap: () => onShowLotsChanged(false),
               ),
               const SizedBox(width: 8),
-              AtfScopeChip(
+              IatfScopeChip(
                 label: 'Lotes',
                 count: lotCount,
                 selected: showLots,

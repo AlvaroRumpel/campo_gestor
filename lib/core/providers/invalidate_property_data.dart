@@ -4,7 +4,7 @@ import '../../features/animais/data/animal_repository.dart';
 import '../../features/gastos/data/expense_repository.dart';
 import '../../features/lotes/data/lote_repository.dart';
 import '../../features/piquetes/data/piquete_repository.dart';
-import '../../features/reproducao/data/atf_repository.dart';
+import '../../features/reproducao/data/iatf_repository.dart';
 import '../../features/sanitario/data/dose_repository.dart';
 import '../../features/sanitario/data/sanitary_application_repository.dart';
 
@@ -33,14 +33,14 @@ extension InvalidatePropertyData on WidgetRef {
     invalidate(animalListByLotProvider);
     invalidate(animalByIdProvider);
 
-    invalidate(atfListByPropertyProvider);
-    invalidate(atfByIdProvider);
-    invalidate(atfMembershipsProvider);
-    invalidate(atfActiveMembershipsProvider);
-    invalidate(dgRecordsByAtfProvider);
+    invalidate(iatfListByPropertyProvider);
+    invalidate(iatfByIdProvider);
+    invalidate(iatfMembershipsProvider);
+    invalidate(iatfActiveMembershipsProvider);
+    invalidate(dgRecordsByIatfProvider);
     invalidate(reproductiveHistoryByAnimalProvider);
     invalidate(animalReproStatusByPropertyProvider);
-    invalidate(eligibleAnimalsForAtfProvider);
+    invalidate(eligibleAnimalsForIatfProvider);
 
     invalidate(doseListByPropertyProvider);
     invalidate(archivedDoseListByPropertyProvider);

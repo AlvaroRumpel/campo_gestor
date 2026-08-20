@@ -41,7 +41,7 @@ class _FakeExpenseRepository implements ExpenseRepository {
   @override
   Future<Expense> createExpense({
     required String propertyId,
-    required String paddockId,
+    String? paddockId,
     required String category,
     required double amount,
     required DateTime expenseDate,
@@ -175,7 +175,7 @@ void main() {
   group('ExpenseFormDialog (GAST-01, 07-UI-SPEC E2)', () {
     testWidgets(
         'create mode: title "Novo gasto", 5 primary category chips and a '
-        '"Mais 3" chip that expands the remaining categories', (tester) async {
+        '"Mais 4" chip that expands the remaining categories', (tester) async {
       await tester.pumpWidget(_buildApp(repo: _FakeExpenseRepository()));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
@@ -190,16 +190,16 @@ void main() {
       ]) {
         expect(find.text(label), findsOneWidget);
       }
-      // The 3 non-primary categories start hidden behind "Mais 3".
-      expect(find.text('Mais 3'), findsOneWidget);
+      // The 4 non-primary categories start hidden behind "Mais 4".
+      expect(find.text('Mais 4'), findsOneWidget);
       expect(find.text('Sanidade/Medicamentos'), findsNothing);
       expect(find.text('Arrendamento'), findsNothing);
       expect(find.text('Outros'), findsNothing);
 
-      await tester.tap(find.text('Mais 3'));
+      await tester.tap(find.text('Mais 4'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mais 3'), findsNothing);
+      expect(find.text('Mais 4'), findsNothing);
       expect(find.text('Sanidade/Medicamentos'), findsOneWidget);
       expect(find.text('Arrendamento'), findsOneWidget);
       expect(find.text('Outros'), findsOneWidget);

@@ -1,36 +1,37 @@
-// REPR-01 — AtfFormDialog widget tests (05-UI-SPEC.md E2).
+// REPR-01 — IatfFormDialog widget tests (05-UI-SPEC.md E2).
 // Covers: blank-form validation, date-order validation, bull validation,
 // the external-semen reveal, both valid-submission bull paths, and a
 // repository failure leaving the dialog open.
 import 'package:campo_gestor/core/widgets/ui.dart';
 import 'package:campo_gestor/features/animais/data/animal_model.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
-import 'package:campo_gestor/features/reproducao/presentation/atf_form_dialog.dart';
+import 'package:campo_gestor/features/reproducao/presentation/iatf_form_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // ---------------------------------------------------------------------------
-// Fake in-memory AtfRepository — no mocktail chain needed.
+// Fake in-memory IatfRepository — no mocktail chain needed.
 // ---------------------------------------------------------------------------
-class _FakeAtfRepository implements AtfRepository {
-  _FakeAtfRepository({this.shouldThrow = false});
+class _FakeIatfRepository implements IatfRepository {
+  _FakeIatfRepository({this.shouldThrow = false});
 
   final bool shouldThrow;
   int createCallCount = 0;
   Map<String, dynamic>? lastCreateArgs;
 
   @override
-  Future<AtfBatch> createAtf({
+  Future<IatfBatch> createIatf({
     required String propertyId,
     required String name,
     required DateTime implantationDate,
     required DateTime inseminationDate,
+    String? inseminationTime,
     String? bullAnimalId,
     String? bullName,
     String? observation,
@@ -43,8 +44,8 @@ class _FakeAtfRepository implements AtfRepository {
       'bullName': bullName,
     };
     if (shouldThrow) throw Exception('boom');
-    return AtfBatch(
-      id: 'new-atf-id',
+    return IatfBatch(
+      id: 'new-iatf-id',
       propertyId: propertyId,
       name: name,
       implantationDate: implantationDate,
@@ -58,24 +59,24 @@ class _FakeAtfRepository implements AtfRepository {
   }
 
   @override
-  Future<List<AtfBatch>> fetchAtfBatchesByProperty(String propertyId) async =>
+  Future<List<IatfBatch>> fetchIatfBatchesByProperty(String propertyId) async =>
       [];
 
   @override
-  Future<AtfBatch?> fetchAtf(String id) async => null;
+  Future<IatfBatch?> fetchIatf(String id) async => null;
 
   @override
-  Future<List<AtfMembershipView>> fetchMemberships(
-    String atfBatchId, {
+  Future<List<IatfMembershipView>> fetchMemberships(
+    String iatfBatchId, {
     bool activeOnly = false,
   }) async =>
       [];
 
   @override
-  Future<List<DgRecord>> fetchDgRecords(String atfBatchId) async => [];
+  Future<List<DgRecord>> fetchDgRecords(String iatfBatchId) async => [];
 
   @override
-  Future<List<AtfSummary>> fetchAtfSummaries(String propertyId) async => [];
+  Future<List<IatfSummary>> fetchIatfSummaries(String propertyId) async => [];
 
   @override
   Future<List<ReproductiveHistoryEntry>> fetchReproductiveHistory(
@@ -84,32 +85,32 @@ class _FakeAtfRepository implements AtfRepository {
       [];
 
   @override
-  Future<List<EligibleAnimal>> fetchEligibleAnimalsForAtf({
+  Future<List<EligibleAnimal>> fetchEligibleAnimalsForIatf({
     required String propertyId,
-    required String atfBatchId,
+    required String iatfBatchId,
   }) async =>
       [];
 
   @override
-  Future<void> addAnimalsToAtf({
-    required String atfBatchId,
+  Future<void> addAnimalsToIatf({
+    required String iatfBatchId,
     required List<String> animalIds,
   }) async {}
 
   @override
-  Future<void> removeAnimalFromAtf({
-    required String atfBatchId,
+  Future<void> removeAnimalFromIatf({
+    required String iatfBatchId,
     required String animalId,
   }) async {}
 
   @override
   Future<void> saveDgRecords({
-    required String atfBatchId,
+    required String iatfBatchId,
     required List<Map<String, dynamic>> records,
   }) async {}
 
   @override
-  Future<void> closeAtf(String atfBatchId) async {}
+  Future<void> closeIatf(String iatfBatchId) async {}
 
   @override
   Future<Map<String, AnimalReproStatus>> fetchAnimalReproStatusByProperty(
@@ -157,12 +158,12 @@ final _touroComBreed = AnimalWithContext(
 // ---------------------------------------------------------------------------
 
 Widget _buildApp({
-  required _FakeAtfRepository repo,
+  required _FakeIatfRepository repo,
   List<AnimalWithContext> animals = const [],
 }) {
   return ProviderScope(
     overrides: [
-      atfRepositoryProvider.overrideWithValue(repo),
+      iatfRepositoryProvider.overrideWithValue(repo),
       animalListByPropertyProvider.overrideWith((ref) async => animals),
     ],
     child: MaterialApp(
@@ -179,7 +180,7 @@ Widget _buildApp({
             // sheet-style content hosted via showAdaptiveForm.
             onPressed: () => showAdaptiveForm<String>(
               context: ctx,
-              builder: (_) => const AtfFormDialog(propertyId: 'prop-1'),
+              builder: (_) => const IatfFormDialog(propertyId: 'prop-1'),
             ),
             child: const Text('open'),
           ),
@@ -212,33 +213,33 @@ Future<void> _setDateViaInput(
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('AtfFormDialog (REPR-01, 05-UI-SPEC E2)', () {
+  group('IatfFormDialog (REPR-01, 05-UI-SPEC E2)', () {
     testWidgets(
-        'blank form: shows the name-required message and does not call createAtf',
+        'blank form: shows the name-required message and does not call createIatf',
         (tester) async {
-      final repo = _FakeAtfRepository();
+      final repo = _FakeIatfRepository();
       await tester.pumpWidget(_buildApp(repo: repo));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Criar ATF'));
+      await tester.tap(find.text('Criar IATF'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nome do ATF é obrigatório'), findsOneWidget);
+      expect(find.text('Nome do IATF é obrigatório'), findsOneWidget);
       expect(repo.createCallCount, 0);
     });
 
     testWidgets(
         'insemination before implantation: shows the date-order message',
         (tester) async {
-      final repo = _FakeAtfRepository();
+      final repo = _FakeIatfRepository();
       await tester.pumpWidget(_buildApp(repo: repo));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nome do ATF *'),
-        'ATF Primavera',
+        find.widgetWithText(TextFormField, 'Nome do IATF *'),
+        'IATF Primavera',
       );
 
       // Push implantation into the future; insemination stays at "today",
@@ -249,7 +250,7 @@ void main() {
         '31/12/2030',
       );
 
-      await tester.tap(find.text('Criar ATF'));
+      await tester.tap(find.text('Criar IATF'));
       await tester.pumpAndSettle();
 
       expect(
@@ -263,30 +264,30 @@ void main() {
 
     testWidgets('unselected touro: shows the bull-selection message',
         (tester) async {
-      final repo = _FakeAtfRepository();
+      final repo = _FakeIatfRepository();
       await tester.pumpWidget(_buildApp(repo: repo));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nome do ATF *'),
-        'ATF Primavera',
+        find.widgetWithText(TextFormField, 'Nome do IATF *'),
+        'IATF Primavera',
       );
-      await tester.tap(find.text('Criar ATF'));
+      await tester.tap(find.text('Criar IATF'));
       await tester.pumpAndSettle();
 
       expect(
         find.text('Selecione um touro ou informe sêmen externo'),
         findsOneWidget,
       );
-      expect(find.text('Nome do ATF é obrigatório'), findsNothing);
+      expect(find.text('Nome do IATF é obrigatório'), findsNothing);
       expect(repo.createCallCount, 0);
     });
 
     testWidgets(
         'selecting the external-semen sentinel reveals the free-text bull field',
         (tester) async {
-      final repo = _FakeAtfRepository();
+      final repo = _FakeIatfRepository();
       await tester.pumpWidget(_buildApp(repo: repo));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
@@ -310,21 +311,21 @@ void main() {
     testWidgets(
         'valid submission with a real touro persists a readable bullName (WR-01)',
         (tester) async {
-      final repo = _FakeAtfRepository();
+      final repo = _FakeIatfRepository();
       await tester.pumpWidget(_buildApp(repo: repo, animals: [_touro]));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nome do ATF *'),
-        'ATF Primavera',
+        find.widgetWithText(TextFormField, 'Nome do IATF *'),
+        'IATF Primavera',
       );
       await tester.tap(find.byType(DropdownButtonFormField<String?>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('#12').last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Criar ATF'));
+      await tester.tap(find.text('Criar IATF'));
       await tester.pumpAndSettle();
 
       expect(repo.createCallCount, 1);
@@ -335,7 +336,7 @@ void main() {
     testWidgets(
         'valid submission with a real touro with breed persists "#num — breed" (WR-01)',
         (tester) async {
-      final repo = _FakeAtfRepository();
+      final repo = _FakeIatfRepository();
       await tester.pumpWidget(
         _buildApp(repo: repo, animals: [_touro, _touroComBreed]),
       );
@@ -343,15 +344,15 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nome do ATF *'),
-        'ATF Primavera',
+        find.widgetWithText(TextFormField, 'Nome do IATF *'),
+        'IATF Primavera',
       );
       await tester.tap(find.byType(DropdownButtonFormField<String?>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('#13 — Nelore').last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Criar ATF'));
+      await tester.tap(find.text('Criar IATF'));
       await tester.pumpAndSettle();
 
       expect(repo.createCallCount, 1);
@@ -360,16 +361,16 @@ void main() {
     });
 
     testWidgets(
-        'valid submission via external semen calls createAtf once with bullName set and bullAnimalId null',
+        'valid submission via external semen calls createIatf once with bullName set and bullAnimalId null',
         (tester) async {
-      final repo = _FakeAtfRepository();
+      final repo = _FakeIatfRepository();
       await tester.pumpWidget(_buildApp(repo: repo));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nome do ATF *'),
-        'ATF Primavera',
+        find.widgetWithText(TextFormField, 'Nome do IATF *'),
+        'IATF Primavera',
       );
       await tester.tap(find.byType(DropdownButtonFormField<String?>));
       await tester.pumpAndSettle();
@@ -383,7 +384,7 @@ void main() {
         'Sêmen X123',
       );
 
-      await tester.tap(find.text('Criar ATF'));
+      await tester.tap(find.text('Criar IATF'));
       await tester.pumpAndSettle();
 
       expect(repo.createCallCount, 1);
@@ -392,32 +393,32 @@ void main() {
     });
 
     testWidgets(
-        'repository throw: leaves the dialog open and shows the ATF-creation-failure copy',
+        'repository throw: leaves the dialog open and shows the IATF-creation-failure copy',
         (tester) async {
-      final repo = _FakeAtfRepository(shouldThrow: true);
+      final repo = _FakeIatfRepository(shouldThrow: true);
       await tester.pumpWidget(_buildApp(repo: repo, animals: [_touro]));
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Nome do ATF *'),
-        'ATF Primavera',
+        find.widgetWithText(TextFormField, 'Nome do IATF *'),
+        'IATF Primavera',
       );
       await tester.tap(find.byType(DropdownButtonFormField<String?>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('#12').last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Criar ATF'));
+      await tester.tap(find.text('Criar IATF'));
       await tester.pumpAndSettle();
 
       expect(
         find.text(
-          'Não foi possível criar o ATF. Verifique os dados e tente novamente.',
+          'Não foi possível criar o IATF. Verifique os dados e tente novamente.',
         ),
         findsOneWidget,
       );
-      expect(find.byType(AtfFormDialog), findsOneWidget);
+      expect(find.byType(IatfFormDialog), findsOneWidget);
     });
   });
 }

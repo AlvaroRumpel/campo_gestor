@@ -24,7 +24,7 @@ import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/planilhas/domain/sheet_schema.dart';
 import '../../features/planilhas/presentation/import_flow_screen.dart';
 import '../../features/planilhas/presentation/sanitario_grade_screen.dart';
-import '../../features/reproducao/presentation/atf_detail_screen.dart';
+import '../../features/reproducao/presentation/iatf_detail_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/aplicacao_detail_screen.dart';
 import '../../features/sanitario/presentation/sanitario_screen.dart';
@@ -175,7 +175,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Phase 10 detail route — root-level, outside any shell branch
       // (MEMB-02): the property card's context menu links directly to a
-      // farm's member list, mirroring loteById/atfById/aplicacaoById/
+      // farm's member list, mirroring loteById/iatfById/aplicacaoById/
       // gastosById above.
       GoRoute(
         path: AppRoutes.membrosById,
@@ -191,15 +191,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       // Phase 5 detail route — root-level, outside any shell branch (D-02):
       // reproductive-history rows on the animal ficha (D-14) link directly
-      // to an ATF, mirroring loteById above.
+      // to an IATF, mirroring loteById above.
       GoRoute(
-        path: AppRoutes.atfById,
+        path: AppRoutes.iatfById,
         builder: (ctx, state) =>
-            AtfDetailScreen(atfId: state.pathParameters['atfId']!),
+            IatfDetailScreen(iatfId: state.pathParameters['iatfId']!),
       ),
       // Phase 6 detail route — root-level, outside any shell branch (D-19):
       // reachable from three list origins (global aplicações list, lote
-      // history section, animal ficha), mirroring loteById/atfById above.
+      // history section, animal ficha), mirroring loteById/iatfById above.
       GoRoute(
         path: AppRoutes.aplicacaoById,
         builder: (ctx, state) =>
@@ -216,13 +216,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.importar,
         builder: (ctx, state) => ImportFlowScreen(
           entity: SheetEntity.values.byName(state.pathParameters['entity']!),
-          atfId: state.uri.queryParameters['atf'],
+          iatfId: state.uri.queryParameters['iatf'],
         ),
       ),
       // Phase 7 detail route — root-level, outside any shell branch (D-08):
       // the expense list for one paddock, reached from
       // PaddockDetailScreen's summary card and by deep link, mirroring
-      // loteById/atfById/aplicacaoById above.
+      // loteById/iatfById/aplicacaoById above.
       GoRoute(
         path: AppRoutes.gastosById,
         builder: (ctx, state) =>

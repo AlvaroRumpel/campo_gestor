@@ -31,7 +31,7 @@ bool canManageExpenses(
 /// desabilitado (nunca um `IconButton`/segmento renderizado com
 /// `onPressed: null`). Adicionado para não duplicar um sexto `_canEdit`
 /// privado — os cinco já existentes (`animais_screen`, `animal_detail_screen`,
-/// `lote_detail_screen`, `piquetes_screen`, `atf_detail_screen`) permanecem
+/// `lote_detail_screen`, `piquetes_screen`, `iatf_detail_screen`) permanecem
 /// como estão.
 bool isVeterinarian(
   SelectedProperty? current,

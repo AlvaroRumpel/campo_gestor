@@ -6,7 +6,7 @@ import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../piquetes/data/piquete_model.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../../planilhas/domain/sheet_schema.dart';
 import '../../planilhas/presentation/export_button.dart';
@@ -29,6 +29,7 @@ const _kFlexCategoria = 2;
 const _kFlexRaca = 2;
 const _kFlexLote = 2;
 const _kFlexPiquete = 2;
+const _kFlexObs = 3;
 
 final _dateFmtShort = DateFormat('dd/MM/yy');
 
@@ -358,6 +359,8 @@ class AnimaisTableView extends ConsumerWidget {
                     flex: _kFlexLote, child: _HeaderText('LOTE')),
                 const Expanded(
                     flex: _kFlexPiquete, child: _HeaderText('PIQUETE')),
+                const Expanded(
+                    flex: _kFlexObs, child: _HeaderText('OBSERVAÇÃO')),
                 const SizedBox(
                   width: _kColUa,
                   child: _HeaderText('UA', align: TextAlign.right),
@@ -416,7 +419,7 @@ class AnimaisTableView extends ConsumerWidget {
     final selected = a.id == selectedId;
     final categoryLabel = kCategoryLabels[a.category] ?? a.category;
     final ua = kUaWeights[a.category] ?? 0.0;
-    final reproStatus = reproStatusMap[a.id] ?? AnimalReproStatus.foraDoAtf;
+    final reproStatus = reproStatusMap[a.id] ?? AnimalReproStatus.foraDoIatf;
     final breed = a.breed;
     final breedLabel =
         breed == null || breed.trim().isEmpty ? '—' : breed;
@@ -462,6 +465,24 @@ class AnimaisTableView extends ConsumerWidget {
           Expanded(
             flex: _kFlexPiquete,
             child: Text(aw.paddockName, overflow: TextOverflow.ellipsis),
+          ),
+          Expanded(
+            flex: _kFlexObs,
+            child: Tooltip(
+              message: a.observation ?? '',
+              waitDuration: const Duration(milliseconds: 600),
+              child: Text(
+                (a.observation == null || a.observation!.trim().isEmpty)
+                    ? '—'
+                    : a.observation!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
           ),
           SizedBox(
             width: _kColUa,

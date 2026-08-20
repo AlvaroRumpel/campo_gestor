@@ -1,4 +1,4 @@
-// REPR-03, REPR-04 — EncerrarAtfDialog widget tests (05-UI-SPEC.md section 5, E7).
+// REPR-03, REPR-04 — EncerrarIatfDialog widget tests (05-UI-SPEC.md section 5, E7).
 // Covers the loading/error states the classifier initially missed (kind
 // correction, confirmed with the user) plus the fixed-width/one-line-title
 // long-text case.
@@ -6,28 +6,28 @@ import 'dart:async';
 
 import 'package:campo_gestor/core/services/supabase_service.dart';
 import 'package:campo_gestor/core/widgets/ui.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
-import 'package:campo_gestor/features/reproducao/presentation/encerrar_atf_dialog.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
+import 'package:campo_gestor/features/reproducao/presentation/encerrar_iatf_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // ---------------------------------------------------------------------------
-// Fake repository — extends AtfRepository; overrides never call _service
+// Fake repository — extends IatfRepository; overrides never call _service
 // ---------------------------------------------------------------------------
 
-class _FakeAtfRepo extends AtfRepository {
-  _FakeAtfRepo({this.shouldThrow = false}) : super(SupabaseService());
+class _FakeIatfRepo extends IatfRepository {
+  _FakeIatfRepo({this.shouldThrow = false}) : super(SupabaseService());
 
   final bool shouldThrow;
   int closeCallCount = 0;
-  String? capturedAtfId;
+  String? capturedIatfId;
 
   @override
-  Future<void> closeAtf(String atfBatchId) async {
+  Future<void> closeIatf(String iatfBatchId) async {
     closeCallCount++;
     if (shouldThrow) throw Exception('boom');
-    capturedAtfId = atfBatchId;
+    capturedIatfId = iatfBatchId;
   }
 }
 
@@ -37,14 +37,14 @@ class _FakeAtfRepo extends AtfRepository {
 // ---------------------------------------------------------------------------
 
 Widget _buildHost({
-  String atfId = 'atf-1',
-  String atfName = 'ATF Primavera',
+  String iatfId = 'iatf-1',
+  String iatfName = 'IATF Primavera',
   int pendingCount = 0,
-  AtfRepository? repo,
+  IatfRepository? repo,
 }) {
   return ProviderScope(
     overrides: [
-      atfRepositoryProvider.overrideWithValue(repo ?? _FakeAtfRepo()),
+      iatfRepositoryProvider.overrideWithValue(repo ?? _FakeIatfRepo()),
     ],
     child: MaterialApp(
       localizationsDelegates: const [
@@ -55,13 +55,13 @@ Widget _buildHost({
         body: Builder(
           builder: (context) => Center(
             child: TextButton(
-              // Mirrors the app's own call site (atf_detail_screen.dart):
+              // Mirrors the app's own call site (iatf_detail_screen.dart):
               // sheet-style content hosted via showAdaptiveForm.
               onPressed: () => showAdaptiveForm<bool>(
                 context: context,
-                builder: (_) => EncerrarAtfDialog(
-                  atfId: atfId,
-                  atfName: atfName,
+                builder: (_) => EncerrarIatfDialog(
+                  iatfId: iatfId,
+                  iatfName: iatfName,
                   pendingCount: pendingCount,
                 ),
               ),
@@ -84,7 +84,7 @@ Future<void> _openDialog(WidgetTester tester) async {
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('EncerrarAtfDialog (REPR-03, REPR-04, 05-UI-SPEC section 5/E7)', () {
+  group('EncerrarIatfDialog (REPR-03, REPR-04, 05-UI-SPEC section 5/E7)', () {
     testWidgets('body prose and both footer actions render', (tester) async {
       await tester.pumpWidget(_buildHost());
       await _openDialog(tester);
@@ -122,13 +122,13 @@ void main() {
       expect(find.textContaining('sem DG registrado'), findsNothing);
     });
 
-    testWidgets('tapping "Encerrar" calls closeAtf exactly once and pops with true',
+    testWidgets('tapping "Encerrar" calls closeIatf exactly once and pops with true',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       String? result;
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [atfRepositoryProvider.overrideWithValue(repo)],
+          overrides: [iatfRepositoryProvider.overrideWithValue(repo)],
           child: MaterialApp(
             localizationsDelegates: const [
               DefaultMaterialLocalizations.delegate,
@@ -140,9 +140,9 @@ void main() {
                   onPressed: () async {
                     final confirmed = await showAdaptiveForm<bool>(
                       context: context,
-                      builder: (_) => const EncerrarAtfDialog(
-                        atfId: 'atf-9',
-                        atfName: 'ATF Outono',
+                      builder: (_) => const EncerrarIatfDialog(
+                        iatfId: 'iatf-9',
+                        iatfName: 'IATF Outono',
                         pendingCount: 0,
                       ),
                     );
@@ -161,16 +161,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.closeCallCount, 1);
-      expect(repo.capturedAtfId, 'atf-9');
+      expect(repo.capturedIatfId, 'iatf-9');
       expect(result, 'popped-true');
-      expect(find.byType(EncerrarAtfDialog), findsNothing);
+      expect(find.byType(EncerrarIatfDialog), findsNothing);
     });
 
     testWidgets(
         'while the repository call is in flight the confirm button is disabled '
         'and the dialog stays mounted (no optimistic dismissal)',
         (tester) async {
-      final repo = _SlowFakeAtfRepo();
+      final repo = _SlowFakeIatfRepo();
       await tester.pumpWidget(_buildHost(repo: repo));
       await _openDialog(tester);
 
@@ -181,7 +181,7 @@ void main() {
       // dialog is still mounted, and the confirm control is unreachable by
       // its former text (it now shows a spinner, not "Encerrar").
       expect(find.byType(LinearProgressIndicator), findsWidgets);
-      expect(find.byType(EncerrarAtfDialog), findsOneWidget);
+      expect(find.byType(EncerrarIatfDialog), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Encerrar'), findsNothing);
 
       repo.complete();
@@ -191,27 +191,27 @@ void main() {
     testWidgets(
         'a repository throw leaves the dialog mounted and renders the '
         'encerramento-failure copy', (tester) async {
-      final repo = _FakeAtfRepo(shouldThrow: true);
+      final repo = _FakeIatfRepo(shouldThrow: true);
       await tester.pumpWidget(_buildHost(repo: repo));
       await _openDialog(tester);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Encerrar'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(EncerrarAtfDialog), findsOneWidget);
+      expect(find.byType(EncerrarIatfDialog), findsOneWidget);
       expect(
-        find.text('Não foi possível encerrar o ATF. Tente novamente.'),
+        find.text('Não foi possível encerrar o IATF. Tente novamente.'),
         findsOneWidget,
       );
     });
 
     testWidgets(
-        'a very long ATF name renders on one line without a layout overflow error',
+        'a very long IATF name renders on one line without a layout overflow error',
         (tester) async {
       await tester.pumpWidget(
         _buildHost(
-          atfName:
-              'ATF Primavera Verão Outono Inverno Ciclo Muito Longo Demais Para Uma Linha Só',
+          iatfName:
+              'IATF Primavera Verão Outono Inverno Ciclo Muito Longo Demais Para Uma Linha Só',
         ),
       );
       await _openDialog(tester);
@@ -221,10 +221,10 @@ void main() {
   });
 }
 
-/// A repo whose [closeAtf] does not resolve until [complete] is called —
+/// A repo whose [closeIatf] does not resolve until [complete] is called —
 /// isolates the in-flight/no-optimistic-dismissal assertion from timing.
-class _SlowFakeAtfRepo extends AtfRepository {
-  _SlowFakeAtfRepo() : super(SupabaseService());
+class _SlowFakeIatfRepo extends IatfRepository {
+  _SlowFakeIatfRepo() : super(SupabaseService());
 
   final _completer = Completer<void>();
 
@@ -233,5 +233,5 @@ class _SlowFakeAtfRepo extends AtfRepository {
   }
 
   @override
-  Future<void> closeAtf(String atfBatchId) => _completer.future;
+  Future<void> closeIatf(String iatfBatchId) => _completer.future;
 }

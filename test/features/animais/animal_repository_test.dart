@@ -47,7 +47,7 @@ void main() {
     // to the `register_baixa` RPC in Phase 5 (05-07) — the public signature
     // is unchanged so BaixaDialog and every fake repository in the test
     // suite keep compiling. See 05-03-PLAN.md for the RPC's server-side
-    // role guard, concurrency re-check, and D-19 ATF-membership side effect.
+    // role guard, concurrency re-check, and D-19 IATF-membership side effect.
     test(
         'registerBaixa still exists with required id, reason, date and optional observation',
         () {

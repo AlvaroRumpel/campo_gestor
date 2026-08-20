@@ -68,7 +68,7 @@ class ExpenseRepository {
   /// trigger own those (D-27).
   Future<Expense> createExpense({
     required String propertyId,
-    required String paddockId,
+    String? paddockId,
     required String category,
     required double amount,
     required DateTime expenseDate,
@@ -77,7 +77,7 @@ class ExpenseRepository {
     final trimmedDescription = description?.trim();
     final row = await _service.client.from('expenses').insert({
       'property_id': propertyId,
-      'paddock_id': paddockId,
+      if (paddockId != null) 'paddock_id': paddockId,
       'category': category,
       'amount': amount,
       'expense_date': expenseDate.toIso8601String().split('T').first,

@@ -1,14 +1,14 @@
 // Task 3, quick task 260813-r4s — ReproducaoScreen desktop master-detail
-// (>=Breakpoints.rail): ReproducaoTableView + AtfDetailPanel, mobile path
+// (>=Breakpoints.rail): ReproducaoTableView + IatfDetailPanel, mobile path
 // untouched. Follows animais_desktop_test.dart's setSurfaceSize harness and
 // reproducao_screen_test.dart's fake-data/router pattern.
 import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/core/router/routes.dart';
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
-import 'package:campo_gestor/features/reproducao/presentation/atf_detail_panel.dart';
+import 'package:campo_gestor/features/reproducao/presentation/iatf_detail_panel.dart';
 import 'package:campo_gestor/features/reproducao/presentation/reproducao_screen.dart';
 import 'package:campo_gestor/features/reproducao/presentation/reproducao_table_view.dart';
 import 'package:flutter/material.dart';
@@ -23,12 +23,12 @@ import 'package:go_router/go_router.dart';
 const _prop = SelectedProperty(id: 'prop-1', name: 'Fazenda Alpha');
 const _vetMembership = PropertyMembership(property: _prop, role: 'veterinarian');
 
-AtfBatch _atf({
-  String id = 'atf-1',
-  String name = 'ATF Primavera',
+IatfBatch _atf({
+  String id = 'iatf-1',
+  String name = 'IATF Primavera',
   bool active = true,
 }) =>
-    AtfBatch(
+    IatfBatch(
       id: id,
       propertyId: 'prop-1',
       name: name,
@@ -38,16 +38,16 @@ AtfBatch _atf({
       createdAt: DateTime(2026, 9, 12),
     );
 
-AtfSummary _summary({
-  required AtfBatch atf,
+IatfSummary _summary({
+  required IatfBatch iatf,
   int animalCount = 0,
   DgSummary dgSummary = const DgSummary(pregnant: 0, total: 0, pending: 0),
 }) =>
-    AtfSummary(atf: atf, animalCount: animalCount, dgSummary: dgSummary);
+    IatfSummary(iatf: iatf, animalCount: animalCount, dgSummary: dgSummary);
 
-final _fakeAtfs = <AtfSummary>[
+final _fakeIatfs = <IatfSummary>[
   _summary(
-    atf: _atf(),
+    iatf: _atf(),
     animalCount: 3,
     dgSummary: const DgSummary(pregnant: 1, total: 2, pending: 1),
   ),
@@ -58,7 +58,7 @@ final _fakeAtfs = <AtfSummary>[
 // ---------------------------------------------------------------------------
 
 // A fresh GoRouter per pump — a shared top-level instance would keep the
-// location from a prior test's navigation (Continuar DGs -> /atf/:id) alive
+// location from a prior test's navigation (Continuar DGs -> /iatf/:id) alive
 // across the next `_buildScreen`, since GoRouter itself isn't recreated by
 // a new ProviderScope/MaterialApp.router.
 GoRouter _buildRouter() => GoRouter(
@@ -66,26 +66,26 @@ GoRouter _buildRouter() => GoRouter(
         GoRoute(
             path: '/', builder: (context, state) => const ReproducaoScreen()),
         GoRoute(
-          path: AppRoutes.atfById,
+          path: AppRoutes.iatfById,
           builder: (context, state) =>
-              Scaffold(body: Text('atf-${state.pathParameters['atfId']}')),
+              Scaffold(body: Text('iatf-${state.pathParameters['iatfId']}')),
         ),
       ],
     );
 
-Widget _buildScreen({List<AtfSummary>? atfs}) {
+Widget _buildScreen({List<IatfSummary>? atfs}) {
   return ProviderScope(
     overrides: [
-      atfListByPropertyProvider.overrideWith((ref) async => atfs ?? _fakeAtfs),
+      iatfListByPropertyProvider.overrideWith((ref) async => atfs ?? _fakeIatfs),
       memberPropertiesProvider.overrideWith((ref) async => [_vetMembership]),
-      atfActiveMembershipsProvider.overrideWith((ref, id) async => const []),
-      dgRecordsByAtfProvider.overrideWith((ref, id) async => const []),
+      iatfActiveMembershipsProvider.overrideWith((ref, id) async => const []),
+      dgRecordsByIatfProvider.overrideWith((ref, id) async => const []),
     ],
     child: MaterialApp.router(routerConfig: _buildRouter()),
   );
 }
 
-Future<void> _pumpDesktop(WidgetTester tester, {List<AtfSummary>? atfs}) async {
+Future<void> _pumpDesktop(WidgetTester tester, {List<IatfSummary>? atfs}) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.binding.setSurfaceSize(const Size(1440, 900));
   await tester.pumpWidget(_buildScreen(atfs: atfs));
@@ -106,53 +106,53 @@ Future<void> _pumpMobile(WidgetTester tester) async {
 void main() {
   group('ReproducaoScreen — mestre-detalhe desktop (Task 3, 260813-r4s)', () {
     testWidgets(
-        '1440x900: renders ReproducaoTableView, not AtfDetailPanel, with the real-count subtitle',
+        '1440x900: renders ReproducaoTableView, not IatfDetailPanel, with the real-count subtitle',
         (tester) async {
       await _pumpDesktop(tester);
 
       expect(find.byType(ReproducaoTableView), findsOneWidget);
-      expect(find.byType(AtfDetailPanel), findsNothing);
+      expect(find.byType(IatfDetailPanel), findsNothing);
       expect(find.textContaining('DG pendente'), findsWidgets);
     });
 
     testWidgets(
-        'tapping the ATF name in a row shows AtfDetailPanel; the table stays present',
+        'tapping the IATF name in a row shows IatfDetailPanel; the table stays present',
         (tester) async {
       await _pumpDesktop(tester);
 
-      expect(find.byType(AtfDetailPanel), findsNothing);
+      expect(find.byType(IatfDetailPanel), findsNothing);
 
-      await tester.tap(find.text('ATF Primavera').first);
+      await tester.tap(find.text('IATF Primavera').first);
       await tester.pump();
 
-      expect(find.byType(AtfDetailPanel), findsOneWidget);
+      expect(find.byType(IatfDetailPanel), findsOneWidget);
       expect(find.byType(ReproducaoTableView), findsOneWidget);
     });
 
     testWidgets(
-        'with the panel open, tapping "Continuar DGs (N)" navigates to the existing ATF detail route',
+        'with the panel open, tapping "Continuar DGs (N)" navigates to the existing IATF detail route',
         (tester) async {
       await _pumpDesktop(tester);
 
-      await tester.tap(find.text('ATF Primavera').first);
+      await tester.tap(find.text('IATF Primavera').first);
       await tester.pump();
-      expect(find.byType(AtfDetailPanel), findsOneWidget);
+      expect(find.byType(IatfDetailPanel), findsOneWidget);
 
       await tester.tap(find.text('Continuar DGs (1)'));
       await tester.pumpAndSettle();
 
-      expect(find.text('atf-atf-1'), findsOneWidget);
+      expect(find.text('iatf-iatf-1'), findsOneWidget);
     });
 
     testWidgets(
-        '800x600: no ReproducaoTableView/AtfDetailPanel, FAB present, ATF name on a card — mobile path',
+        '800x600: no ReproducaoTableView/IatfDetailPanel, FAB present, IATF name on a card — mobile path',
         (tester) async {
       await _pumpMobile(tester);
 
       expect(find.byType(ReproducaoTableView), findsNothing);
-      expect(find.byType(AtfDetailPanel), findsNothing);
+      expect(find.byType(IatfDetailPanel), findsNothing);
       expect(find.byType(FloatingActionButton), findsOneWidget);
-      expect(find.text('ATF Primavera'), findsOneWidget);
+      expect(find.text('IATF Primavera'), findsOneWidget);
     });
   });
 }

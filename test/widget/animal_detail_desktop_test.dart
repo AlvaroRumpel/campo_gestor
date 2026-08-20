@@ -11,8 +11,8 @@ import 'package:campo_gestor/features/animais/presentation/animal_detail_screen.
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
 import 'package:campo_gestor/features/sanitario/data/sanitary_application_repository.dart';
@@ -60,11 +60,11 @@ final _lotWithPaddock = LotWithPaddockName(
   paddockName: 'Piquete Norte',
 );
 
-final _atfPrimavera = ReproductiveHistoryEntry(
-  atfBatchId: 'atf-1',
-  atfName: 'ATF Primavera',
+final _iatfPrimavera = ReproductiveHistoryEntry(
+  iatfBatchId: 'iatf-1',
+  iatfName: 'IATF Primavera',
   inseminationDate: DateTime(2026, 9, 22),
-  atfActive: true,
+  iatfActive: true,
   lastDgResult: DgResult.pregnant,
   lastDgDate: DateTime(2026, 10, 20),
   dgRecords: const <DgRecord>[],
@@ -151,7 +151,7 @@ void main() {
         animal: _animal,
         role: 'veterinarian',
         lotWithPaddock: _lotWithPaddock,
-        history: [_atfPrimavera],
+        history: [_iatfPrimavera],
       );
 
       expect(find.byKey(const Key('ficha-desktop')), findsOneWidget);
@@ -174,11 +174,11 @@ void main() {
       expect(contextColumn, findsOneWidget);
 
       // Card de reprodução reusa o mesmo provider da timeline — conteúdo do
-      // entry ativo aparece sem request extra. "ATF ATF Primavera · ciclo
+      // entry ativo aparece sem request extra. "IATF IATF Primavera · ciclo
       // ativo" e "última DG dd/MM/yyyy" só existem no card (a timeline usa
       // outro formato de detalhe), então dão asserts exatos e não ambíguos.
-      expect(find.textContaining('ATF Primavera'), findsWidgets);
-      expect(find.text('ATF ATF Primavera · ciclo ativo'), findsOneWidget);
+      expect(find.textContaining('IATF Primavera'), findsWidgets);
+      expect(find.text('IATF IATF Primavera · ciclo ativo'), findsOneWidget);
       expect(find.textContaining('touro: Trovão'), findsWidgets);
       expect(find.textContaining('última DG'), findsOneWidget);
     });

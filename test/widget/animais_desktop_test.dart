@@ -9,7 +9,7 @@ import 'package:campo_gestor/features/animais/presentation/animais_table_view.da
 import 'package:campo_gestor/features/animais/presentation/animal_detail_panel.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_model.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

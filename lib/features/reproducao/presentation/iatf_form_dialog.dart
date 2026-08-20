@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/providers/invalidate_property_data.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
-import '../data/atf_repository.dart';
+import '../../gastos/data/expense_repository.dart';
+import '../data/iatf_repository.dart';
 
 /// Sentinel dropdown value for the "Outro / sêmen externo" bull option (D-05).
 const kOtherBull = '__other__';
@@ -17,24 +19,24 @@ String _bullLabel(AnimalWithContext aw) => aw.animal.breed != null
     ? '#${aw.animal.number} — ${aw.animal.breed}'
     : '#${aw.animal.number}';
 
-/// Creation-only dialog for a new LoteATF (REPR-01, D-01, D-05).
+/// Creation-only dialog for a new LoteIATF (REPR-01, D-01, D-05).
 ///
 /// Sheet-style content shown via `showAdaptiveForm` (redesign): title 20/700,
-/// theme inputs, footer Cancelar outline + "Criar ATF" filled h52 r14, with a
+/// theme inputs, footer Cancelar outline + "Criar IATF" filled h52 r14, with a
 /// `LinearProgressIndicator` on top while saving — mirrors `LoteFormDialog`.
 ///
-/// Create-only — no edit path ships this phase, since `atf_batches` has no
+/// Create-only — no edit path ships this phase, since `iatf_batches` has no
 /// UPDATE RLS policy (05-RESEARCH.md assumption A3).
-class AtfFormDialog extends ConsumerStatefulWidget {
-  const AtfFormDialog({super.key, required this.propertyId});
+class IatfFormDialog extends ConsumerStatefulWidget {
+  const IatfFormDialog({super.key, required this.propertyId});
 
   final String propertyId;
 
   @override
-  ConsumerState<AtfFormDialog> createState() => _AtfFormDialogState();
+  ConsumerState<IatfFormDialog> createState() => _IatfFormDialogState();
 }
 
-class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
+class _IatfFormDialogState extends ConsumerState<IatfFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _dateFmt = DateFormat('dd/MM/yyyy');
 
@@ -43,6 +45,9 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
   late final TextEditingController _inseminationCtrl;
   late final TextEditingController _bullNameCtrl;
   late final TextEditingController _obsCtrl;
+  final _timeCtrl = TextEditingController();
+  final _serviceValueCtrl = TextEditingController();
+  TimeOfDay? _inseminationTime;
 
   DateTime _implantationDate = DateTime.now();
   DateTime _inseminationDate = DateTime.now();
@@ -59,13 +64,21 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
         TextEditingController(text: _dateFmt.format(_inseminationDate));
     _bullNameCtrl = TextEditingController();
     _obsCtrl = TextEditingController();
+    // Rebuild para o DiscardGuard reavaliar `dirty` a cada digitação.
+    for (final c in [_nameCtrl, _bullNameCtrl, _obsCtrl, _serviceValueCtrl]) {
+      c.addListener(_onTextChanged);
+    }
   }
+
+  void _onTextChanged() => setState(() {});
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _implantationCtrl.dispose();
     _inseminationCtrl.dispose();
+    _timeCtrl.dispose();
+    _serviceValueCtrl.dispose();
     _bullNameCtrl.dispose();
     _obsCtrl.dispose();
     super.dispose();
@@ -109,18 +122,37 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
     }
   }
 
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _inseminationTime ?? const TimeOfDay(hour: 8, minute: 0),
+    );
+    if (picked == null) return;
+    setState(() {
+      _inseminationTime = picked;
+      _timeCtrl.text =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    });
+  }
+
+  double? _parseServiceValue() {
+    final raw = _serviceValueCtrl.text.trim().replaceAll('.', '').replaceAll(',', '.');
+    if (raw.isEmpty) return null;
+    return double.tryParse(raw);
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
     try {
-      final repo = ref.read(atfRepositoryProvider);
+      final repo = ref.read(iatfRepositoryProvider);
       final obsText = _obsCtrl.text.trim();
       final animals = ref.read(animalListByPropertyProvider).asData?.value ??
           const <AnimalWithContext>[];
       final selectedBull =
           animals.where((aw) => aw.animal.id == _selectedBull).firstOrNull;
-      final created = await repo.createAtf(
+      final created = await repo.createIatf(
         propertyId: widget.propertyId,
         name: _nameCtrl.text.trim(),
         implantationDate: _implantationDate,
@@ -132,7 +164,22 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
             ? _bullNameCtrl.text.trim()
             : (selectedBull != null ? _bullLabel(selectedBull) : null),
         observation: obsText.isEmpty ? null : obsText,
+        inseminationTime: _inseminationTime == null
+            ? null
+            : '${_inseminationTime!.hour.toString().padLeft(2, '0')}:${_inseminationTime!.minute.toString().padLeft(2, '0')}',
       );
+      // Item 9 (ajustes 2026-08-20): valor do serviço vira gasto de
+      // reprodução na propriedade (sem piquete).
+      final serviceValue = _parseServiceValue();
+      if (serviceValue != null && serviceValue > 0) {
+        await ref.read(expenseRepositoryProvider).createExpense(
+              propertyId: widget.propertyId,
+              category: 'reproducao',
+              amount: serviceValue,
+              expenseDate: _inseminationDate,
+              description: 'Serviço IATF — ${_nameCtrl.text.trim()}',
+            );
+      }
       ref.invalidatePropertyData();
       if (mounted) Navigator.pop<String>(context, created.id);
     } catch (_) {
@@ -140,7 +187,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Não foi possível criar o ATF. Verifique os dados e tente novamente.',
+            'Não foi possível criar o IATF. Verifique os dados e tente novamente.',
           ),
         ),
       );
@@ -159,7 +206,14 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
         .toList()
       ..sort((a, b) => a.animal.number.compareTo(b.animal.number));
 
-    return Padding(
+    final dirty = _nameCtrl.text.trim().isNotEmpty ||
+        _bullNameCtrl.text.trim().isNotEmpty ||
+        _obsCtrl.text.trim().isNotEmpty ||
+        _serviceValueCtrl.text.trim().isNotEmpty ||
+        _inseminationTime != null;
+    return DiscardGuard(
+      dirty: dirty && !_saving,
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
       child: Form(
         key: _formKey,
@@ -173,7 +227,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                 child: LinearProgressIndicator(),
               ),
             const Text(
-              'Novo ATF',
+              'Novo IATF',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 14),
@@ -187,10 +241,10 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                       controller: _nameCtrl,
                       autofocus: true,
                       decoration: const InputDecoration(
-                        labelText: 'Nome do ATF *',
+                        labelText: 'Nome do IATF *',
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Nome do ATF é obrigatório'
+                          ? 'Nome do IATF é obrigatório'
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -222,6 +276,35 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                           return 'Data de inseminação deve ser igual ou posterior à data de implantação';
                         }
                         return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _timeCtrl,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Horário da aplicação/inseminação',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.schedule),
+                          onPressed: _pickTime,
+                        ),
+                      ),
+                      onTap: _pickTime,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _serviceValueCtrl,
+                      decoration: const InputDecoration(
+                        labelText: r'Valor do serviço (R$)',
+                        hintText: 'Lançado nos gastos como Reprodução',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        return _parseServiceValue() == null
+                            ? 'Valor inválido'
+                            : null;
                       },
                     ),
                     const SizedBox(height: 16),
@@ -306,13 +389,14 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Criar ATF'),
+                        : const Text('Criar IATF'),
                   ),
                 ),
               ],
             ),
           ],
         ),
+      ),
       ),
     );
   }

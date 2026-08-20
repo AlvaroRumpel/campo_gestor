@@ -12,8 +12,8 @@ import 'package:campo_gestor/features/animais/presentation/animal_detail_screen.
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/features/lotes/data/lote_model.dart';
 import 'package:campo_gestor/features/lotes/data/lote_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
 import 'package:campo_gestor/features/sanitario/data/sanitary_application_model.dart';
 import 'package:campo_gestor/features/sanitario/data/sanitary_application_repository.dart';
@@ -53,31 +53,31 @@ const _readerMembership = PropertyMembership(property: _prop, role: 'reader');
 // Sample reproductive history entries (REPR-05, D-14)
 // ---------------------------------------------------------------------------
 
-final _atfPrimavera = ReproductiveHistoryEntry(
-  atfBatchId: 'atf-1',
-  atfName: 'ATF Primavera',
+final _iatfPrimavera = ReproductiveHistoryEntry(
+  iatfBatchId: 'iatf-1',
+  iatfName: 'IATF Primavera',
   inseminationDate: DateTime(2026, 9, 22),
-  atfActive: true,
+  iatfActive: true,
   lastDgResult: DgResult.pregnant,
   lastDgDate: DateTime(2026, 10, 20),
   dgRecords: const [],
   implantationDate: DateTime(2026, 9, 15),
 );
-final _atfOutono = ReproductiveHistoryEntry(
-  atfBatchId: 'atf-2',
-  atfName: 'ATF Outono',
+final _iatfOutono = ReproductiveHistoryEntry(
+  iatfBatchId: 'iatf-2',
+  iatfName: 'IATF Outono',
   inseminationDate: DateTime(2026, 4, 10),
-  atfActive: false,
+  iatfActive: false,
   lastDgResult: DgResult.notPregnant,
   lastDgDate: DateTime(2026, 5, 12),
   dgRecords: const [],
   implantationDate: DateTime(2026, 4, 3),
 );
-final _atfInverno = ReproductiveHistoryEntry(
-  atfBatchId: 'atf-3',
-  atfName: 'ATF Inverno',
+final _iatfInverno = ReproductiveHistoryEntry(
+  iatfBatchId: 'iatf-3',
+  iatfName: 'IATF Inverno',
   inseminationDate: DateTime(2026, 7, 1),
-  atfActive: true,
+  iatfActive: true,
   lastDgResult: null,
   lastDgDate: null,
   dgRecords: const [],
@@ -166,7 +166,7 @@ Widget _buildScreen({
 
 // ---------------------------------------------------------------------------
 // Router harness (A-NAV-TEST) — asserts timeline event taps navigate to
-// /atf/:atfId and /aplicacoes/:id.
+// /iatf/:iatfId and /aplicacoes/:id.
 // ---------------------------------------------------------------------------
 
 Widget _buildRoutedScreen({
@@ -185,9 +185,9 @@ Widget _buildRoutedScreen({
             AnimalDetailScreen(animalId: state.pathParameters['id']!),
       ),
       GoRoute(
-        path: '/atf/:atfId',
+        path: '/iatf/:iatfId',
         builder: (context, state) => Scaffold(
-          body: Text('atf-detail-${state.pathParameters['atfId']}'),
+          body: Text('iatf-detail-${state.pathParameters['iatfId']}'),
         ),
       ),
       GoRoute(
@@ -379,13 +379,13 @@ void main() {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
         role: 'veterinarian',
-        historyBuilder: (id) async => [_atfPrimavera, _atfInverno, _atfOutono],
+        historyBuilder: (id) async => [_iatfPrimavera, _iatfInverno, _iatfOutono],
       ));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ATF Primavera'), findsOneWidget);
-      expect(find.textContaining('ATF Inverno'), findsOneWidget);
-      expect(find.textContaining('ATF Outono'), findsOneWidget);
+      expect(find.textContaining('IATF Primavera'), findsOneWidget);
+      expect(find.textContaining('IATF Inverno'), findsOneWidget);
+      expect(find.textContaining('IATF Outono'), findsOneWidget);
       // Timeline chip labels (spec 4.4): Prenhe (solid) / Vazia (danger).
       expect(find.text('Prenhe'), findsOneWidget);
       expect(find.text('Vazia'), findsOneWidget);
@@ -393,9 +393,9 @@ void main() {
       // Ordering: Primavera DG (10/2026) > Inverno insem (07/2026) >
       // Outono DG (05/2026).
       final primaveraY =
-          tester.getTopLeft(find.textContaining('ATF Primavera')).dy;
-      final invernoY = tester.getTopLeft(find.textContaining('ATF Inverno')).dy;
-      final outonoY = tester.getTopLeft(find.textContaining('ATF Outono')).dy;
+          tester.getTopLeft(find.textContaining('IATF Primavera')).dy;
+      final invernoY = tester.getTopLeft(find.textContaining('IATF Inverno')).dy;
+      final outonoY = tester.getTopLeft(find.textContaining('IATF Outono')).dy;
       expect(primaveraY, lessThan(invernoY));
       expect(invernoY, lessThan(outonoY));
 
@@ -411,7 +411,7 @@ void main() {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
         role: 'veterinarian',
-        historyBuilder: (id) async => [_atfInverno],
+        historyBuilder: (id) async => [_iatfInverno],
       ));
       await tester.pumpAndSettle();
 
@@ -420,18 +420,18 @@ void main() {
       expect(find.text('Vazia'), findsNothing);
     });
 
-    testWidgets('navigation: tapping a repro event navigates to /atf/:atfId',
+    testWidgets('navigation: tapping a repro event navigates to /iatf/:iatfId',
         (tester) async {
       await tester.pumpWidget(_buildRoutedScreen(
         animal: _activeAnimal,
-        historyBuilder: (id) async => [_atfPrimavera],
+        historyBuilder: (id) async => [_iatfPrimavera],
       ));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.textContaining('ATF Primavera'));
+      await tester.tap(find.textContaining('IATF Primavera'));
       await tester.pumpAndSettle();
 
-      expect(find.text('atf-detail-atf-1'), findsOneWidget);
+      expect(find.text('iatf-detail-iatf-1'), findsOneWidget);
     });
   });
 
@@ -516,7 +516,7 @@ void main() {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
         role: 'veterinarian',
-        historyBuilder: (id) async => [_atfPrimavera],
+        historyBuilder: (id) async => [_iatfPrimavera],
         sanitaryBuilder: (id) async => [
           _app(
             id: 'app-1',
@@ -527,19 +527,19 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ATF Primavera'), findsOneWidget);
+      expect(find.textContaining('IATF Primavera'), findsOneWidget);
       expect(find.text('Ivomec Gold'), findsOneWidget);
 
       await tester.tap(find.text('Sanitário'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ATF Primavera'), findsNothing);
+      expect(find.textContaining('IATF Primavera'), findsNothing);
       expect(find.text('Ivomec Gold'), findsOneWidget);
 
       await tester.tap(find.text('Reprodução'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('ATF Primavera'), findsOneWidget);
+      expect(find.textContaining('IATF Primavera'), findsOneWidget);
       expect(find.text('Ivomec Gold'), findsNothing);
     });
 
@@ -581,7 +581,7 @@ void main() {
       await tester.pumpWidget(_buildScreen(
         animal: _activeAnimal,
         role: 'veterinarian',
-        historyBuilder: (id) async => [_atfPrimavera, _atfOutono],
+        historyBuilder: (id) async => [_iatfPrimavera, _iatfOutono],
       ));
       await tester.pumpAndSettle();
 

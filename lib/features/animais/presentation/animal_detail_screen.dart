@@ -12,8 +12,8 @@ import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../auth/data/property_repository.dart';
 import '../../lotes/data/lote_repository.dart';
-import '../../reproducao/data/atf_model.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_model.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
@@ -714,7 +714,7 @@ class _WideHeader extends ConsumerWidget {
         ref.watch(animalReproStatusByPropertyProvider).asData?.value ??
             const <String, AnimalReproStatus>{};
     final reproStatus =
-        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoAtf;
+        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoIatf;
 
     final lotAsync = ref.watch(loteWithPaddockByIdProvider(animal.lotId));
     final lotData = lotAsync.asData?.value;
@@ -960,7 +960,7 @@ class _ReproCard extends ConsumerWidget {
         ref.watch(animalReproStatusByPropertyProvider).asData?.value ??
             const <String, AnimalReproStatus>{};
     final reproStatus =
-        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoAtf;
+        reproStatusMap[animal.id] ?? AnimalReproStatus.foraDoIatf;
 
     final historyAsync =
         ref.watch(reproductiveHistoryByAnimalProvider(animal.id));
@@ -970,7 +970,7 @@ class _ReproCard extends ConsumerWidget {
     // inseminação desc).
     final entry = entries.isEmpty
         ? null
-        : entries.firstWhere((e) => e.atfActive, orElse: () => entries.first);
+        : entries.firstWhere((e) => e.iatfActive, orElse: () => entries.first);
 
     return SectionCard(
       title: 'Reprodução',
@@ -986,8 +986,8 @@ class _ReproCard extends ConsumerWidget {
             )
           else ...[
             Text(
-              'ATF ${entry.atfName} · '
-              '${entry.atfActive ? 'ciclo ativo' : 'ciclo encerrado'}',
+              'IATF ${entry.iatfName} · '
+              '${entry.iatfActive ? 'ciclo ativo' : 'ciclo encerrado'}',
               style: const TextStyle(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w600,

@@ -5,8 +5,8 @@
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
 import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/core/router/routes.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
 import 'package:campo_gestor/features/reproducao/presentation/reproducao_screen.dart';
 import 'package:flutter/material.dart';
@@ -22,12 +22,12 @@ const _prop = SelectedProperty(id: 'prop-1', name: 'Fazenda Alpha');
 const _vetMembership = PropertyMembership(property: _prop, role: 'veterinarian');
 const _readerMembership = PropertyMembership(property: _prop, role: 'reader');
 
-AtfBatch _atf({
-  String id = 'atf-1',
-  String name = 'ATF Primavera',
+IatfBatch _atf({
+  String id = 'iatf-1',
+  String name = 'IATF Primavera',
   bool active = true,
 }) =>
-    AtfBatch(
+    IatfBatch(
       id: id,
       propertyId: 'prop-1',
       name: name,
@@ -37,12 +37,12 @@ AtfBatch _atf({
       createdAt: DateTime(2026, 9, 12),
     );
 
-AtfSummary _summary({
-  required AtfBatch atf,
+IatfSummary _summary({
+  required IatfBatch iatf,
   int animalCount = 0,
   DgSummary dgSummary = const DgSummary(pregnant: 0, total: 0, pending: 0),
 }) =>
-    AtfSummary(atf: atf, animalCount: animalCount, dgSummary: dgSummary);
+    IatfSummary(iatf: iatf, animalCount: animalCount, dgSummary: dgSummary);
 
 // ---------------------------------------------------------------------------
 // Router stub (go_router needs a MaterialApp.router)
@@ -52,9 +52,9 @@ final _router = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const ReproducaoScreen()),
     GoRoute(
-      path: AppRoutes.atfById,
+      path: AppRoutes.iatfById,
       builder: (context, state) =>
-          Scaffold(body: Text('atf-${state.pathParameters['atfId']}')),
+          Scaffold(body: Text('iatf-${state.pathParameters['iatfId']}')),
     ),
   ],
 );
@@ -64,14 +64,14 @@ final _router = GoRouter(
 // ---------------------------------------------------------------------------
 
 Widget _buildScreen({
-  List<AtfSummary>? atfs,
+  List<IatfSummary>? atfs,
   bool asError = false,
   String role = 'veterinarian',
 }) {
   final membership = role == 'veterinarian' ? _vetMembership : _readerMembership;
   return ProviderScope(
     overrides: [
-      atfListByPropertyProvider.overrideWith((ref) async {
+      iatfListByPropertyProvider.overrideWith((ref) async {
         if (asError) throw Exception('boom');
         return atfs ?? const [];
       }),
@@ -87,51 +87,51 @@ Widget _buildScreen({
 
 void main() {
   group('ReproducaoScreen (REPR-01, REPR-04, 05-UI-SPEC E1/E9)', () {
-    testWidgets('zero ATFs: renders "Nenhum ATF cadastrado"', (tester) async {
+    testWidgets('zero IATFs: renders "Nenhum IATF cadastrado"', (tester) async {
       await tester.pumpWidget(_buildScreen(atfs: const []));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nenhum ATF cadastrado'), findsOneWidget);
+      expect(find.text('Nenhum IATF cadastrado'), findsOneWidget);
       expect(
-        find.text('Crie um ATF para iniciar um ciclo reprodutivo.'),
+        find.text('Crie um IATF para iniciar um ciclo reprodutivo.'),
         findsOneWidget,
       );
     });
 
     testWidgets(
-        'only encerrados, "Ativos" selected: renders "Nenhum ATF ativo"; tapping the "Encerrados" chip reveals the cards',
+        'only encerrados, "Ativos" selected: renders "Nenhum IATF ativo"; tapping the "Encerrados" chip reveals the cards',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atfs: [_summary(atf: _atf(active: false))],
+          atfs: [_summary(iatf: _atf(active: false))],
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Nenhum ATF ativo'), findsOneWidget);
+      expect(find.text('Nenhum IATF ativo'), findsOneWidget);
       expect(
         find.text("Toque em 'Encerrados' para ver o histórico."),
         findsOneWidget,
       );
-      expect(find.text('ATF Primavera'), findsNothing);
+      expect(find.text('IATF Primavera'), findsNothing);
 
       // textContaining matches both the chip's Text.rich and its inner
       // RichText — same widget on screen, so tapping the first is enough.
       await tester.tap(find.textContaining('Encerrados').first);
       await tester.pumpAndSettle();
 
-      expect(find.text('ATF Primavera'), findsOneWidget);
+      expect(find.text('IATF Primavera'), findsOneWidget);
       expect(find.text('Encerrado'), findsOneWidget);
     });
 
     testWidgets(
-        'populated: renders one card per ATF with the name and a "prenhez" string',
+        'populated: renders one card per IATF with the name and a "prenhez" string',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
           atfs: [
             _summary(
-              atf: _atf(),
+              iatf: _atf(),
               animalCount: 2,
               dgSummary: const DgSummary(pregnant: 1, total: 2, pending: 0),
             ),
@@ -140,16 +140,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('ATF Primavera'), findsOneWidget);
+      expect(find.text('IATF Primavera'), findsOneWidget);
       expect(find.textContaining('prenhez'), findsOneWidget);
     });
 
     testWidgets(
-        'zero-animal ATF: renders the aguardando-DG tail and no "%" string',
+        'zero-animal IATF: renders the aguardando-DG tail and no "%" string',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atfs: [_summary(atf: _atf(), animalCount: 0)],
+          atfs: [_summary(iatf: _atf(), animalCount: 0)],
         ),
       );
       await tester.pumpAndSettle();
@@ -158,7 +158,7 @@ void main() {
       expect(find.textContaining('%'), findsNothing);
     });
 
-    testWidgets('FAB "Novo ATF" is present for a veterinarian',
+    testWidgets('FAB "Novo IATF" is present for a veterinarian',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(atfs: const [], role: 'veterinarian'),

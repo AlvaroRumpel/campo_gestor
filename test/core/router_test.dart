@@ -80,9 +80,9 @@ void main() {
     });
   });
 
-  test('AppRoutes.atfById / atfDetail (Phase 5, D-02 root-level route)', () {
-    expect(AppRoutes.atfById, '/atf/:atfId');
-    expect(AppRoutes.atfDetail('abc'), '/atf/abc');
+  test('AppRoutes.iatfById / iatfDetail (Phase 5, D-02 root-level route)', () {
+    expect(AppRoutes.iatfById, '/iatf/:iatfId');
+    expect(AppRoutes.iatfDetail('abc'), '/iatf/abc');
     // The new detail route must NOT leak into the shell-branch-only list.
     expect(AppRoutes.all.length, 6);
   });

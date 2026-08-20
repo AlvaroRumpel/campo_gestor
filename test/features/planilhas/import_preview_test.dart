@@ -8,7 +8,7 @@ void main() {
     existingAnimalNumbers: {1021},
     lotNamesLower: {'lote 03'},
     doseNamesLower: {'ivermectina'},
-    atfAnimalNumbers: {1021},
+    iatfAnimalNumbers: {1021},
   );
   const mapping = {0: 'number', 1: 'category', 2: 'body_condition', 3: 'lot_name'};
 
@@ -67,7 +67,7 @@ void main() {
     expect(rows[2].errors.single, 'Dose "Aftosa" não existe');
   });
 
-  test('dg exige animal no ATF e resultado válido', () {
+  test('dg exige animal no IATF e resultado válido', () {
     const t = SheetTable(headers: ['N', 'R', 'D'], rows: [
       ['1021', 'Prenhe', '01/08/2026'],
       ['1022', 'Prenhe', '01/08/2026'],
@@ -80,7 +80,7 @@ void main() {
       ctx: ctx,
     );
     expect(rows[0].values['result'], 'pregnant');
-    expect(rows[1].errors.single, 'Animal nº 1022 não está neste ATF');
+    expect(rows[1].errors.single, 'Animal nº 1022 não está neste IATF');
     expect(rows[2].errors.single, contains('"Talvez" inválid'));
   });
 

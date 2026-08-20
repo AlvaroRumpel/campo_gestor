@@ -34,12 +34,12 @@ class ExpenseFormDialog extends ConsumerStatefulWidget {
   const ExpenseFormDialog({
     super.key,
     required this.propertyId,
-    required this.paddockId,
+    this.paddockId,
     this.expense,
   });
 
   final String propertyId;
-  final String paddockId;
+  final String? paddockId;
   final Expense? expense;
 
   @override

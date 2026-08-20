@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../core/router/routes.dart';
 import '../../../core/widgets/ui.dart';
-import '../data/atf_model.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_model.dart';
+import '../data/iatf_repository.dart';
 import '../data/dg_record_model.dart';
 
 /// dd/MM/yyyy, used only for the DG sub-row date inside the expansion (D-09)
@@ -36,8 +36,8 @@ final _dgDateFmt = DateFormat('dd/MM/yyyy', 'pt_BR');
 
 /// Read-only reproductive history list on the animal ficha (REPR-05, D-14).
 ///
-/// One row per ATF the animal participated in — active or closed alike —
-/// ordered by insemination date descending, each showing that ATF's most
+/// One row per IATF the animal participated in — active or closed alike —
+/// ordered by insemination date descending, each showing that IATF's most
 /// recent DG result. D-13 makes this block strictly read-only: no mutation
 /// call, no interactive control, for any role. Same outlined-card shell
 /// (rounded 12, outline 38%, colorScheme.surface) as the sanitary history
@@ -89,7 +89,7 @@ class AnimalReproductiveHistorySection extends ConsumerWidget {
               data: (entries) {
                 if (entries.isEmpty) {
                   return Text(
-                    'Nenhum ATF registrado para este animal.',
+                    'Nenhum IATF registrado para este animal.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -113,8 +113,8 @@ class AnimalReproductiveHistorySection extends ConsumerWidget {
 }
 
 /// One row of [AnimalReproductiveHistorySection] — D-14 format:
-/// "[ATF nome] — insem. [DD/MM] · [último DG] · [status]", navigating to
-/// `/atf/:atfId` on tap (D-02).
+/// "[IATF nome] — insem. [DD/MM] · [último DG] · [status]", navigating to
+/// `/iatf/:iatfId` on tap (D-02).
 class _ReproductiveHistoryRow extends StatelessWidget {
   const _ReproductiveHistoryRow({required this.entry, required this.dateFmt});
 
@@ -140,7 +140,7 @@ class _ReproductiveHistoryRow extends StatelessWidget {
       );
     }
 
-    final statusBadge = entry.atfActive
+    final statusBadge = entry.iatfActive
         ? Chip(
             label: const Text('Ativo'),
             backgroundColor: Colors.transparent,
@@ -156,7 +156,7 @@ class _ReproductiveHistoryRow extends StatelessWidget {
     final hasBull = bullName != null && bullName.trim().isNotEmpty;
 
     final summary = InkWell(
-      onTap: () => context.go(AppRoutes.atfDetail(entry.atfBatchId)),
+      onTap: () => context.go(AppRoutes.iatfDetail(entry.iatfBatchId)),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Wrap(
@@ -165,7 +165,7 @@ class _ReproductiveHistoryRow extends StatelessWidget {
           runSpacing: 4,
           children: [
             Text(
-              '${entry.atfName} — insem. ${dateFmt.format(entry.inseminationDate)}',
+              '${entry.iatfName} — insem. ${dateFmt.format(entry.inseminationDate)}',
               style: theme.textTheme.bodyLarge,
             ),
             const Text('·'),
@@ -181,7 +181,7 @@ class _ReproductiveHistoryRow extends StatelessWidget {
     );
 
     // Expand affordance only when there is more than one DG to reveal — a
-    // 0- or 1-DG ATF's collapsed row already shows everything there is
+    // 0- or 1-DG IATF's collapsed row already shows everything there is
     // (D-08, UI-SPEC zero-one-many). This ExpansionTile is the project's
     // first use of the widget; the summary (with its own InkWell) sits in
     // `title`, so a tap on the summary text still navigates while a tap on
@@ -198,7 +198,7 @@ class _ReproductiveHistoryRow extends StatelessWidget {
   }
 }
 
-/// One DG sub-row inside an ATF's [ExpansionTile] (D-08/D-09) — date, a
+/// One DG sub-row inside an IATF's [ExpansionTile] (D-08/D-09) — date, a
 /// result chip sharing [_dgResultColors] with the collapsed row's own chip,
 /// and the observation when present. The observation is a `Column` sibling
 /// of the date/chip `Wrap`, not a member of it, so it gets a bounded width

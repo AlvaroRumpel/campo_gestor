@@ -10,7 +10,7 @@ sealed class DgRecord with _$DgRecord {
   const factory DgRecord({
     required String id,
     required String propertyId,
-    required String atfBatchId,
+    required String iatfBatchId,
     required String animalId,
     required String result,
     required DateTime examDate,

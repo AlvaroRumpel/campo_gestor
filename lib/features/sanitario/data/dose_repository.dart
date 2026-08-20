@@ -131,7 +131,7 @@ final doseRepositoryProvider = Provider<DoseRepository>(
 /// Active doses in the active property, ordered by name.
 ///
 /// Resolves [currentPropertyProvider] internally, matching
-/// [atfListByPropertyProvider]'s shape, so consuming widgets never pass a
+/// [iatfListByPropertyProvider]'s shape, so consuming widgets never pass a
 /// property id. Returns [] when no property is selected.
 final doseListByPropertyProvider = FutureProvider<List<Dose>>((ref) async {
   final property = await ref.watch(currentPropertyProvider.future);
