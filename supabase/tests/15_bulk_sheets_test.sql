@@ -118,15 +118,17 @@ SELECT is(
 INSERT INTO _r (line)
 SELECT throws_ok(
   $$SELECT bulk_upsert_animals('a0000000-0015-0015-0015-000000000001',
-    '[{"number":501,"category":"vaca","lot_name":"Lote A1"},
-      {"number":502,"category":"vaca","lot_name":"Nao Existe"}]'::jsonb)$$,
+    '[{"number":701,"category":"vaca","lot_name":"Lote A1"},
+      {"number":702,"category":"vaca","lot_name":"Nao Existe"}]'::jsonb)$$,
   'P0001', 'linha 2: lote "Nao Existe" não encontrado',
   'animals: unknown lot raises with line number');
 
 INSERT INTO _r (line)
 SELECT is(
+  -- 701, não 501: o animal de número gerado do teste 5 vira exatamente 501
+  -- (max 500 + 1) — 501 aqui colidia com ele e dava falso negativo.
   (SELECT count(*) FROM animals
-    WHERE number = 501 AND property_id = 'a0000000-0015-0015-0015-000000000001'),
+    WHERE number = 701 AND property_id = 'a0000000-0015-0015-0015-000000000001'),
   0::bigint, 'animals: whole batch rolled back on error');
 
 INSERT INTO _r (line)
