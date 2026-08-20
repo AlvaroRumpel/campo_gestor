@@ -538,6 +538,47 @@ abstract final class FormWidth {
   static const double wide = 680;
 }
 
+
+/// Guarda contra fechamento acidental de formulário com dados digitados
+/// (clique fora do dialog / gesto de voltar). Envolve o conteúdo do modal:
+/// quando [dirty] é true, o pop vira um diálogo de confirmação.
+class DiscardGuard extends StatelessWidget {
+  const DiscardGuard({super.key, required this.dirty, required this.child});
+
+  final bool dirty;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Descartar cadastro?'),
+            content:
+                const Text('Os dados preenchidos neste formulário serão perdidos.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Continuar preenchendo'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Descartar'),
+              ),
+            ],
+          ),
+        );
+        if (ok == true && context.mounted) Navigator.of(context).pop();
+      },
+      child: child,
+    );
+  }
+}
+
 Future<T?> showAdaptiveForm<T>({
   required BuildContext context,
   required WidgetBuilder builder,

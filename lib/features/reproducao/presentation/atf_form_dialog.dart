@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/providers/invalidate_property_data.dart';
+import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
 import '../data/atf_repository.dart';
@@ -59,7 +60,13 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
         TextEditingController(text: _dateFmt.format(_inseminationDate));
     _bullNameCtrl = TextEditingController();
     _obsCtrl = TextEditingController();
+    // Rebuild para o DiscardGuard reavaliar `dirty` a cada digitação.
+    for (final c in [_nameCtrl, _bullNameCtrl, _obsCtrl]) {
+      c.addListener(_onTextChanged);
+    }
   }
+
+  void _onTextChanged() => setState(() {});
 
   @override
   void dispose() {
@@ -159,7 +166,12 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
         .toList()
       ..sort((a, b) => a.animal.number.compareTo(b.animal.number));
 
-    return Padding(
+    final dirty = _nameCtrl.text.trim().isNotEmpty ||
+        _bullNameCtrl.text.trim().isNotEmpty ||
+        _obsCtrl.text.trim().isNotEmpty;
+    return DiscardGuard(
+      dirty: dirty && !_saving,
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
       child: Form(
         key: _formKey,
@@ -313,6 +325,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

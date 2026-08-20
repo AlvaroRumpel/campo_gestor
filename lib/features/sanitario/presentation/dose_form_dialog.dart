@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/current_property_provider.dart';
+import '../../../core/widgets/ui.dart';
 import '../../../core/providers/invalidate_property_data.dart';
 import '../data/dose_model.dart';
 import '../data/dose_repository.dart';
@@ -62,6 +63,9 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
     // field is typed").
     _dosageCtrl.addListener(_onNumbersChanged);
     _costCtrl.addListener(_onNumbersChanged);
+    // Rebuild para o DiscardGuard reavaliar `dirty` a cada digitação.
+    _nameCtrl.addListener(_onNumbersChanged);
+    _ingredientCtrl.addListener(_onNumbersChanged);
   }
 
   @override
@@ -157,7 +161,20 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
     final computedStyle = theme.textTheme.bodyMedium
         ?.copyWith(color: theme.colorScheme.primary);
 
-    return Padding(
+    final existing = widget.existing;
+    final dirty = existing == null
+        ? (_nameCtrl.text.trim().isNotEmpty ||
+            _ingredientCtrl.text.trim().isNotEmpty ||
+            _dosageCtrl.text.trim().isNotEmpty ||
+            _costCtrl.text.trim().isNotEmpty)
+        : (_nameCtrl.text.trim() != existing.name ||
+            _ingredientCtrl.text.trim() !=
+                (existing.activeIngredient ?? '') ||
+            _parseDouble(_dosageCtrl.text) != existing.dosagePerKg ||
+            _parseDouble(_costCtrl.text) != existing.costPerKg);
+    return DiscardGuard(
+      dirty: dirty && !_saving,
+      child: Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: Form(
         key: _formKey,
@@ -322,6 +339,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
