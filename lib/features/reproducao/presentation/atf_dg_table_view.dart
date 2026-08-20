@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -65,6 +67,77 @@ class AtfDgTableView extends ConsumerStatefulWidget {
 class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
   final Set<String> _selectedIds = {};
   bool _saving = false;
+
+  /// Cliques Prenhe/Vazia acumulados (item 8 dos ajustes 2026-08-20):
+  /// cada clique inline entra aqui e um debounce de 2s dispara UM
+  /// `saveDgRecords` com todos, e UMA snackbar com a contagem.
+  final Map<String, DgResult> _pending = {};
+  Timer? _flushTimer;
+
+  @override
+  void dispose() {
+    _flushTimer?.cancel();
+    if (_pending.isNotEmpty) {
+      // Navegou com pendências: grava sem aguardar (fire-and-forget).
+      _flushNow(showFeedback: false);
+    }
+    super.dispose();
+  }
+
+  void _queueDg(String animalId, DgResult result) {
+    setState(() {
+      final latest = latestDgFor(widget.dgRecords, animalId);
+      final current = _pending[animalId] ??
+          (latest == null ? null : DgResult.fromDb(latest.result));
+      if (current == result && !_pending.containsKey(animalId)) {
+        return; // no-op: já é esse resultado no banco
+      }
+      final saved = latest == null ? null : DgResult.fromDb(latest.result);
+      if (saved == result) {
+        _pending.remove(animalId); // clique de volta cancela o pendente
+      } else {
+        _pending[animalId] = result;
+      }
+    });
+    _flushTimer?.cancel();
+    _flushTimer = Timer(const Duration(seconds: 2), _flushNow);
+  }
+
+  Future<void> _flushNow({bool showFeedback = true}) async {
+    _flushTimer?.cancel();
+    if (_pending.isEmpty) return;
+    final batch = Map<String, DgResult>.of(_pending);
+    _pending.clear();
+    final examDate = _dateOnlyFmt.format(DateTime.now());
+    final records = [
+      for (final e in batch.entries)
+        {
+          'animal_id': e.key,
+          'result': e.value.dbValue,
+          'exam_date': examDate,
+        },
+    ];
+    try {
+      await ref.read(atfRepositoryProvider).saveDgRecords(
+            atfBatchId: widget.atf.id,
+            records: records,
+          );
+      if (!mounted || !showFeedback) return;
+      ref.invalidatePropertyData();
+      final n = batch.length;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(n == 1
+            ? '1 animal atualizado'
+            : '$n animais atualizados'),
+      ));
+    } catch (_) {
+      if (!mounted || !showFeedback) return;
+      setState(() => _pending.addAll(batch)); // devolve para nova tentativa
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao salvar DGs. Tente novamente.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -458,6 +531,8 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
       );
     }
     final isDoubtful = lastResult == DgResult.doubtful;
+    // Pendente (debounce em voo) vence o último DG salvo na exibição.
+    final effectiveResult = _pending[m.animalId] ?? lastResult;
     return SizedBox(
       width: _kColResultado,
       child: Row(
@@ -471,9 +546,9 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
               label: 'Prenhe',
               color: AppColors.primary,
               onColor: AppColors.onGreen,
-              selected: lastResult == DgResult.pregnant,
+              selected: effectiveResult == DgResult.pregnant,
               enabled: !_saving,
-              onTap: () => _registerDg([m.animalId], DgResult.pregnant),
+              onTap: () => _queueDg(m.animalId, DgResult.pregnant),
             ),
           ),
           const SizedBox(width: 6),
@@ -482,9 +557,9 @@ class _AtfDgTableViewState extends ConsumerState<AtfDgTableView> {
               label: 'Vazia',
               color: AppColors.danger,
               onColor: AppColors.onDanger,
-              selected: lastResult == DgResult.notPregnant,
+              selected: effectiveResult == DgResult.notPregnant,
               enabled: !_saving,
-              onTap: () => _registerDg([m.animalId], DgResult.notPregnant),
+              onTap: () => _queueDg(m.animalId, DgResult.notPregnant),
             ),
           ),
         ],

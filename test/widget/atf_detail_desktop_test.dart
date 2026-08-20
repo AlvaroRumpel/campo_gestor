@@ -170,11 +170,16 @@ void main() {
       );
 
       await tester.tap(find.text('Prenhe'));
+      await tester.pump();
+      // Debounce de 2s (ajustes 2026-08-20 item 8): nada gravado ainda.
+      expect(repo.capturedDgRecords, isNull);
+      await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
 
       expect(repo.capturedDgRecords, hasLength(1));
       expect(repo.capturedDgRecords!.single['animal_id'], 'a1');
       expect(repo.capturedDgRecords!.single['result'], 'pregnant');
+      expect(find.text('1 animal atualizado'), findsOneWidget);
     });
 
     testWidgets(
