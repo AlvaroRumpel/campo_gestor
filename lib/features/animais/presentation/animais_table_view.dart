@@ -365,8 +365,9 @@ class AnimaisTableView extends ConsumerWidget {
                   width: _kColUa,
                   child: _HeaderText('UA', align: TextAlign.right),
                 ),
+                const SizedBox(width: 12),
                 const SizedBox(
-                  width: _kColRepro,
+                  width: _kColRepro - 12,
                   child: _HeaderText('REPRODUÇÃO'),
                 ),
                 const SizedBox(

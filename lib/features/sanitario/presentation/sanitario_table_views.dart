@@ -84,7 +84,10 @@ class AplicacoesTableView extends ConsumerWidget {
                   width: _kColCusto,
                   child: _HeaderText('CUSTO', align: TextAlign.right),
                 ),
-                SizedBox(width: _kColStatus, child: _HeaderText('STATUS')),
+                SizedBox(width: 12),
+                SizedBox(
+                    width: _kColStatus - 12,
+                    child: _HeaderText('STATUS')),
                 SizedBox(width: _kColAcao),
               ],
             ),

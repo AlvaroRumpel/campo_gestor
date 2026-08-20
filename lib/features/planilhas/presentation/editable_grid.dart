@@ -86,7 +86,8 @@ class EditableGrid extends StatefulWidget {
   final Widget? footer;
   final String saveLabel;
 
-  /// Substantivo da contagem na barra ("4 animais", "3 doses").
+  /// Substantivo plural da contagem na barra ("animais", "doses").
+  /// O singular é derivado removendo o "s"/"is" final quando a contagem é 1.
   final String changeNoun;
 
   @override
@@ -437,30 +438,19 @@ class _EditableGridState extends State<EditableGrid> {
         decoration: BoxDecoration(
           color: !c.editable
               ? AppColors.surfaceSubtle
-              : isDirty
-                  ? AppColors.accentContainer
-                  : null,
-          border: const Border(
-            bottom: BorderSide(color: AppColors.divider),
-            right: BorderSide(color: AppColors.divider),
-          ),
-          boxShadow: error != null
-              ? const [
-                  BoxShadow(
-                    color: AppColors.danger,
-                    spreadRadius: -1,
-                    blurRadius: 0,
-                  ),
-                ]
-              : isFocused
-                  ? const [
-                      BoxShadow(
-                        color: AppColors.primary,
-                        spreadRadius: -1.5,
-                        blurRadius: 0,
-                      ),
-                    ]
-                  : null,
+              : isEditing
+                  ? AppColors.surface
+                  : isDirty
+                      ? AppColors.accentContainer
+                      : null,
+          border: error != null
+              ? Border.all(color: AppColors.danger, width: 2)
+              : isFocused || isEditing
+                  ? Border.all(color: AppColors.primary, width: 2)
+                  : const Border(
+                      bottom: BorderSide(color: AppColors.divider),
+                      right: BorderSide(color: AppColors.divider),
+                    ),
         ),
         child: content,
       ),
@@ -629,6 +619,13 @@ class GridSaveBar extends StatelessWidget {
   }
 }
 
+/// "animais" → "animal", "doses" → "dose", "linhas" → "linha".
+String singularize(String plural) {
+  if (plural.endsWith('ais')) return '${plural.substring(0, plural.length - 2)}l';
+  if (plural.endsWith('s')) return plural.substring(0, plural.length - 1);
+  return plural;
+}
+
 class _SaveBar extends StatelessWidget {
   const _SaveBar({
     required this.dirtyCells,
@@ -655,8 +652,9 @@ class _SaveBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cellWord = dirtyCells == 1 ? 'célula alterada' : 'células alteradas';
+    final noun = dirtyRows == 1 ? singularize(changeNoun) : changeNoun;
     return GridSaveBar(
-      summary: Text('$dirtyCells $cellWord em $dirtyRows $changeNoun'),
+      summary: Text('$dirtyCells $cellWord em $dirtyRows $noun'),
       error: error,
       canSave: canSave,
       saving: saving,

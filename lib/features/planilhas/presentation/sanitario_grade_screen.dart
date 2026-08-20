@@ -206,10 +206,12 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
         ref.watch(loteListByPropertyProvider).asData?.value ?? const <Lot>[];
     final availableDoses =
         ref.watch(doseListByPropertyProvider).asData?.value ?? const <Dose>[];
-    final animals = _lotId == null
-        ? const <Animal>[]
-        : ref.watch(animalListByLotProvider(_lotId!)).asData?.value ??
-            const <Animal>[];
+    final animals = (_lotId == null
+            ? const <Animal>[]
+            : ref.watch(animalListByLotProvider(_lotId!)).asData?.value ??
+                const <Animal>[])
+        .toList()
+      ..sort((a, b) => a.number.compareTo(b.number));
     final kgPerUa = resolveActiveKgPerUa(ref);
 
     return Scaffold(
@@ -301,8 +303,13 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
           if (_totalMarks > 0)
             GridSaveBar(
               summary: Text(
-                '$_doseCountWithMarks aplicações serão registradas · '
-                '$_totalMarks doses em ${_markedAnimals.length} animais',
+                _doseCountWithMarks == 1
+                    ? '1 aplicação será registrada · '
+                        '$_totalMarks ${_totalMarks == 1 ? 'dose' : 'doses'} '
+                        'em ${_markedAnimals.length} '
+                        '${_markedAnimals.length == 1 ? 'animal' : 'animais'}'
+                    : '$_doseCountWithMarks aplicações serão registradas · '
+                        '$_totalMarks doses em ${_markedAnimals.length} animais',
               ),
               canSave: !_saving,
               saving: _saving,

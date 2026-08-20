@@ -148,8 +148,9 @@ class ReproducaoTableView extends StatelessWidget {
                   width: _kColDgs,
                   child: _HeaderText('DGS', align: TextAlign.right),
                 ),
+                SizedBox(width: 12),
                 SizedBox(
-                  width: _kColPrenhez,
+                  width: _kColPrenhez - 12,
                   child: _HeaderText('PRENHEZ'),
                 ),
                 SizedBox(
