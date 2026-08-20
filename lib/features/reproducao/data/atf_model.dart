@@ -15,6 +15,9 @@ sealed class AtfBatch with _$AtfBatch {
     required String name,
     required DateTime implantationDate,
     required DateTime inseminationDate,
+
+    /// "HH:mm:ss" vindo da coluna `time` (ajustes 2026-08-20, item 3).
+    String? inseminationTime,
     String? bullAnimalId,
     String? bullName,
     String? observation,

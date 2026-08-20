@@ -6,6 +6,7 @@ import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
+import '../../gastos/data/expense_repository.dart';
 import '../data/atf_repository.dart';
 
 /// Sentinel dropdown value for the "Outro / sêmen externo" bull option (D-05).
@@ -44,6 +45,9 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
   late final TextEditingController _inseminationCtrl;
   late final TextEditingController _bullNameCtrl;
   late final TextEditingController _obsCtrl;
+  final _timeCtrl = TextEditingController();
+  final _serviceValueCtrl = TextEditingController();
+  TimeOfDay? _inseminationTime;
 
   DateTime _implantationDate = DateTime.now();
   DateTime _inseminationDate = DateTime.now();
@@ -61,7 +65,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
     _bullNameCtrl = TextEditingController();
     _obsCtrl = TextEditingController();
     // Rebuild para o DiscardGuard reavaliar `dirty` a cada digitação.
-    for (final c in [_nameCtrl, _bullNameCtrl, _obsCtrl]) {
+    for (final c in [_nameCtrl, _bullNameCtrl, _obsCtrl, _serviceValueCtrl]) {
       c.addListener(_onTextChanged);
     }
   }
@@ -73,6 +77,8 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
     _nameCtrl.dispose();
     _implantationCtrl.dispose();
     _inseminationCtrl.dispose();
+    _timeCtrl.dispose();
+    _serviceValueCtrl.dispose();
     _bullNameCtrl.dispose();
     _obsCtrl.dispose();
     super.dispose();
@@ -116,6 +122,25 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
     }
   }
 
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _inseminationTime ?? const TimeOfDay(hour: 8, minute: 0),
+    );
+    if (picked == null) return;
+    setState(() {
+      _inseminationTime = picked;
+      _timeCtrl.text =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+    });
+  }
+
+  double? _parseServiceValue() {
+    final raw = _serviceValueCtrl.text.trim().replaceAll('.', '').replaceAll(',', '.');
+    if (raw.isEmpty) return null;
+    return double.tryParse(raw);
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -139,7 +164,22 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
             ? _bullNameCtrl.text.trim()
             : (selectedBull != null ? _bullLabel(selectedBull) : null),
         observation: obsText.isEmpty ? null : obsText,
+        inseminationTime: _inseminationTime == null
+            ? null
+            : '${_inseminationTime!.hour.toString().padLeft(2, '0')}:${_inseminationTime!.minute.toString().padLeft(2, '0')}',
       );
+      // Item 9 (ajustes 2026-08-20): valor do serviço vira gasto de
+      // reprodução na propriedade (sem piquete).
+      final serviceValue = _parseServiceValue();
+      if (serviceValue != null && serviceValue > 0) {
+        await ref.read(expenseRepositoryProvider).createExpense(
+              propertyId: widget.propertyId,
+              category: 'reproducao',
+              amount: serviceValue,
+              expenseDate: _inseminationDate,
+              description: 'Serviço IATF — ${_nameCtrl.text.trim()}',
+            );
+      }
       ref.invalidatePropertyData();
       if (mounted) Navigator.pop<String>(context, created.id);
     } catch (_) {
@@ -168,7 +208,9 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
 
     final dirty = _nameCtrl.text.trim().isNotEmpty ||
         _bullNameCtrl.text.trim().isNotEmpty ||
-        _obsCtrl.text.trim().isNotEmpty;
+        _obsCtrl.text.trim().isNotEmpty ||
+        _serviceValueCtrl.text.trim().isNotEmpty ||
+        _inseminationTime != null;
     return DiscardGuard(
       dirty: dirty && !_saving,
       child: Padding(
@@ -234,6 +276,35 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                           return 'Data de inseminação deve ser igual ou posterior à data de implantação';
                         }
                         return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _timeCtrl,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'Horário da aplicação/inseminação',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.schedule),
+                          onPressed: _pickTime,
+                        ),
+                      ),
+                      onTap: _pickTime,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _serviceValueCtrl,
+                      decoration: const InputDecoration(
+                        labelText: r'Valor do serviço (R$)',
+                        hintText: 'Lançado nos gastos como Reprodução',
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        return _parseServiceValue() == null
+                            ? 'Valor inválido'
+                            : null;
                       },
                     ),
                     const SizedBox(height: 16),

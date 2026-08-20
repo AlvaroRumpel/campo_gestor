@@ -31,6 +31,7 @@ class _FakeAtfRepository implements AtfRepository {
     required String name,
     required DateTime implantationDate,
     required DateTime inseminationDate,
+    String? inseminationTime,
     String? bullAnimalId,
     String? bullName,
     String? observation,

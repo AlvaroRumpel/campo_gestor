@@ -18,6 +18,7 @@ const List<String> kExpenseCategories = <String>[
   'pastagem_adubacao',
   'combustivel',
   'arrendamento',
+  'reproducao',
   'outros',
 ];
 
@@ -30,6 +31,7 @@ const Map<String, String> kExpenseCategoryLabels = <String, String>{
   'pastagem_adubacao': 'Pastagem/Adubação',
   'combustivel': 'Combustível',
   'arrendamento': 'Arrendamento',
+  'reproducao': 'Reprodução',
   'outros': 'Outros',
 };
 
@@ -44,6 +46,7 @@ const Map<String, IconData> kExpenseCategoryIcons = <String, IconData>{
   'pastagem_adubacao': Icons.eco,
   'combustivel': Icons.local_gas_station,
   'arrendamento': Icons.description,
+  'reproducao': Icons.favorite_outline,
   'outros': Icons.more_horiz,
 };
 
