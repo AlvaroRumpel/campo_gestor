@@ -29,6 +29,7 @@ const _kFlexCategoria = 2;
 const _kFlexRaca = 2;
 const _kFlexLote = 2;
 const _kFlexPiquete = 2;
+const _kFlexObs = 3;
 
 final _dateFmtShort = DateFormat('dd/MM/yy');
 
@@ -358,6 +359,8 @@ class AnimaisTableView extends ConsumerWidget {
                     flex: _kFlexLote, child: _HeaderText('LOTE')),
                 const Expanded(
                     flex: _kFlexPiquete, child: _HeaderText('PIQUETE')),
+                const Expanded(
+                    flex: _kFlexObs, child: _HeaderText('OBSERVAÇÃO')),
                 const SizedBox(
                   width: _kColUa,
                   child: _HeaderText('UA', align: TextAlign.right),
@@ -462,6 +465,24 @@ class AnimaisTableView extends ConsumerWidget {
           Expanded(
             flex: _kFlexPiquete,
             child: Text(aw.paddockName, overflow: TextOverflow.ellipsis),
+          ),
+          Expanded(
+            flex: _kFlexObs,
+            child: Tooltip(
+              message: a.observation ?? '',
+              waitDuration: const Duration(milliseconds: 600),
+              child: Text(
+                (a.observation == null || a.observation!.trim().isEmpty)
+                    ? '—'
+                    : a.observation!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
           ),
           SizedBox(
             width: _kColUa,
