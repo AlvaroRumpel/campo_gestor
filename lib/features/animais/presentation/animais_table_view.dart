@@ -500,7 +500,13 @@ class AnimaisTableView extends ConsumerWidget {
                     'Baixa · ${_baixaLabel(a.baixaReason)}',
                     kind: StatusKind.danger,
                   )
-                : StatusChip(reproStatus.label, kind: reproStatus.chipKind),
+                : reproStatus == AnimalReproStatus.foraDoIatf
+                    ? const Text('—',
+                        style: TextStyle(color: AppColors.textTertiary))
+                    : StatusChip(
+                        reproStatus.label,
+                        kind: reproStatus.chipKind,
+                      ),
           ),
           SizedBox(
             width: _kColCadastro,

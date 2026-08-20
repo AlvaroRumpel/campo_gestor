@@ -232,15 +232,20 @@ class _IconRailItem extends StatelessWidget {
                       color: selected ? AppColors.onGreen : AppColors.onGreenMuted,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      item.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                        color: selected ? AppColors.onGreen : AppColors.onGreenMuted,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        item.label,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight:
+                              selected ? FontWeight.w600 : FontWeight.w400,
+                          color: selected
+                              ? AppColors.onGreen
+                              : AppColors.onGreenMuted,
+                        ),
                       ),
                     ),
                   ],

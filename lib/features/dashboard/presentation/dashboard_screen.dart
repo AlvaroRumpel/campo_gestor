@@ -504,9 +504,24 @@ class _PrenhezCard extends ConsumerWidget {
         data: (all) {
           final actives = all.where((s) => s.iatf.active).toList();
           if (actives.isEmpty) {
-            return const Text(
-              'Nenhum IATF ativo.',
-              style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Nenhum IATF ativo.',
+                  style: TextStyle(
+                      fontSize: 13.5, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  onPressed: () => context.go(AppRoutes.reproducao),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Criar IATF'),
+                ),
+              ],
             );
           }
           final first = actives.first;
