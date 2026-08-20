@@ -6,9 +6,13 @@ import 'property_selector.dart';
 /// App bar verde padrão das telas do shell: seletor de fazenda à esquerda,
 /// título da tela à direita (spec 3.1).
 class CampoAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const CampoAppBar({super.key, required this.title});
+  const CampoAppBar({super.key, required this.title, this.showBack = false});
 
   final String title;
+
+  /// true nas telas root-level fora do shell (grade sanitária, import) —
+  /// mostra a seta de voltar antes do seletor de propriedade.
+  final bool showBack;
 
   @override
   Size get preferredSize => const Size.fromHeight(60);
@@ -20,6 +24,12 @@ class CampoAppBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 14,
       title: Row(
         children: [
+          if (showBack)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.onGreen),
+              tooltip: 'Voltar',
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
           const Expanded(child: PropertySelector()),
           Text(
             title,

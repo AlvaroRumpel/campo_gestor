@@ -140,4 +140,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(saved!.single.values, {'category': 'touro'});
   });
+
+  testWidgets('coluna com suggestions mostra search-select ao editar',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: EditableGrid(
+          columns: const [
+            GridColumn(
+              key: 'breed',
+              label: 'Raça',
+              width: 300,
+              suggestions: ['Nelore', 'Angus', 'Brangus'],
+            ),
+          ],
+          rows: const [
+            GridRow(id: 'a', values: {'breed': null}),
+          ],
+          onSave: (c) async {},
+        ),
+      ),
+    ));
+    await tester.tap(find.text('—'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'an');
+    await tester.pump();
+    // filtra: Angus e Brangus casam "an"; Nelore não
+    expect(find.text('Angus'), findsOneWidget);
+    expect(find.text('Brangus'), findsOneWidget);
+    expect(find.text('Nelore'), findsNothing);
+    // clicar na sugestão comita o valor
+    await tester.tap(find.text('Angus'));
+    await tester.pump();
+    expect(find.textContaining('1 célula'), findsOneWidget);
+  });
 }

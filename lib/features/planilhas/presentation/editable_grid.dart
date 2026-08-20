@@ -22,6 +22,7 @@ class GridColumn {
     this.editable = true,
     this.mono = false,
     this.flex = false,
+    this.suggestions,
   });
 
   final String key;
@@ -36,6 +37,10 @@ class GridColumn {
 
   /// true = ocupa o espaço restante (uma por grade, tipicamente observação).
   final bool flex;
+
+  /// Sugestões para coluna de texto (search-select): em edição a célula
+  /// vira autocomplete filtrando esta lista; digitação livre continua valendo.
+  final List<String>? suggestions;
 }
 
 class GridRow {
@@ -376,6 +381,7 @@ class _EditableGridState extends State<EditableGrid> {
     Widget content;
     if (isEditing && c.editable && c.options == null) {
       content = _InlineEditor(
+        suggestions: c.suggestions,
         initial: _displayText(c, v),
         mono: c.mono || c.type == SheetColumnType.integer ||
             c.type == SheetColumnType.decimal,
@@ -478,8 +484,10 @@ class _InlineEditor extends StatefulWidget {
     required this.onCommitAndNext,
     required this.onCommitAndTab,
     required this.onCancel,
+    this.suggestions,
   });
 
+  final List<String>? suggestions;
   final String initial;
   final bool mono;
   final void Function(String) onCommit;
@@ -493,16 +501,34 @@ class _InlineEditor extends StatefulWidget {
 
 class _InlineEditorState extends State<_InlineEditor> {
   late final _ctrl = TextEditingController(text: widget.initial);
+  final _autoFocusNode = FocusNode();
   bool _handled = false;
 
   @override
   void dispose() {
     _ctrl.dispose();
+    _autoFocusNode.dispose();
     super.dispose();
   }
 
+  Widget _field([TextEditingController? ctrl, FocusNode? focus]) => TextField(
+        controller: ctrl ?? _ctrl,
+        focusNode: focus,
+        autofocus: true,
+        decoration: null,
+        style:
+            widget.mono ? monoStyle(size: 14) : const TextStyle(fontSize: 14),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (text) {
+          _handled = true;
+          widget.onCommitAndNext(text);
+        },
+      );
+
   @override
   Widget build(BuildContext context) {
+    final suggestions = widget.suggestions;
+    final hasSuggestions = suggestions != null && suggestions.isNotEmpty;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): () {
@@ -522,25 +548,60 @@ class _InlineEditorState extends State<_InlineEditor> {
         onFocusChange: (has) {
           if (!has && !_handled) widget.onCommit(_ctrl.text);
         },
-        child: TextField(
-          controller: _ctrl,
-          autofocus: true,
-          decoration: null,
-          style: widget.mono
-              ? monoStyle(size: 14)
-              : const TextStyle(fontSize: 14),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (text) {
-            _handled = true;
-            widget.onCommitAndNext(text);
-          },
-        ),
+        child: !hasSuggestions
+            ? _field()
+            // Search-select: RawAutocomplete usa o Overlay raiz — as
+            // sugestões flutuam sobre as linhas seguintes sem clip.
+            : RawAutocomplete<String>(
+                textEditingController: _ctrl,
+                focusNode: _autoFocusNode,
+                optionsBuilder: (value) {
+                  final q = normalizeHeader(value.text);
+                  return [
+                    for (final s in suggestions)
+                      if (q.isEmpty || normalizeHeader(s).contains(q)) s,
+                  ];
+                },
+                onSelected: (s) {
+                  _handled = true;
+                  widget.onCommit(s);
+                },
+                fieldViewBuilder: (context, ctrl, focus, onSubmit) =>
+                    _field(ctrl, focus),
+                optionsViewBuilder: (context, onSelected, options) => Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.surface,
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(maxHeight: 200, maxWidth: 240),
+                      child: ListView(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        children: [
+                          for (final s in options.take(6))
+                            InkWell(
+                              onTap: () => onSelected(s),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                child: Text(s,
+                                    style: const TextStyle(fontSize: 13.5)),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   }
 }
 
-/// Barra inferior escura de salvar — pública para a grade multi-dose reusar.
 class GridSaveBar extends StatelessWidget {
   const GridSaveBar({
     super.key,
@@ -591,7 +652,9 @@ class GridSaveBar extends StatelessWidget {
           OutlinedButton(
             onPressed: saving ? null : onDiscard,
             style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.transparent,
               foregroundColor: AppColors.onGreen,
+              disabledForegroundColor: AppColors.onGreenMuted,
               side: const BorderSide(color: AppColors.onGreen, width: 1.5),
             ),
             child: const Text('Descartar'),

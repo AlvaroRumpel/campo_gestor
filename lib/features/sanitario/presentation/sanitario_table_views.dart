@@ -279,8 +279,9 @@ class DosesTableView extends StatelessWidget {
                         width: _kColRsUa,
                         child: _HeaderText('R\$/UA', align: TextAlign.right),
                       ),
+                      SizedBox(width: 16),
                       SizedBox(
-                        width: _kColDoseStatus,
+                        width: _kColDoseStatus - 16,
                         child: _HeaderText('STATUS'),
                       ),
                       SizedBox(width: _kColDoseAcoes),
