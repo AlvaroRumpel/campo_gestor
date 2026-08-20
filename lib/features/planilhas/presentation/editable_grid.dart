@@ -234,6 +234,8 @@ class _EditableGridState extends State<EditableGrid> {
         _errors.clear();
         _editing = null;
       });
+    } catch (_) {
+      // onSave já mostrou o erro (SnackBar); edições ficam para nova tentativa.
     } finally {
       if (mounted) setState(() => _saving = false);
     }

@@ -13,6 +13,8 @@ import '../../../core/widgets/ui.dart';
 import '../../auth/data/property_repository.dart';
 import '../../piquetes/data/piquete_model.dart';
 import '../../piquetes/data/piquete_repository.dart';
+import '../../lotes/data/lote_repository.dart';
+import '../../planilhas/presentation/animais_grid_view.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
@@ -55,6 +57,7 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
   String? _paddockId; // null = 'Todos os piquetes'
   bool _showArchived = false;
   bool _sortDescending = false;
+  bool _gridMode = false;
   Timer? _debounce;
   final _searchCtrl = TextEditingController();
 
@@ -388,6 +391,21 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
                       propertyName: currentProperty?.name ?? '',
                       onImport: () =>
                           context.push(AppRoutes.importarFor('animais')),
+                      gridMode: _gridMode,
+                      onGridModeChanged: canEdit && currentProperty != null
+                          ? (v) => setState(() => _gridMode = v)
+                          : null,
+                      body: _gridMode && currentProperty != null
+                          ? AnimaisGridView(
+                              animals: filtered,
+                              lots: ref
+                                      .watch(loteListByPropertyProvider)
+                                      .asData
+                                      ?.value ??
+                                  const [],
+                              propertyId: currentProperty.id,
+                            )
+                          : null,
                     ),
                   ),
                   if (selected != null)
