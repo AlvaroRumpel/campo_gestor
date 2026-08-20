@@ -279,6 +279,14 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
           const SizedBox(width: 10),
           _buildExportButton(currentProperty),
           if (canEdit && currentProperty != null) ...[
+            if (_tab == 0) ...[
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.sanitarioGrade),
+                icon: const Icon(Icons.grid_on, size: 20),
+                label: const Text('Grade'),
+              ),
+            ],
             const SizedBox(width: 10),
             OutlinedButton.icon(
               onPressed: () => context.push(AppRoutes.importarFor(

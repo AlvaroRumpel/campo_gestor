@@ -23,6 +23,7 @@ import '../../features/membros/presentation/membros_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/planilhas/domain/sheet_schema.dart';
 import '../../features/planilhas/presentation/import_flow_screen.dart';
+import '../../features/planilhas/presentation/sanitario_grade_screen.dart';
 import '../../features/reproducao/presentation/atf_detail_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/aplicacao_detail_screen.dart';
@@ -203,6 +204,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.aplicacaoById,
         builder: (ctx, state) =>
             AplicacaoDetailScreen(applicationId: state.pathParameters['id']!),
+      ),
+      // Planilhas: aplicação sanitária em grade multi-dose.
+      GoRoute(
+        path: AppRoutes.sanitarioGrade,
+        builder: (ctx, state) => const SanitarioGradeScreen(),
       ),
       // Planilhas: fluxo de importação (animais/doses/sanitario/dg) —
       // root-level como os detail routes acima.
