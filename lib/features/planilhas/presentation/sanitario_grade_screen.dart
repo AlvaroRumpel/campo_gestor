@@ -252,7 +252,7 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
     final kgPerUa = resolveActiveKgPerUa(ref);
 
     return Scaffold(
-      appBar: const CampoAppBar(title: 'Aplicação em grade'),
+      appBar: const CampoAppBar(title: 'Aplicação em grade', showBack: true),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

@@ -31,6 +31,10 @@ List<Map<String, dynamic>> animalChangesToRows(
           for (final e in ch.values.entries)
             if (e.key == 'lot_id')
               'lot_name': lotNameById[e.value]
+            else if (e.key == 'body_condition')
+              // dropdown 1–5 trafega String no grid; RPC espera int
+              'body_condition':
+                  e.value == null ? null : int.tryParse(e.value.toString())
             else if (e.key != 'category')
               e.key: e.value,
         },
@@ -69,12 +73,24 @@ class AnimaisGridView extends ConsumerWidget {
         type: SheetColumnType.enumeration,
         options: kCategoryLabels,
       ),
-      const GridColumn(key: 'breed', label: 'Raça', width: 170),
+      GridColumn(
+        key: 'breed',
+        label: 'Raça',
+        width: 170,
+        suggestions: {
+          for (final aw in animals)
+            if (aw.animal.breed != null &&
+                aw.animal.breed!.trim().isNotEmpty)
+              aw.animal.breed!.trim(),
+        }.toList()
+          ..sort(),
+      ),
       const GridColumn(
         key: 'body_condition',
         label: 'ECC',
         width: 90,
-        type: SheetColumnType.integer,
+        type: SheetColumnType.enumeration,
+        options: {'1': '1', '2': '2', '3': '3', '4': '4', '5': '5'},
         mono: true,
       ),
       GridColumn(
@@ -140,7 +156,7 @@ class AnimaisGridView extends ConsumerWidget {
                     'number': aw.animal.number,
                     'category': aw.animal.category,
                     'breed': aw.animal.breed,
-                    'body_condition': aw.animal.bodyCondition,
+                    'body_condition': aw.animal.bodyCondition?.toString(),
                     'lot_id': aw.animal.lotId,
                     'observation': aw.animal.observation,
                   },
@@ -148,11 +164,6 @@ class AnimaisGridView extends ConsumerWidget {
             ],
             changeNoun: 'animais',
             validator: (key, value, row) {
-              if (key == 'body_condition' &&
-                  value is int &&
-                  (value < 1 || value > 5)) {
-                return 'ECC deve ser de 1 a 5';
-              }
               if (key == 'category' && value == null) {
                 return 'Categoria é obrigatória';
               }

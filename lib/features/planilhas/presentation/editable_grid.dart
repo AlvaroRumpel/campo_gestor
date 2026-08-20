@@ -22,6 +22,7 @@ class GridColumn {
     this.editable = true,
     this.mono = false,
     this.flex = false,
+    this.suggestions,
   });
 
   final String key;
@@ -36,6 +37,10 @@ class GridColumn {
 
   /// true = ocupa o espaço restante (uma por grade, tipicamente observação).
   final bool flex;
+
+  /// Sugestões para coluna de texto (search-select): em edição a célula
+  /// vira autocomplete filtrando esta lista; digitação livre continua valendo.
+  final List<String>? suggestions;
 }
 
 class GridRow {
@@ -376,6 +381,7 @@ class _EditableGridState extends State<EditableGrid> {
     Widget content;
     if (isEditing && c.editable && c.options == null) {
       content = _InlineEditor(
+        suggestions: c.suggestions,
         initial: _displayText(c, v),
         mono: c.mono || c.type == SheetColumnType.integer ||
             c.type == SheetColumnType.decimal,
@@ -478,8 +484,10 @@ class _InlineEditor extends StatefulWidget {
     required this.onCommitAndNext,
     required this.onCommitAndTab,
     required this.onCancel,
+    this.suggestions,
   });
 
+  final List<String>? suggestions;
   final String initial;
   final bool mono;
   final void Function(String) onCommit;
@@ -501,8 +509,60 @@ class _InlineEditorState extends State<_InlineEditor> {
     super.dispose();
   }
 
+  Widget _field() => TextField(
+        controller: _ctrl,
+        autofocus: true,
+        decoration: null,
+        style:
+            widget.mono ? monoStyle(size: 14) : const TextStyle(fontSize: 14),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (text) {
+          _handled = true;
+          widget.onCommitAndNext(text);
+        },
+      );
+
+  /// Search-select: sugestões filtradas ancoradas na célula; digitação
+  /// livre continua valendo (raça nova, por exemplo).
+  Widget _suggestionsOverlay() {
+    final query = normalizeHeader(_ctrl.text);
+    final matches = [
+      for (final s in widget.suggestions!)
+        if (query.isEmpty || normalizeHeader(s).contains(query)) s,
+    ];
+    if (matches.isEmpty) return const SizedBox.shrink();
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(8),
+      color: AppColors.surface,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 180, minWidth: 160),
+        child: ListView(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          children: [
+            for (final s in matches.take(6))
+              InkWell(
+                onTap: () {
+                  _handled = true;
+                  widget.onCommit(s);
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Text(s, style: const TextStyle(fontSize: 13.5)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasSuggestions =
+        widget.suggestions != null && widget.suggestions!.isNotEmpty;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): () {
@@ -522,19 +582,22 @@ class _InlineEditorState extends State<_InlineEditor> {
         onFocusChange: (has) {
           if (!has && !_handled) widget.onCommit(_ctrl.text);
         },
-        child: TextField(
-          controller: _ctrl,
-          autofocus: true,
-          decoration: null,
-          style: widget.mono
-              ? monoStyle(size: 14)
-              : const TextStyle(fontSize: 14),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (text) {
-            _handled = true;
-            widget.onCommitAndNext(text);
-          },
-        ),
+        child: !hasSuggestions
+            ? _field()
+            : ListenableBuilder(
+                listenable: _ctrl,
+                builder: (context, _) => Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _field(),
+                    Positioned(
+                      top: 34,
+                      left: 0,
+                      child: _suggestionsOverlay(),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -591,7 +654,9 @@ class GridSaveBar extends StatelessWidget {
           OutlinedButton(
             onPressed: saving ? null : onDiscard,
             style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.transparent,
               foregroundColor: AppColors.onGreen,
+              disabledForegroundColor: AppColors.onGreenMuted,
               side: const BorderSide(color: AppColors.onGreen, width: 1.5),
             ),
             child: const Text('Descartar'),

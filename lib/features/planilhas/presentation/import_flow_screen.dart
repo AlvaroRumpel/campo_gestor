@@ -229,7 +229,7 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CampoAppBar(title: 'Importar planilha'),
+      appBar: const CampoAppBar(title: 'Importar planilha', showBack: true),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
