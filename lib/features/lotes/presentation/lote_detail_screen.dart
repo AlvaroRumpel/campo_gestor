@@ -14,6 +14,7 @@ import '../../../features/animais/data/animal_repository.dart';
 import '../../../features/animais/presentation/animal_form_dialog.dart';
 import '../../../features/auth/data/property_repository.dart';
 import '../../../features/piquetes/data/piquete_repository.dart';
+import '../../planilhas/data/bulk_repository.dart';
 import '../../sanitario/presentation/aplicacao_form_dialog.dart';
 import '../../sanitario/presentation/sanitary_history_section.dart';
 import '../data/lote_model.dart';
@@ -118,7 +119,12 @@ class LoteDetailScreen extends ConsumerWidget {
                     ],
                     _ComposicaoCard(animals: activeAnimals),
                     const SizedBox(height: 12),
-                    _AnimaisCard(lotId: loteId, animalsAsync: animalsAsync),
+                    _AnimaisCard(
+                      lotId: loteId,
+                      animalsAsync: animalsAsync,
+                      lot: lot,
+                      canEdit: canEdit,
+                    ),
                     const SizedBox(height: 12),
                     LoteSanitaryHistorySection(lotId: loteId),
                   ],
@@ -336,14 +342,96 @@ class _ComposicaoCard extends StatelessWidget {
 }
 
 /// Card Animais: linhas 48h — nº mono + categoria·raça + EC.
-class _AnimaisCard extends ConsumerWidget {
-  const _AnimaisCard({required this.lotId, required this.animalsAsync});
+class _AnimaisCard extends ConsumerStatefulWidget {
+  const _AnimaisCard({
+    required this.lotId,
+    required this.animalsAsync,
+    required this.lot,
+    required this.canEdit,
+  });
 
   final String lotId;
   final AsyncValue<List<Animal>> animalsAsync;
+  final Lot lot;
+  final bool canEdit;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AnimaisCard> createState() => _AnimaisCardState();
+}
+
+class _AnimaisCardState extends ConsumerState<_AnimaisCard> {
+  /// Modo seleção (item 6 dos ajustes 2026-08-20): checkboxes por animal +
+  /// "todos" + mover em massa via bulk_upsert_animals (1 chamada atômica).
+  bool _selecting = false;
+  final Set<String> _selected = {};
+  bool _moving = false;
+
+  String get lotId => widget.lotId;
+
+  Future<void> _moveSelected(List<Animal> active) async {
+    final lots = (ref.read(loteListByPropertyProvider).asData?.value ??
+            const <Lot>[])
+        .where((l) => l.id != widget.lot.id)
+        .toList();
+    if (lots.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Nenhum outro lote ativo para receber os animais.')));
+      return;
+    }
+    final dest = await showDialog<Lot>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text('Mover ${_selected.length} '
+            '${_selected.length == 1 ? 'animal' : 'animais'} para:'),
+        children: [
+          for (final l in lots)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(l),
+              child: Text(l.name, style: const TextStyle(fontSize: 15)),
+            ),
+        ],
+      ),
+    );
+    if (dest == null || !mounted) return;
+
+    setState(() => _moving = true);
+    try {
+      final rows = [
+        for (final a in active)
+          if (_selected.contains(a.id))
+            {
+              'number': a.number,
+              'category': a.category,
+              'lot_name': dest.name,
+            },
+      ];
+      await ref
+          .read(bulkRepositoryProvider)
+          .upsertAnimals(widget.lot.propertyId, rows);
+      ref.invalidatePropertyData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('${rows.length} '
+            '${rows.length == 1 ? 'animal movido' : 'animais movidos'} '
+            'para ${dest.name}'),
+      ));
+      setState(() {
+        _selecting = false;
+        _selected.clear();
+      });
+    } on BulkImportException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _moving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final animalsAsync = widget.animalsAsync;
     return animalsAsync.when(
       loading: () => const Center(
         child: Padding(
@@ -374,16 +462,79 @@ class _AnimaisCard extends ConsumerWidget {
         }
         return SectionCard(
           title: 'Animais',
-          trailing: Text(
-            '${active.length}',
-            style: monoStyle(size: 12, color: AppColors.textSecondary),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.canEdit && widget.lot.deletedAt == null)
+                TextButton(
+                  onPressed: _moving
+                      ? null
+                      : () => setState(() {
+                            _selecting = !_selecting;
+                            _selected.clear();
+                          }),
+                  child: Text(_selecting ? 'Cancelar' : 'Selecionar'),
+                ),
+              Text(
+                '${active.length}',
+                style: monoStyle(size: 12, color: AppColors.textSecondary),
+              ),
+            ],
           ),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Column(
             children: [
+              if (_selecting)
+                Container(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  decoration: const BoxDecoration(
+                    border:
+                        Border(bottom: BorderSide(color: AppColors.divider)),
+                  ),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        tristate: true,
+                        value: _selected.isEmpty
+                            ? false
+                            : _selected.length == active.length
+                                ? true
+                                : null,
+                        onChanged: (v) => setState(() {
+                          if (v ?? false) {
+                            _selected.addAll(active.map((a) => a.id));
+                          } else {
+                            _selected.clear();
+                          }
+                        }),
+                      ),
+                      const Text('Selecionar todos',
+                          style: TextStyle(fontSize: 14)),
+                      const Spacer(),
+                      FilledButton.icon(
+                        onPressed: _selected.isEmpty || _moving
+                            ? null
+                            : () => _moveSelected(active),
+                        icon: _moving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.swap_horiz, size: 18),
+                        label: Text('Mover ${_selected.length}'),
+                      ),
+                    ],
+                  ),
+                ),
               for (final (i, a) in active.indexed)
                 InkWell(
-                  onTap: () => context.go(AppRoutes.animalDetail(a.id)),
+                  onTap: _selecting
+                      ? () => setState(() {
+                            if (!_selected.remove(a.id)) _selected.add(a.id);
+                          })
+                      : () => context.go(AppRoutes.animalDetail(a.id)),
                   child: Container(
                     constraints: const BoxConstraints(minHeight: 48),
                     decoration: i > 0
@@ -395,6 +546,17 @@ class _AnimaisCard extends ConsumerWidget {
                         : null,
                     child: Row(
                       children: [
+                        if (_selecting)
+                          Checkbox(
+                            value: _selected.contains(a.id),
+                            onChanged: (v) => setState(() {
+                              if (v ?? false) {
+                                _selected.add(a.id);
+                              } else {
+                                _selected.remove(a.id);
+                              }
+                            }),
+                          ),
                         SizedBox(
                           width: 42,
                           child: Text(
