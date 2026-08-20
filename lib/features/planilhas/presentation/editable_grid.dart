@@ -525,7 +525,7 @@ class _InlineEditorState extends State<_InlineEditor> {
         child: TextField(
           controller: _ctrl,
           autofocus: true,
-          decoration: const InputDecoration.collapsed(hintText: ''),
+          decoration: null,
           style: widget.mono
               ? monoStyle(size: 14)
               : const TextStyle(fontSize: 14),
@@ -592,7 +592,7 @@ class GridSaveBar extends StatelessWidget {
             onPressed: saving ? null : onDiscard,
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.onGreen,
-              side: const BorderSide(color: AppColors.glassStrong),
+              side: const BorderSide(color: AppColors.onGreen, width: 1.5),
             ),
             child: const Text('Descartar'),
           ),

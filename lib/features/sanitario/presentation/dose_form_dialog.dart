@@ -346,7 +346,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('Salvar dose'),
+                            : Text(_isEditing ? 'Salvar' : 'Criar dose'),
                       ),
                     ),
                   ),

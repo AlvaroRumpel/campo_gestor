@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/providers/invalidate_property_data.dart';
+import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
@@ -198,7 +199,23 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
       }
       ref.invalidatePropertyData();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      final destination = switch (widget.entity) {
+        SheetEntity.animais => AppRoutes.animais,
+        SheetEntity.doses || SheetEntity.sanitario => AppRoutes.sanitario,
+        SheetEntity.dg => null, // pop já volta para o IATF
+      };
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg),
+        action: destination == null
+            ? null
+            : SnackBarAction(
+                label: 'Ver',
+                onPressed: () {
+                  final router = GoRouter.maybeOf(context);
+                  router?.go(destination);
+                },
+              ),
+      ));
       context.pop();
     } on BulkImportException catch (e) {
       setState(() => _serverError = e.message);

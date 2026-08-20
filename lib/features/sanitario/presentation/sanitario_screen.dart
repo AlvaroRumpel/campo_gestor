@@ -284,7 +284,7 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
               OutlinedButton.icon(
                 onPressed: () => context.push(AppRoutes.sanitarioGrade),
                 icon: const Icon(Icons.grid_on, size: 20),
-                label: const Text('Grade'),
+                label: const Text('Aplicar em grade'),
               ),
             ],
             const SizedBox(width: 10),

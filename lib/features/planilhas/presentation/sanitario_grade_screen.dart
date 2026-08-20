@@ -60,6 +60,8 @@ class SanitarioGradeScreen extends ConsumerStatefulWidget {
 class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
   String? _lotId;
   DateTime _date = DateTime.now();
+  late final _dateCtrl =
+      TextEditingController(text: _brDateFmt.format(_date));
   final List<Dose> _doses = [];
 
   /// doseId → animalIds marcados.
@@ -88,6 +90,30 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
             : <String>{};
       });
 
+  Future<void> _pickLote(List<Lot> lots) async {
+    final picked = await showModalBottomSheet<Lot>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final l in lots)
+              ListTile(
+                title: Text(l.name),
+                onTap: () => Navigator.of(ctx).pop(l),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _lotId = picked.id;
+        _marks.clear();
+      });
+    }
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -96,7 +122,18 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
       lastDate: DateTime.now(),
       locale: const Locale('pt', 'BR'),
     );
-    if (picked != null) setState(() => _date = picked);
+    if (picked != null) {
+      setState(() {
+        _date = picked;
+        _dateCtrl.text = _brDateFmt.format(picked);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _dateCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _addDose(List<Dose> available) async {
@@ -260,17 +297,14 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
                 const SizedBox(width: 12),
                 SizedBox(
                   width: 160,
-                  child: InkWell(
+                  child: TextFormField(
+                    controller: _dateCtrl,
+                    readOnly: true,
                     onTap: _pickDate,
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Data',
-                        suffixIcon: Icon(Icons.calendar_today, size: 18),
-                      ),
-                      child: Text(
-                        _brDateFmt.format(_date),
-                        style: monoStyle(size: 14),
-                      ),
+                    style: monoStyle(size: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'Data',
+                      suffixIcon: Icon(Icons.calendar_today, size: 18),
                     ),
                   ),
                 ),
@@ -285,11 +319,16 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
           ),
           Expanded(
             child: _lotId == null
-                ? const EmptyState(
+                ? EmptyState(
                     icon: Icons.grid_on,
                     title: 'Escolha um lote',
                     message:
                         'Selecione o lote para listar os animais na grade.',
+                    action: FilledButton.icon(
+                      onPressed: () => _pickLote(lots),
+                      icon: const Icon(Icons.playlist_add_check, size: 20),
+                      label: const Text('Escolher lote'),
+                    ),
                   )
                 : _doses.isEmpty
                     ? const EmptyState(
@@ -323,7 +362,7 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
   }
 
   Widget _buildGrid(List<Animal> animals, double kgPerUa) {
-    const fixedWidth = 96.0 + 120.0 + 70.0;
+    const fixedWidth = 96.0 + 120.0 + 110.0;
     return Column(
       children: [
         // Cabeçalho
@@ -340,7 +379,7 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
               const SizedBox(
                   width: 120,
                   child: OverlineLabel('CATEGORIA')),
-              const SizedBox(width: 70, child: OverlineLabel('UA')),
+              const SizedBox(width: 110, child: OverlineLabel('RAÇA')),
               for (final d in _doses)
                 Expanded(
                   child: Padding(
@@ -374,9 +413,9 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
           ),
           child: Row(
             children: [
-              const SizedBox(width: fixedWidth - 120 - 70),
+              const SizedBox(width: fixedWidth - 120 - 110),
               const SizedBox(
-                width: 190,
+                width: 230,
                 child: Text(
                   'marcar todos',
                   style: TextStyle(
@@ -429,11 +468,14 @@ class _SanitarioGradeScreenState extends ConsumerState<SanitarioGradeScreen> {
                           style: const TextStyle(fontSize: 14)),
                     ),
                     SizedBox(
-                      width: 70,
+                      width: 110,
                       child: Text(
-                        formatUa(kUaWeights[a.category] ?? 0),
-                        style: monoStyle(
-                            size: 13, color: AppColors.textSecondary),
+                        a.breed == null || a.breed!.trim().isEmpty
+                            ? '—'
+                            : a.breed!,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary),
                       ),
                     ),
                     for (final d in _doses)
