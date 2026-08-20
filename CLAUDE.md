@@ -139,7 +139,7 @@ App de gestão de propriedades rurais voltado para pecuária. Permite estruturar
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+- **Planilhas**: `SheetSchema` (lib/features/planilhas/domain/sheet_schema.dart) é a fonte única de colunas por entidade — export, import (mapeamento/validação) e grades editáveis leem dele; campo novo = 1 `SheetColumn`. Escrita em massa só via RPCs `bulk_*` (migration 20260820_15), nunca N requests.
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->

@@ -8,6 +8,8 @@ import '../../../core/widgets/ui.dart';
 import '../../piquetes/data/piquete_model.dart';
 import '../../reproducao/data/atf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
+import '../../planilhas/domain/sheet_schema.dart';
+import '../../planilhas/presentation/export_button.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import 'animais_filters.dart';
@@ -63,6 +65,11 @@ class AnimaisTableView extends ConsumerWidget {
     required this.onCreate,
     required this.sortDescending,
     required this.onToggleSort,
+    required this.propertyName,
+    this.onImport,
+    this.body,
+    this.gridMode = false,
+    this.onGridModeChanged,
   });
 
   final List<AnimalWithContext> filtered;
@@ -93,6 +100,17 @@ class AnimaisTableView extends ConsumerWidget {
   final VoidCallback onCreate;
   final bool sortDescending;
   final VoidCallback onToggleSort;
+  final String propertyName;
+
+  /// Abre o fluxo de importação — null quando o usuário não pode editar.
+  final VoidCallback? onImport;
+
+  /// Corpo alternativo (grade editável) que substitui tabela+rodapé.
+  final Widget? body;
+  final bool gridMode;
+
+  /// null = toggle lista/grade não aparece (mobile ou sem permissão).
+  final ValueChanged<bool>? onGridModeChanged;
 
   Future<void> _handleRowAction(
     BuildContext context,
@@ -187,6 +205,53 @@ class AnimaisTableView extends ConsumerWidget {
                     ),
                   ),
                 ),
+                if (onGridModeChanged != null) ...[
+                  const SizedBox(width: 10),
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(
+                        value: false,
+                        icon: Icon(Icons.view_list_outlined, size: 18),
+                        tooltip: 'Lista',
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        icon: Icon(Icons.grid_on, size: 18),
+                        tooltip: 'Editar em grade',
+                      ),
+                    ],
+                    selected: {gridMode},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (sel) =>
+                        onGridModeChanged!(sel.first),
+                  ),
+                ],
+                const SizedBox(width: 10),
+                ExportButton(
+                  schema: animaisSchema,
+                  fileName: exportFileName('animais', propertyName),
+                  rows: [
+                    for (final aw in filtered)
+                      {
+                        'number': aw.animal.number,
+                        'category': aw.animal.category,
+                        'breed': aw.animal.breed,
+                        'body_condition': aw.animal.bodyCondition,
+                        'lot_name': aw.lotName,
+                        'observation': aw.animal.observation,
+                        'paddock_name': aw.paddockName,
+                        'ua': kUaWeights[aw.animal.category],
+                      },
+                  ],
+                ),
+                if (canEdit && onImport != null) ...[
+                  const SizedBox(width: 10),
+                  OutlinedButton.icon(
+                    onPressed: onImport,
+                    icon: const Icon(Icons.upload_outlined, size: 20),
+                    label: const Text('Importar'),
+                  ),
+                ],
                 if (canEdit) ...[
                   const SizedBox(width: 10),
                   FilledButton.icon(
@@ -256,6 +321,9 @@ class AnimaisTableView extends ConsumerWidget {
               ],
             ),
           ),
+          if (body != null)
+            Expanded(child: body!)
+          else ...[
           // Cabeçalho da tabela
           Container(
             constraints: const BoxConstraints(minHeight: 36),
@@ -331,6 +399,7 @@ class AnimaisTableView extends ConsumerWidget {
               style: monoStyle(size: 11.5, color: AppColors.textSecondary),
             ),
           ),
+          ],
         ],
       ),
     );

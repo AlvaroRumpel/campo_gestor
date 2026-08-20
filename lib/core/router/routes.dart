@@ -65,6 +65,12 @@ abstract final class AppRoutes {
   static const membrosById = '/propriedades/:propertyId/membros'; // template — used by GoRoute path
   static String membros(String id) => '/propriedades/$id/membros';
 
+  // Planilhas (feature import/export/grade) — root-level, fora do shell.
+  static const importar = '/planilhas/importar/:entity'; // template
+  static String importarFor(String entity, {String? atfId}) =>
+      '/planilhas/importar/$entity${atfId == null ? '' : '?atf=$atfId'}';
+  static const sanitarioGrade = '/sanitario/grade';
+
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';
   static const piquetes = '/piquetes';

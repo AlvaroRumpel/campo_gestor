@@ -21,6 +21,9 @@ import '../../features/piquetes/presentation/paddock_detail_screen.dart';
 import '../../features/lotes/presentation/lote_detail_screen.dart';
 import '../../features/membros/presentation/membros_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
+import '../../features/planilhas/domain/sheet_schema.dart';
+import '../../features/planilhas/presentation/import_flow_screen.dart';
+import '../../features/planilhas/presentation/sanitario_grade_screen.dart';
 import '../../features/reproducao/presentation/atf_detail_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
 import '../../features/sanitario/presentation/aplicacao_detail_screen.dart';
@@ -201,6 +204,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.aplicacaoById,
         builder: (ctx, state) =>
             AplicacaoDetailScreen(applicationId: state.pathParameters['id']!),
+      ),
+      // Planilhas: aplicação sanitária em grade multi-dose.
+      GoRoute(
+        path: AppRoutes.sanitarioGrade,
+        builder: (ctx, state) => const SanitarioGradeScreen(),
+      ),
+      // Planilhas: fluxo de importação (animais/doses/sanitario/dg) —
+      // root-level como os detail routes acima.
+      GoRoute(
+        path: AppRoutes.importar,
+        builder: (ctx, state) => ImportFlowScreen(
+          entity: SheetEntity.values.byName(state.pathParameters['entity']!),
+          atfId: state.uri.queryParameters['atf'],
+        ),
       ),
       // Phase 7 detail route — root-level, outside any shell branch (D-08):
       // the expense list for one paddock, reached from

@@ -10,8 +10,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/breakpoints.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
+import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../auth/data/property_repository.dart';
+import '../../planilhas/domain/sheet_schema.dart';
+import '../../planilhas/presentation/doses_grid_view.dart';
+import '../../planilhas/presentation/export_button.dart';
 import '../../lotes/data/lote_model.dart';
 import '../../lotes/data/lote_repository.dart';
 import '../data/dose_model.dart';
@@ -47,6 +51,8 @@ class SanitarioScreen extends ConsumerStatefulWidget {
 }
 
 class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
+  bool _dosesGridMode = false;
+
   /// 0 = Aplicações, 1 = Doses (segmented control, spec 4.11).
   int _tab = 0;
 
@@ -270,7 +276,24 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
               ],
             ),
           ),
+          const SizedBox(width: 10),
+          _buildExportButton(currentProperty),
           if (canEdit && currentProperty != null) ...[
+            if (_tab == 0) ...[
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoutes.sanitarioGrade),
+                icon: const Icon(Icons.grid_on, size: 20),
+                label: const Text('Grade'),
+              ),
+            ],
+            const SizedBox(width: 10),
+            OutlinedButton.icon(
+              onPressed: () => context.push(AppRoutes.importarFor(
+                  _tab == 0 ? 'sanitario' : 'doses')),
+              icon: const Icon(Icons.upload_outlined, size: 20),
+              label: const Text('Importar'),
+            ),
             const SizedBox(width: 10),
             FilledButton.icon(
               onPressed:
@@ -281,6 +304,58 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  /// Exporta a tab ativa: Aplicações = 1 linha por animal do snapshot
+  /// (após filtros da tela); Doses = catálogo visível.
+  Widget _buildExportButton(SelectedProperty? currentProperty) {
+    final propertyName = currentProperty?.name ?? '';
+    if (_tab == 0) {
+      final rows =
+          ref.watch(sanitaryApplicationListByPropertyProvider).asData?.value ??
+              const <SanitaryApplication>[];
+      final reversedIds = reversedApplicationIds(rows);
+      final filtered = _filteredApplications(rows)
+          .where((a) => a.reversesApplicationId == null &&
+              !reversedIds.contains(a.id))
+          .toList();
+      return ExportButton(
+        schema: sanitarioSchema,
+        fileName: exportFileName('sanitario', propertyName),
+        rows: [
+          for (final app in filtered)
+            for (final e in app.compositionSnapshot)
+              {
+                'animal_number': e.number,
+                'dose_name': app.doseName,
+                'applied_at': app.appliedAt,
+                'notes': app.notes,
+                'lot_name': app.lotName,
+                'category':
+                    kCategoryLabels[e.category] ?? e.category,
+              },
+        ],
+      );
+    }
+    final doses = (_showArchived
+                ? ref.watch(archivedDoseListByPropertyProvider)
+                : ref.watch(doseListByPropertyProvider))
+            .asData
+            ?.value ??
+        const <Dose>[];
+    return ExportButton(
+      schema: dosesSchema,
+      fileName: exportFileName('doses', propertyName),
+      rows: [
+        for (final d in doses)
+          {
+            'name': d.name,
+            'active_ingredient': d.activeIngredient,
+            'dosage_per_kg': d.dosagePerKg,
+            'cost_per_kg': d.costPerKg,
+          },
+      ],
     );
   }
 
@@ -551,10 +626,38 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
 
     return Column(
       children: [
-        _buildToggleRow(
-          label: 'Mostrar arquivadas',
-          value: _showArchived,
-          onChanged: (v) => setState(() => _showArchived = v),
+        Row(
+          children: [
+            Expanded(
+              child: _buildToggleRow(
+                label: 'Mostrar arquivadas',
+                value: _showArchived,
+                onChanged: (v) => setState(() => _showArchived = v),
+              ),
+            ),
+            if (isDesktop && canEdit)
+              Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      icon: Icon(Icons.view_list_outlined, size: 18),
+                      tooltip: 'Lista',
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      icon: Icon(Icons.grid_on, size: 18),
+                      tooltip: 'Editar em grade',
+                    ),
+                  ],
+                  selected: {_dosesGridMode},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (sel) =>
+                      setState(() => _dosesGridMode = sel.first),
+                ),
+              ),
+          ],
         ),
         Expanded(
           child: dosesAsync.when(
@@ -581,6 +684,14 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
               }
 
               if (isDesktop) {
+                final property =
+                    ref.read(currentPropertyProvider).asData?.value;
+                if (_dosesGridMode && canEdit && property != null) {
+                  return DosesGridView(
+                    doses: doses,
+                    propertyId: property.id,
+                  );
+                }
                 return DosesTableView(
                   doses: doses,
                   kgPerUa: kgPerUa,

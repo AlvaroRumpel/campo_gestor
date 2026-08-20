@@ -12,6 +12,8 @@ import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../auth/data/property_repository.dart';
+import '../../planilhas/domain/sheet_schema.dart';
+import '../../planilhas/presentation/export_button.dart';
 import '../data/atf_model.dart';
 import '../data/atf_repository.dart';
 import '../data/dg_record_model.dart';
@@ -32,6 +34,40 @@ import 'encerrar_atf_dialog.dart';
 class AtfDetailScreen extends ConsumerWidget {
   const AtfDetailScreen({super.key, required this.atfId});
   final String atfId;
+
+  /// Exporta o DG mais recente por animal do roster (membros não deletados).
+  Widget _buildDgExportButton({
+    required AtfBatch atf,
+    required List<AtfMembershipView> memberships,
+    required List<DgRecord> dgRecords,
+  }) {
+    final latestByAnimal = <String, DgRecord>{};
+    for (final rec in dgRecords) {
+      final prev = latestByAnimal[rec.animalId];
+      if (prev == null || rec.createdAt.isAfter(prev.createdAt)) {
+        latestByAnimal[rec.animalId] = rec;
+      }
+    }
+    final rows = <Map<String, Object?>>[
+      for (final m in memberships)
+        if (!m.animalDeleted)
+          {
+            'animal_number': m.animalNumber,
+            'result': latestByAnimal[m.animalId]?.result,
+            'exam_date': latestByAnimal[m.animalId]?.examDate,
+            'observation': latestByAnimal[m.animalId]?.observation,
+            'category':
+                kCategoryLabels[m.animalCategory] ?? m.animalCategory,
+          },
+    ];
+    return ExportButton(
+      schema: dgSchema,
+      compact: true,
+      iconColor: AppColors.onGreen,
+      fileName: exportFileName('dg', atf.name),
+      rows: rows,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -103,6 +139,20 @@ class AtfDetailScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _GlassStatusPill(active: atf.active),
+                _buildDgExportButton(
+                  atf: atf,
+                  memberships:
+                      allMembershipsAsync.asData?.value ?? const [],
+                  dgRecords: dgRecords,
+                ),
+                if (canEdit)
+                  IconButton(
+                    icon: const Icon(Icons.upload_outlined,
+                        color: AppColors.onGreen),
+                    tooltip: 'Importar DG de planilha',
+                    onPressed: () => context.push(
+                        AppRoutes.importarFor('dg', atfId: atf.id)),
+                  ),
                 if (showEncerrarAction)
                   IconButton(
                     icon: const Icon(Icons.event_busy,
