@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/animais/data/animal_repository.dart';
 import '../../features/auth/data/auth_repository.dart';
-import '../../features/reproducao/data/atf_repository.dart';
+import '../../features/reproducao/data/iatf_repository.dart';
 import '../providers/current_property_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/breakpoints.dart';
@@ -128,11 +128,11 @@ class _IconRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeAtfCount = ref
-            .watch(atfListByPropertyProvider)
+    final activeIatfCount = ref
+            .watch(iatfListByPropertyProvider)
             .asData
             ?.value
-            .where((s) => s.atf.active)
+            .where((s) => s.iatf.active)
             .length ??
         0;
 
@@ -169,8 +169,8 @@ class _IconRail extends ConsumerWidget {
                       selected: i == selectedIndex,
                       onTap: () => onSelect(i),
                       badgeCount:
-                          items[i].label == 'Reprodução' && activeAtfCount > 0
-                              ? activeAtfCount
+                          items[i].label == 'Reprodução' && activeIatfCount > 0
+                              ? activeIatfCount
                               : null,
                     ),
                 ],
@@ -295,11 +295,11 @@ class _DesktopRail extends ConsumerWidget {
     // completa aparecer.
     final animalCount =
         ref.watch(animalListByPropertyProvider).asData?.value.length;
-    final activeAtfCount = ref
-        .watch(atfListByPropertyProvider)
+    final activeIatfCount = ref
+        .watch(iatfListByPropertyProvider)
         .asData
         ?.value
-        .where((s) => s.atf.active)
+        .where((s) => s.iatf.active)
         .length;
 
     return Container(
@@ -352,7 +352,7 @@ class _DesktopRail extends ConsumerWidget {
               item: items[i],
               selected: i == selectedIndex,
               onTap: () => onSelect(i),
-              trailing: _badgeFor(items[i].label, animalCount, activeAtfCount),
+              trailing: _badgeFor(items[i].label, animalCount, activeIatfCount),
             ),
           const Spacer(),
           _RailItem(
@@ -369,14 +369,14 @@ class _DesktopRail extends ConsumerWidget {
     );
   }
 
-  Widget? _badgeFor(String label, int? animalCount, int? activeAtfCount) {
+  Widget? _badgeFor(String label, int? animalCount, int? activeIatfCount) {
     if (label == 'Animais' && animalCount != null && animalCount > 0) {
       return Text(
         '$animalCount',
         style: monoStyle(size: 12.5, color: AppColors.onGreenMuted),
       );
     }
-    if (label == 'Reprodução' && activeAtfCount != null && activeAtfCount > 0) {
+    if (label == 'Reprodução' && activeIatfCount != null && activeIatfCount > 0) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
         decoration: BoxDecoration(
@@ -384,7 +384,7 @@ class _DesktopRail extends ConsumerWidget {
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
-          '$activeAtfCount',
+          '$activeIatfCount',
           style: monoStyle(
               size: 11, weight: FontWeight.w700, color: AppColors.onAccent),
         ),

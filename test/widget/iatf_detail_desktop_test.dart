@@ -1,18 +1,18 @@
-// Quick task 260813-tos — AtfDetailScreen desktop table (>=1024px):
-// AtfDgTableView with inline DG registration + batch selection, mobile path
-// (_AtfDgBody) untouched. Fakes/overrides are local to this file (not
-// imported from atf_detail_screen_test.dart, per the plan) — mirrors that
+// Quick task 260813-tos — IatfDetailScreen desktop table (>=1024px):
+// IatfDgTableView with inline DG registration + batch selection, mobile path
+// (_IatfDgBody) untouched. Fakes/overrides are local to this file (not
+// imported from iatf_detail_screen_test.dart, per the plan) — mirrors that
 // file's fake-repo pattern plus animais_desktop_test.dart's
 // setSurfaceSize harness.
 import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/core/services/supabase_service.dart';
 import 'package:campo_gestor/features/animais/data/animal_repository.dart';
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
-import 'package:campo_gestor/features/reproducao/presentation/atf_detail_screen.dart';
-import 'package:campo_gestor/features/reproducao/presentation/atf_dg_table_view.dart';
+import 'package:campo_gestor/features/reproducao/presentation/iatf_detail_screen.dart';
+import 'package:campo_gestor/features/reproducao/presentation/iatf_dg_table_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,22 +21,22 @@ import 'package:flutter_test/flutter_test.dart';
 // Fake repository
 // ---------------------------------------------------------------------------
 
-class _FakeAtfRepo extends AtfRepository {
-  _FakeAtfRepo() : super(SupabaseService());
+class _FakeIatfRepo extends IatfRepository {
+  _FakeIatfRepo() : super(SupabaseService());
 
   List<Map<String, dynamic>>? capturedDgRecords;
 
   @override
   Future<void> saveDgRecords({
-    required String atfBatchId,
+    required String iatfBatchId,
     required List<Map<String, dynamic>> records,
   }) async {
     capturedDgRecords = records;
   }
 
   @override
-  Future<void> removeAnimalFromAtf({
-    required String atfBatchId,
+  Future<void> removeAnimalFromIatf({
+    required String iatfBatchId,
     required String animalId,
   }) async {}
 }
@@ -49,20 +49,20 @@ const _prop = SelectedProperty(id: 'prop-1', name: 'Fazenda Alpha');
 const _vet = PropertyMembership(property: _prop, role: 'veterinarian');
 const _reader = PropertyMembership(property: _prop, role: 'reader');
 
-AtfBatch _atf({bool active = true}) => AtfBatch(
-      id: 'atf-1',
+IatfBatch _atf({bool active = true}) => IatfBatch(
+      id: 'iatf-1',
       propertyId: 'prop-1',
-      name: 'ATF Primavera',
+      name: 'IATF Primavera',
       implantationDate: DateTime(2026, 9, 12),
       inseminationDate: DateTime(2026, 9, 22),
       active: active,
       createdAt: DateTime(2026, 9, 12),
     );
 
-AtfMembershipView _membership(String animalId, {int number = 1}) =>
-    AtfMembershipView(
+IatfMembershipView _membership(String animalId, {int number = 1}) =>
+    IatfMembershipView(
       membershipId: 'm-$animalId',
-      atfBatchId: 'atf-1',
+      iatfBatchId: 'iatf-1',
       animalId: animalId,
       active: true,
       animalNumber: number,
@@ -73,7 +73,7 @@ AtfMembershipView _membership(String animalId, {int number = 1}) =>
 DgRecord _dg(String animalId, String result) => DgRecord(
       id: 'dg-$animalId',
       propertyId: 'prop-1',
-      atfBatchId: 'atf-1',
+      iatfBatchId: 'iatf-1',
       animalId: animalId,
       result: result,
       examDate: DateTime(2026, 10, 1),
@@ -85,28 +85,28 @@ DgRecord _dg(String animalId, String result) => DgRecord(
 // ---------------------------------------------------------------------------
 
 Widget _buildScreen({
-  required AtfBatch atf,
-  List<AtfMembershipView> memberships = const [],
+  required IatfBatch iatf,
+  List<IatfMembershipView> memberships = const [],
   List<DgRecord> dgRecords = const [],
   PropertyMembership membership = _vet,
-  AtfRepository? repo,
+  IatfRepository? repo,
 }) {
   return ProviderScope(
     overrides: [
-      atfByIdProvider.overrideWith((ref, id) async => atf),
-      atfActiveMembershipsProvider
+      iatfByIdProvider.overrideWith((ref, id) async => iatf),
+      iatfActiveMembershipsProvider
           .overrideWith((ref, id) async => memberships),
-      atfMembershipsProvider.overrideWith((ref, id) async => memberships),
-      dgRecordsByAtfProvider.overrideWith((ref, id) async => dgRecords),
-      atfListByPropertyProvider.overrideWith((ref) async => const []),
+      iatfMembershipsProvider.overrideWith((ref, id) async => memberships),
+      dgRecordsByIatfProvider.overrideWith((ref, id) async => dgRecords),
+      iatfListByPropertyProvider.overrideWith((ref) async => const []),
       memberPropertiesProvider.overrideWith((ref) async => [membership]),
-      atfRepositoryProvider.overrideWithValue(repo ?? _FakeAtfRepo()),
+      iatfRepositoryProvider.overrideWithValue(repo ?? _FakeIatfRepo()),
       // Lote/raça join source (assunção 7) — empty is fine for these
       // tests, rows fall back to "—".
       animalListByPropertyProvider.overrideWith((ref) async => const []),
     ],
     child: MaterialApp(
-      home: AtfDetailScreen(atfId: atf.id),
+      home: IatfDetailScreen(iatfId: iatf.id),
     ),
   );
 }
@@ -130,40 +130,40 @@ Future<void> _pumpMobile(WidgetTester tester, Widget widget) async {
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('AtfDetailScreen — desktop table (quick task 260813-tos)', () {
+  group('IatfDetailScreen — desktop table (quick task 260813-tos)', () {
     testWidgets(
-        '1440x900 renderiza AtfDgTableView e não renderiza AtfHeaderCard',
+        '1440x900 renderiza IatfDgTableView e não renderiza IatfHeaderCard',
         (tester) async {
       await _pumpDesktop(
         tester,
-        _buildScreen(atf: _atf(), memberships: [_membership('a1')]),
+        _buildScreen(iatf: _atf(), memberships: [_membership('a1')]),
       );
 
-      expect(find.byType(AtfDgTableView), findsOneWidget);
-      expect(find.byType(AtfHeaderCard), findsNothing);
+      expect(find.byType(IatfDgTableView), findsOneWidget);
+      expect(find.byType(IatfHeaderCard), findsNothing);
     });
 
     testWidgets(
-        '800x600 renderiza AtfHeaderCard e nenhum AtfDgTableView — fluxo de hoje intacto',
+        '800x600 renderiza IatfHeaderCard e nenhum IatfDgTableView — fluxo de hoje intacto',
         (tester) async {
       await _pumpMobile(
         tester,
-        _buildScreen(atf: _atf(), memberships: [_membership('a1')]),
+        _buildScreen(iatf: _atf(), memberships: [_membership('a1')]),
       );
 
-      expect(find.byType(AtfHeaderCard), findsOneWidget);
-      expect(find.byType(AtfDgTableView), findsNothing);
+      expect(find.byType(IatfHeaderCard), findsOneWidget);
+      expect(find.byType(IatfDgTableView), findsNothing);
     });
 
     testWidgets(
         'Desktop: clicar "Prenhe" na linha de um animal sem DG chama saveDgRecords '
         'uma vez, com um registro, animal_id correto e result pregnant',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await _pumpDesktop(
         tester,
         _buildScreen(
-          atf: _atf(),
+          iatf: _atf(),
           memberships: [_membership('a1')],
           repo: repo,
         ),
@@ -186,11 +186,11 @@ void main() {
         'Desktop: marcar os checkboxes de dois animais mostra "2 selecionadas" e '
         '"Marcar vazia" envia UM payload com os dois animal_id e result not_pregnant',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await _pumpDesktop(
         tester,
         _buildScreen(
-          atf: _atf(),
+          iatf: _atf(),
           memberships: [_membership('a1'), _membership('a2', number: 2)],
           repo: repo,
         ),
@@ -223,11 +223,11 @@ void main() {
         'Desktop: numa linha cujo DG mais recente já é pregnant, clicar "Prenhe" '
         'não chama saveDgRecords (no-op de re-registro, assunção 8)',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await _pumpDesktop(
         tester,
         _buildScreen(
-          atf: _atf(),
+          iatf: _atf(),
           memberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
           repo: repo,
@@ -246,7 +246,7 @@ void main() {
       await _pumpDesktop(
         tester,
         _buildScreen(
-          atf: _atf(),
+          iatf: _atf(),
           memberships: [_membership('a1')],
           membership: _reader,
         ),

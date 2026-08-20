@@ -31,9 +31,9 @@ abstract final class AppRoutes {
   static String animalDetail(String id) => '/animais/$id';
 
   // Phase 5 detail route — root-level (outside shell, D-02): reproductive-
-  // history rows on the animal ficha (D-14) link straight to an ATF.
-  static const atfById = '/atf/:atfId'; // template — used by GoRoute path
-  static String atfDetail(String id) => '/atf/$id';
+  // history rows on the animal ficha (D-14) link straight to an IATF.
+  static const iatfById = '/iatf/:iatfId'; // template — used by GoRoute path
+  static String iatfDetail(String id) => '/iatf/$id';
 
   // Phase 6 detail route — root-level (outside shell, D-19): reachable from
   // three list origins (global aplicações list, lote history section, animal
@@ -43,7 +43,7 @@ abstract final class AppRoutes {
 
   // Phase 7 detail route — root-level (outside shell, D-08): the expense
   // list needs deep-link + back-button context of its own paddock, and is
-  // the fourth use of this pattern after loteById, atfById and
+  // the fourth use of this pattern after loteById, iatfById and
   // aplicacaoById. Coexists with `gastos` below (a two-segment root-level
   // route always wins its own match ahead of the shell).
   //
@@ -58,7 +58,7 @@ abstract final class AppRoutes {
   static String gastosPorPiquete(String id) => '/gastos/$id';
 
   // Phase 10 detail route — root-level (outside shell, MEMB-02): the fifth
-  // use of this pattern after loteById, atfById, aplicacaoById and
+  // use of this pattern after loteById, iatfById, aplicacaoById and
   // gastosById. `MembrosScreen` (10-05) is reachable from the property
   // card's context menu, not from a shell branch, so it follows the same
   // root-level convention as the others.
@@ -67,8 +67,8 @@ abstract final class AppRoutes {
 
   // Planilhas (feature import/export/grade) — root-level, fora do shell.
   static const importar = '/planilhas/importar/:entity'; // template
-  static String importarFor(String entity, {String? atfId}) =>
-      '/planilhas/importar/$entity${atfId == null ? '' : '?atf=$atfId'}';
+  static String importarFor(String entity, {String? iatfId}) =>
+      '/planilhas/importar/$entity${iatfId == null ? '' : '?iatf=$iatfId'}';
   static const sanitarioGrade = '/sanitario/grade';
 
   // App shell branches (Phase 0)

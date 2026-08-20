@@ -9,7 +9,7 @@
 // this; only a test that inspects the outgoing request holds the contract.
 //
 // Does not mock the Supabase query-builder chain (brittle — see
-// lote_repository_test.dart / atf_repository_test.dart headers). Instead a
+// lote_repository_test.dart / iatf_repository_test.dart headers). Instead a
 // loopback HttpServer captures the real request the postgrest client sends.
 import 'dart:convert';
 import 'dart:io';

@@ -1,14 +1,14 @@
-// REPR-01, REPR-03 — AtfBatch / DgRecord model round-trips + DgResult mapping.
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
+// REPR-01, REPR-03 — IatfBatch / DgRecord model round-trips + DgResult mapping.
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('AtfBatch model (REPR-01)', () {
+  group('IatfBatch model (REPR-01)', () {
     final validJson = <String, dynamic>{
-      'id': 'atf-uuid-001',
+      'id': 'iatf-uuid-001',
       'property_id': 'prop-uuid-001',
-      'name': 'ATF Primavera',
+      'name': 'IATF Primavera',
       'implantation_date': '2026-09-12T00:00:00.000Z',
       'insemination_date': '2026-09-22T00:00:00.000Z',
       'bull_animal_id': null,
@@ -19,22 +19,22 @@ void main() {
       'deleted_at': null,
     };
 
-    test('AtfBatch.fromJson parses snake_case payload from Supabase', () {
-      final atf = AtfBatch.fromJson(validJson);
-      expect(atf.id, 'atf-uuid-001');
-      expect(atf.propertyId, 'prop-uuid-001');
-      expect(atf.name, 'ATF Primavera');
-      expect(atf.implantationDate, DateTime.parse('2026-09-12T00:00:00.000Z'));
-      expect(atf.inseminationDate, DateTime.parse('2026-09-22T00:00:00.000Z'));
-      expect(atf.bullAnimalId, isNull);
-      expect(atf.bullName, 'Touro Nelore 12');
-      expect(atf.active, isTrue);
-      expect(atf.deletedAt, isNull);
+    test('IatfBatch.fromJson parses snake_case payload from Supabase', () {
+      final iatf = IatfBatch.fromJson(validJson);
+      expect(iatf.id, 'iatf-uuid-001');
+      expect(iatf.propertyId, 'prop-uuid-001');
+      expect(iatf.name, 'IATF Primavera');
+      expect(iatf.implantationDate, DateTime.parse('2026-09-12T00:00:00.000Z'));
+      expect(iatf.inseminationDate, DateTime.parse('2026-09-22T00:00:00.000Z'));
+      expect(iatf.bullAnimalId, isNull);
+      expect(iatf.bullName, 'Touro Nelore 12');
+      expect(iatf.active, isTrue);
+      expect(iatf.deletedAt, isNull);
     });
 
-    test('AtfBatch.toJson emits snake_case keys', () {
-      final atf = AtfBatch.fromJson(validJson);
-      final json = atf.toJson();
+    test('IatfBatch.toJson emits snake_case keys', () {
+      final iatf = IatfBatch.fromJson(validJson);
+      final json = iatf.toJson();
       expect(json.containsKey('property_id'), isTrue);
       expect(json.containsKey('implantation_date'), isTrue);
       expect(json.containsKey('insemination_date'), isTrue);
@@ -49,7 +49,7 @@ void main() {
     final validJson = <String, dynamic>{
       'id': 'dg-uuid-001',
       'property_id': 'prop-uuid-001',
-      'atf_batch_id': 'atf-uuid-001',
+      'iatf_batch_id': 'iatf-uuid-001',
       'animal_id': 'animal-uuid-001',
       'result': 'pregnant',
       'exam_date': '2026-11-15T00:00:00.000Z',
@@ -61,7 +61,7 @@ void main() {
       final dg = DgRecord.fromJson(validJson);
       expect(dg.id, 'dg-uuid-001');
       expect(dg.propertyId, 'prop-uuid-001');
-      expect(dg.atfBatchId, 'atf-uuid-001');
+      expect(dg.iatfBatchId, 'iatf-uuid-001');
       expect(dg.animalId, 'animal-uuid-001');
       expect(dg.result, 'pregnant');
       expect(dg.examDate, DateTime.parse('2026-11-15T00:00:00.000Z'));
@@ -71,7 +71,7 @@ void main() {
     test('DgRecord.toJson emits snake_case keys', () {
       final dg = DgRecord.fromJson(validJson);
       final json = dg.toJson();
-      expect(json.containsKey('atf_batch_id'), isTrue);
+      expect(json.containsKey('iatf_batch_id'), isTrue);
       expect(json.containsKey('animal_id'), isTrue);
       expect(json.containsKey('exam_date'), isTrue);
       expect(json.containsKey('created_at'), isTrue);

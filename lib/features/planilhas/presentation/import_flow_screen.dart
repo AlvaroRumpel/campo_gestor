@@ -14,8 +14,8 @@ import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../lotes/data/lote_repository.dart';
-import '../../reproducao/data/atf_model.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_model.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../sanitario/data/dose_repository.dart';
 import '../data/bulk_repository.dart';
 import '../data/column_mapping.dart';
@@ -29,12 +29,12 @@ const _kMaxRows = 5000;
 final _dateOnlyFmt = DateFormat('yyyy-MM-dd');
 
 class ImportFlowScreen extends ConsumerStatefulWidget {
-  const ImportFlowScreen({super.key, required this.entity, this.atfId});
+  const ImportFlowScreen({super.key, required this.entity, this.iatfId});
 
   final SheetEntity entity;
 
   /// Obrigatório quando [entity] é [SheetEntity.dg].
-  final String? atfId;
+  final String? iatfId;
 
   @override
   ConsumerState<ImportFlowScreen> createState() => _ImportFlowScreenState();
@@ -104,10 +104,10 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
         ref.read(animalListByPropertyProvider).asData?.value ?? const [];
     final lots = ref.read(loteListByPropertyProvider).asData?.value ?? const [];
     final doses = ref.read(doseListByPropertyProvider).asData?.value ?? const [];
-    final members = widget.atfId == null
-        ? const <AtfMembershipView>[]
-        : (ref.read(atfMembershipsProvider(widget.atfId!)).asData?.value ??
-            const <AtfMembershipView>[]);
+    final members = widget.iatfId == null
+        ? const <IatfMembershipView>[]
+        : (ref.read(iatfMembershipsProvider(widget.iatfId!)).asData?.value ??
+            const <IatfMembershipView>[]);
     return ImportContext(
       existingAnimalNumbers: {
         for (final a in animals)
@@ -115,7 +115,7 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
       },
       lotNamesLower: {for (final l in lots) l.name.toLowerCase()},
       doseNamesLower: {for (final d in doses) d.name.toLowerCase()},
-      atfAnimalNumbers: {
+      iatfAnimalNumbers: {
         for (final m in members)
           if (!m.animalDeleted) m.animalNumber,
       },
@@ -173,15 +173,15 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
               '${res.animals} animais';
         case SheetEntity.dg:
           final members = ref
-                  .read(atfMembershipsProvider(widget.atfId!))
+                  .read(iatfMembershipsProvider(widget.iatfId!))
                   .asData
                   ?.value ??
-              const <AtfMembershipView>[];
+              const <IatfMembershipView>[];
           final byNumber = {
             for (final m in members) m.animalNumber: m.animalId,
           };
-          await ref.read(atfRepositoryProvider).saveDgRecords(
-            atfBatchId: widget.atfId!,
+          await ref.read(iatfRepositoryProvider).saveDgRecords(
+            iatfBatchId: widget.iatfId!,
             records: [
               for (final r in valid)
                 {
@@ -486,7 +486,7 @@ class FileStep extends StatelessWidget {
           'Cada linha é um animal + dose + data. Linhas do mesmo lote, '
               'dose e data viram uma única aplicação.',
         SheetEntity.dg =>
-          'Cada linha lança um DG para um animal deste ATF. Lançamentos '
+          'Cada linha lança um DG para um animal deste IATF. Lançamentos '
               'são aditivos — correções ficam no histórico.',
       };
 }

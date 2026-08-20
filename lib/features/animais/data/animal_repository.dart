@@ -204,7 +204,7 @@ class AnimalRepository {
   /// concurrent baixa with a `deleted_at IS NULL` predicate plus a `FOUND`
   /// re-check (the same WR-01 pattern `moveAnimal` reuses from
   /// `move_animal_to_lot`), and — through `trg_animals_baixa_deactivates_atf`
-  /// (05-01) — deactivates any active ATF membership in the same transaction
+  /// (05-01) — deactivates any active IATF membership in the same transaction
   /// per D-19. Supersedes the earlier direct-UPDATE approach, which only
   /// validated the animal's own property via RLS and had no membership side
   /// effect — see 05-07-PLAN.md.

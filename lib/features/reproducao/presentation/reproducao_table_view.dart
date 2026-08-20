@@ -5,9 +5,9 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_repository.dart';
 
-/// Tabela mestre-detalhe desktop de ciclos ATF (quick task 260813-r4s) —
+/// Tabela mestre-detalhe desktop de ciclos IATF (quick task 260813-r4s) —
 /// a partir de `Breakpoints.rail`. Larguras de coluna declaradas uma vez e
 /// reusadas pelo cabeçalho e pelas linhas, seguindo `animais_table_view.dart`.
 const _kColImplante = 82.0;
@@ -16,7 +16,7 @@ const _kColFemeas = 68.0;
 const _kColDgs = 84.0;
 const _kColPrenhez = 132.0;
 const _kColStatus = 148.0;
-const _kFlexAtf = 3;
+const _kFlexIatf = 3;
 const _kFlexTouro = 2;
 
 final _dateFmtShort = DateFormat('dd/MM/yy');
@@ -35,9 +35,9 @@ class ReproducaoTableView extends StatelessWidget {
     required this.onCreate,
   });
 
-  final List<AtfSummary> ativos;
-  final List<AtfSummary> encerrados;
-  final List<AtfSummary> shown;
+  final List<IatfSummary> ativos;
+  final List<IatfSummary> encerrados;
+  final List<IatfSummary> shown;
   final bool showEncerrados;
   final ValueChanged<bool> onShowEncerradosChanged;
   final String? selectedId;
@@ -55,8 +55,8 @@ class ReproducaoTableView extends StatelessWidget {
   }
 
   String _emptyMessage() {
-    if (ativos.isEmpty && encerrados.isEmpty) return 'Nenhum ATF cadastrado';
-    return showEncerrados ? 'Nenhum ATF encerrado' : 'Nenhum ATF ativo';
+    if (ativos.isEmpty && encerrados.isEmpty) return 'Nenhum IATF cadastrado';
+    return showEncerrados ? 'Nenhum IATF encerrado' : 'Nenhum IATF ativo';
   }
 
   @override
@@ -98,7 +98,7 @@ class ReproducaoTableView extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: onCreate,
                     icon: const Icon(Icons.add, size: 20),
-                    label: const Text('Novo ATF'),
+                    label: const Text('Novo IATF'),
                   ),
                 ],
               ],
@@ -108,14 +108,14 @@ class ReproducaoTableView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
             child: Row(
               children: [
-                AtfScopeChip(
+                IatfScopeChip(
                   label: 'Ativos',
                   count: ativos.length,
                   selected: !showEncerrados,
                   onTap: () => onShowEncerradosChanged(false),
                 ),
                 const SizedBox(width: 8),
-                AtfScopeChip(
+                IatfScopeChip(
                   label: 'Encerrados',
                   count: encerrados.length,
                   selected: showEncerrados,
@@ -130,7 +130,7 @@ class ReproducaoTableView extends StatelessWidget {
             color: AppColors.surfaceVariant,
             child: const Row(
               children: [
-                Expanded(flex: _kFlexAtf, child: _HeaderText('ATF')),
+                Expanded(flex: _kFlexIatf, child: _HeaderText('IATF')),
                 SizedBox(
                   width: _kColImplante,
                   child: _HeaderText('IMPLANTE'),
@@ -182,15 +182,15 @@ class ReproducaoTableView extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(AtfSummary s) {
-    final atf = s.atf;
+  Widget _buildRow(IatfSummary s) {
+    final iatf = s.iatf;
     final dg = s.dgSummary;
-    final selected = atf.id == selectedId;
-    // Same rule as _AtfCard: closed ATFs report zero active memberships, so
+    final selected = iatf.id == selectedId;
+    // Same rule as _IatfCard: closed IATFs report zero active memberships, so
     // the denominator never falls below the DG total already recorded.
     final denominator = math.max(s.animalCount, dg.total);
     final percent = dg.percent;
-    final hasPending = atf.active && dg.pending > 0;
+    final hasPending = iatf.active && dg.pending > 0;
 
     final row = Container(
       constraints: const BoxConstraints(minHeight: 44),
@@ -208,9 +208,9 @@ class ReproducaoTableView extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            flex: _kFlexAtf,
+            flex: _kFlexIatf,
             child: Text(
-              atf.name,
+              iatf.name,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
@@ -218,21 +218,21 @@ class ReproducaoTableView extends StatelessWidget {
           SizedBox(
             width: _kColImplante,
             child: Text(
-              _dateFmtShort.format(atf.implantationDate),
+              _dateFmtShort.format(iatf.implantationDate),
               style: monoStyle(size: 12.5),
             ),
           ),
           SizedBox(
             width: _kColInsem,
             child: Text(
-              _dateFmtShort.format(atf.inseminationDate),
+              _dateFmtShort.format(iatf.inseminationDate),
               style: monoStyle(size: 12.5),
             ),
           ),
           Expanded(
             flex: _kFlexTouro,
             child: Text(
-              atf.bullName ?? '—',
+              iatf.bullName ?? '—',
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -290,7 +290,7 @@ class ReproducaoTableView extends StatelessWidget {
           ),
           SizedBox(
             width: _kColStatus,
-            child: !atf.active
+            child: !iatf.active
                 ? const StatusChip('Encerrado', kind: StatusKind.neutral)
                 : hasPending
                     ? StatusChip(
@@ -309,7 +309,7 @@ class ReproducaoTableView extends StatelessWidget {
 
     return InkWell(
       hoverColor: AppColors.rowHover,
-      onTap: () => onSelect(atf.id),
+      onTap: () => onSelect(iatf.id),
       child: row,
     );
   }
@@ -318,8 +318,8 @@ class ReproducaoTableView extends StatelessWidget {
 /// Chip de escopo Ativos/Encerrados com contagem mono embutida (spec 3.5,
 /// era `_FilterCountChip` privado em `reproducao_screen.dart`). Mesma
 /// implementação nas duas larguras — mobile e desktop.
-class AtfScopeChip extends StatelessWidget {
-  const AtfScopeChip({
+class IatfScopeChip extends StatelessWidget {
+  const IatfScopeChip({
     super.key,
     required this.label,
     required this.count,

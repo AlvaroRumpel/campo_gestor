@@ -13,8 +13,8 @@ import 'package:campo_gestor/features/membros/data/membro_repository.dart';
 import 'package:campo_gestor/features/membros/presentation/invite_banner.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_model.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,11 +92,11 @@ final _animals = [
   _animal(6, 'terneiro', 'pad-2'),
 ];
 
-final _atfOutubro = AtfSummary(
-  atf: AtfBatch(
-    id: 'atf-1',
+final _iatfOutubro = IatfSummary(
+  iatf: IatfBatch(
+    id: 'iatf-1',
     propertyId: 'prop-1',
-    name: 'ATF Outubro',
+    name: 'IATF Outubro',
     implantationDate: DateTime(2026, 7, 1),
     inseminationDate: DateTime(2026, 7, 10),
     active: true,
@@ -114,7 +114,7 @@ class _FakeAuthNotifier extends AuthNotifier {
 Widget _buildScreen({
   List<Paddock> paddocks = const [],
   List<AnimalWithContext> animals = const [],
-  List<AtfSummary> atfs = const [],
+  List<IatfSummary> atfs = const [],
   MonthExpenses month = const MonthExpenses(total: 0, perAnimal: null),
   PropertyMembership membership = _vetMembership,
   Override? inviteOverride,
@@ -125,7 +125,7 @@ Widget _buildScreen({
       authNotifierProvider.overrideWith(_FakeAuthNotifier.new),
       paddockListProvider.overrideWith((ref) async => paddocks),
       animalListByPropertyProvider.overrideWith((ref) async => animals),
-      atfListByPropertyProvider.overrideWith((ref) async => atfs),
+      iatfListByPropertyProvider.overrideWith((ref) async => atfs),
       monthExpensesProvider.overrideWith((ref) async => month),
       inviteOverride ?? myInvitesProvider.overrideWith((ref) async => const []),
     ],
@@ -154,7 +154,7 @@ void main() {
     await tester.pumpWidget(_buildScreen(
       paddocks: [_paddockOver, _paddockOk],
       animals: _animals,
-      atfs: [_atfOutubro],
+      atfs: [_iatfOutubro],
       month: const MonthExpenses(total: 12480.0, perAnimal: 57.78),
     ));
     await tester.pumpAndSettle();
@@ -165,10 +165,10 @@ void main() {
     expect(find.text('0,16'), findsOneWidget); // 5,0 UA / 30,5 ha
     expect(find.text('Veterinário'), findsOneWidget); // role badge
 
-    // Banner: DG pendente por ATF ativo + piquete acima da capacidade
+    // Banner: DG pendente por IATF ativo + piquete acima da capacidade
     expect(find.text('PRECISA DE VOCÊ HOJE'), findsOneWidget);
     expect(find.text('7'), findsOneWidget);
-    expect(find.text('DGs pendentes no ATF Outubro'), findsOneWidget);
+    expect(find.text('DGs pendentes no IATF Outubro'), findsOneWidget);
     expect(find.text('1,0'), findsOneWidget); // 4,0 − 3,0 UA de excesso
     expect(find.text('UA acima da capacidade no Piquete 3'), findsOneWidget);
 
@@ -178,7 +178,7 @@ void main() {
     expect(find.text('1,0 / 12,0'), findsOneWidget);
 
     // Prenhez + Gastos
-    expect(find.text('11 de 18 DGs · ATF Outubro'), findsOneWidget);
+    expect(find.text('11 de 18 DGs · IATF Outubro'), findsOneWidget);
     expect(find.text('R\$ 12.480,00'), findsOneWidget);
     expect(find.text('R\$ 57,78 por animal'), findsOneWidget);
   });
@@ -192,28 +192,28 @@ void main() {
     expect(find.text('PRECISA DE VOCÊ HOJE'), findsNothing);
     expect(find.text('0'), findsOneWidget); // 0 animais ativos
     expect(find.text('Nenhum piquete cadastrado.'), findsOneWidget);
-    expect(find.text('Nenhum ATF ativo.'), findsOneWidget);
+    expect(find.text('Nenhum IATF ativo.'), findsOneWidget);
     expect(find.text('R\$ 0,00'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('mobile: banner oculto quando ATF ativo não tem DG pendente',
+  testWidgets('mobile: banner oculto quando IATF ativo não tem DG pendente',
       (tester) async {
     _setSize(tester, const Size(400, 900));
-    final completeAtf = AtfSummary(
-      atf: _atfOutubro.atf,
+    final completeIatf = IatfSummary(
+      iatf: _iatfOutubro.iatf,
       animalCount: 18,
       dgSummary: const DgSummary(pregnant: 11, total: 18, pending: 0),
     );
     await tester.pumpWidget(_buildScreen(
       paddocks: [_paddockOk],
       animals: [_animal(1, 'vaca', 'pad-2')],
-      atfs: [completeAtf],
+      atfs: [completeIatf],
     ));
     await tester.pumpAndSettle();
 
     expect(find.text('PRECISA DE VOCÊ HOJE'), findsNothing);
-    expect(find.text('11 de 18 DGs · ATF Outubro'), findsOneWidget);
+    expect(find.text('11 de 18 DGs · IATF Outubro'), findsOneWidget);
   });
 
   testWidgets('desktop (>=600px): header "Bom dia" + grid 2 colunas',
@@ -222,7 +222,7 @@ void main() {
     await tester.pumpWidget(_buildScreen(
       paddocks: [_paddockOver, _paddockOk],
       animals: _animals,
-      atfs: [_atfOutubro],
+      atfs: [_iatfOutubro],
       month: const MonthExpenses(total: 12480.0, perAnimal: 57.78),
     ));
     await tester.pumpAndSettle();
@@ -239,11 +239,11 @@ void main() {
 
     // Banner desktop com itens em cards brancos
     expect(find.text('PRECISA DE VOCÊ HOJE'), findsOneWidget);
-    expect(find.text('DGs pendentes no ATF Outubro'), findsOneWidget);
+    expect(find.text('DGs pendentes no IATF Outubro'), findsOneWidget);
 
     // Grid: Lotação (col A) + Prenhez/Gastos (col B)
     expect(find.text('Lotação por piquete'), findsOneWidget);
-    expect(find.text('11 de 18 DGs · ATF Outubro'), findsOneWidget);
+    expect(find.text('11 de 18 DGs · IATF Outubro'), findsOneWidget);
     expect(find.text('R\$ 12.480,00'), findsOneWidget);
   });
 
@@ -267,7 +267,7 @@ void main() {
     await tester.pumpWidget(_buildScreen(
       paddocks: [_paddockOver],
       animals: _animals,
-      atfs: [_atfOutubro],
+      atfs: [_iatfOutubro],
       inviteOverride: myInvitesProvider.overrideWith((ref) async => [_invite1]),
     ));
     await tester.pumpAndSettle();
@@ -326,7 +326,7 @@ void main() {
     await tester.pumpWidget(_buildScreen(
       paddocks: [_paddockOver],
       animals: _animals,
-      atfs: [_atfOutubro],
+      atfs: [_iatfOutubro],
       inviteOverride: myInvitesProvider.overrideWith((ref) async => [_invite1]),
     ));
     await tester.pumpAndSettle();

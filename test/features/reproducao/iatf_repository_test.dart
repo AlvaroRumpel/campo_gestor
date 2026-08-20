@@ -1,14 +1,14 @@
-// REPR-01..05 — AtfRepository contract tests.
+// REPR-01..05 — IatfRepository contract tests.
 //
 // Mocking the full Supabase query-builder chain is brittle (see
 // lote_repository_test.dart / animal_repository.dart precedent). These are
 // contract tests — method existence + callability — plus a non-contract
-// test exercising the pure DG-grouping logic underneath fetchAtfSummaries
+// test exercising the pure DG-grouping logic underneath fetchIatfSummaries
 // via summarizeDg directly (the grouping itself is not factored into a
 // separately-exported helper, so it is covered end-to-end by
 // dg_summary_test.dart instead).
 import 'package:campo_gestor/core/services/supabase_service.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -16,20 +16,20 @@ class MockSupabaseService extends Mock implements SupabaseService {}
 
 void main() {
   late MockSupabaseService mockService;
-  late AtfRepository repo;
+  late IatfRepository repo;
 
   setUp(() {
     mockService = MockSupabaseService();
-    repo = AtfRepository(mockService);
+    repo = IatfRepository(mockService);
   });
 
-  group('AtfRepository reads (REPR-01..05)', () {
-    test('fetchAtfBatchesByProperty exists and is callable', () {
-      expect(repo.fetchAtfBatchesByProperty, isA<Function>());
+  group('IatfRepository reads (REPR-01..05)', () {
+    test('fetchIatfBatchesByProperty exists and is callable', () {
+      expect(repo.fetchIatfBatchesByProperty, isA<Function>());
     });
 
-    test('fetchAtf exists and is callable', () {
-      expect(repo.fetchAtf, isA<Function>());
+    test('fetchIatf exists and is callable', () {
+      expect(repo.fetchIatf, isA<Function>());
     });
 
     test('fetchMemberships exists and is callable', () {
@@ -40,8 +40,8 @@ void main() {
       expect(repo.fetchDgRecords, isA<Function>());
     });
 
-    test('fetchAtfSummaries exists and is callable (RESEARCH Pattern 4)', () {
-      expect(repo.fetchAtfSummaries, isA<Function>());
+    test('fetchIatfSummaries exists and is callable (RESEARCH Pattern 4)', () {
+      expect(repo.fetchIatfSummaries, isA<Function>());
     });
 
     test(
@@ -52,31 +52,31 @@ void main() {
     });
 
     test(
-        'fetchEligibleAnimalsForAtf exists and is callable (D-06/D-07/D-09)',
+        'fetchEligibleAnimalsForIatf exists and is callable (D-06/D-07/D-09)',
         () {
-      expect(repo.fetchEligibleAnimalsForAtf, isA<Function>());
+      expect(repo.fetchEligibleAnimalsForIatf, isA<Function>());
     });
   });
 
-  group('AtfRepository mutations — every one an RPC except createAtf', () {
-    test('createAtf exists and is callable (direct insert, D-05)', () {
-      expect(repo.createAtf, isA<Function>());
+  group('IatfRepository mutations — every one an RPC except createIatf', () {
+    test('createIatf exists and is callable (direct insert, D-05)', () {
+      expect(repo.createIatf, isA<Function>());
     });
 
-    test('addAnimalsToAtf exists and is callable', () {
-      expect(repo.addAnimalsToAtf, isA<Function>());
+    test('addAnimalsToIatf exists and is callable', () {
+      expect(repo.addAnimalsToIatf, isA<Function>());
     });
 
-    test('removeAnimalFromAtf exists and is callable (D-08)', () {
-      expect(repo.removeAnimalFromAtf, isA<Function>());
+    test('removeAnimalFromIatf exists and is callable (D-08)', () {
+      expect(repo.removeAnimalFromIatf, isA<Function>());
     });
 
     test('saveDgRecords exists and is callable (D-10..D-12)', () {
       expect(repo.saveDgRecords, isA<Function>());
     });
 
-    test('closeAtf exists and is callable (D-15, D-16)', () {
-      expect(repo.closeAtf, isA<Function>());
+    test('closeIatf exists and is callable (D-15, D-16)', () {
+      expect(repo.closeIatf, isA<Function>());
     });
   });
 }

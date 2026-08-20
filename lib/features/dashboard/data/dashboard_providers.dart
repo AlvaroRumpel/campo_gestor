@@ -8,7 +8,7 @@ import '../../gastos/data/expense_calculations.dart';
 import '../../gastos/data/expense_repository.dart';
 import '../../piquetes/data/piquete_model.dart';
 import '../../piquetes/data/piquete_repository.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../sanitario/data/sanitary_calculations.dart';
 
 /// KPIs do header do Início (spec 4.1 / 4.14).
@@ -117,21 +117,21 @@ final paddockOccupancyProvider =
   return buildPaddockOccupancies(paddocks, animals);
 });
 
-/// Itens do banner "Precisa de você hoje": DGs pendentes por ATF ativo e
+/// Itens do banner "Precisa de você hoje": DGs pendentes por IATF ativo e
 /// piquetes acima da capacidade. Lista vazia = banner oculto.
 final dashboardAlertsProvider =
     FutureProvider<List<DashboardAlert>>((ref) async {
-  final atfs = await ref.watch(atfListByPropertyProvider.future);
+  final atfs = await ref.watch(iatfListByPropertyProvider.future);
   final occupancies = await ref.watch(paddockOccupancyProvider.future);
   return [
     for (final s in atfs)
-      if (s.atf.active && s.dgSummary.pending > 0)
+      if (s.iatf.active && s.dgSummary.pending > 0)
         DashboardAlert(
           figure: '${s.dgSummary.pending}',
           text: s.dgSummary.pending == 1
-              ? 'DG pendente no ${s.atf.name}'
-              : 'DGs pendentes no ${s.atf.name}',
-          route: AppRoutes.atfDetail(s.atf.id),
+              ? 'DG pendente no ${s.iatf.name}'
+              : 'DGs pendentes no ${s.iatf.name}',
+          route: AppRoutes.iatfDetail(s.iatf.id),
         ),
     for (final o in occupancies)
       if (o.overCapacity)

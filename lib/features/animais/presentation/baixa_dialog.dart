@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../data/animal_constants.dart';
 import '../data/animal_model.dart';
 import '../data/animal_repository.dart';
@@ -14,13 +14,13 @@ import '../data/animal_repository.dart';
 ///
 /// Motivo em 3 botões verticais 52h (Venda/Morte/Descarte, selecionado =
 /// fundo vermelho), data mono com picker, observação opcional e banner de
-/// aviso quando o animal participa de um ATF ativo.
+/// aviso quando o animal participa de um IATF ativo.
 ///
 /// Submit chama [AnimalRepository.registerBaixa]. Em sucesso invalida
 /// [animalByIdProvider], [animalListByPropertyProvider],
 /// [reproductiveHistoryByAnimalProvider] e as famílias
-/// [atfActiveMembershipsProvider] / [atfMembershipsProvider] /
-/// [atfListByPropertyProvider] (G-05-1), e faz pop com true.
+/// [iatfActiveMembershipsProvider] / [iatfMembershipsProvider] /
+/// [iatfListByPropertyProvider] (G-05-1), e faz pop com true.
 class BaixaDialog extends ConsumerStatefulWidget {
   const BaixaDialog({super.key, required this.animal});
 
@@ -85,7 +85,7 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
             date: _date,
             observation: obsText.isEmpty ? null : obsText,
           );
-      // D-19: a baixa também desativa a participação em ATF ativo no servidor
+      // D-19: a baixa também desativa a participação em IATF ativo no servidor
       // (trg_animals_baixa_deactivates_atf), então nada escapa do refetch.
       ref.invalidatePropertyData();
       if (mounted) Navigator.pop(context, true);
@@ -109,14 +109,14 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // ponytail: aproxima "está em ATF ativo" pelo histórico reprodutivo
-    // (entrada com atfActive) — provider já existente; um animal removido de
-    // um ATF ainda ativo geraria falso positivo, caso raro e inofensivo.
+    // ponytail: aproxima "está em IATF ativo" pelo histórico reprodutivo
+    // (entrada com iatfActive) — provider já existente; um animal removido de
+    // um IATF ainda ativo geraria falso positivo, caso raro e inofensivo.
     final historyAsync =
         ref.watch(reproductiveHistoryByAnimalProvider(widget.animal.id));
-    final activeAtfName = historyAsync.asData?.value
-        .where((e) => e.atfActive)
-        .map((e) => e.atfName)
+    final activeIatfName = historyAsync.asData?.value
+        .where((e) => e.iatfActive)
+        .map((e) => e.iatfName)
         .firstOrNull;
 
     return SafeArea(
@@ -198,7 +198,7 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
                       maxLines: 3,
                       textInputAction: TextInputAction.newline,
                     ),
-                    if (activeAtfName != null) ...[
+                    if (activeIatfName != null) ...[
                       const SizedBox(height: 14),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -225,7 +225,7 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
                                         text:
                                             'O #${widget.animal.number} está no '),
                                     TextSpan(
-                                      text: activeAtfName,
+                                      text: activeIatfName,
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w700),
                                     ),

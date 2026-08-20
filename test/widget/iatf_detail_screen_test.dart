@@ -1,5 +1,5 @@
-// REPR-01, REPR-04 — AtfDetailScreen widget tests (05-UI-SPEC.md E4, E10).
-// Covers every AtfDetailScreen state named in the spec: loading, error,
+// REPR-01, REPR-04 — IatfDetailScreen widget tests (05-UI-SPEC.md E4, E10).
+// Covers every IatfDetailScreen state named in the spec: loading, error,
 // populated, partial, bull link (D-05), zero-DG (never "0%"), partial DG,
 // and the neutral Ativo/Encerrado status badge (D-03).
 import 'dart:async';
@@ -7,10 +7,10 @@ import 'dart:async';
 import 'package:campo_gestor/core/providers/current_property_provider.dart';
 import 'package:campo_gestor/core/services/supabase_service.dart';
 import 'package:campo_gestor/features/auth/data/property_repository.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
-import 'package:campo_gestor/features/reproducao/presentation/atf_detail_screen.dart';
+import 'package:campo_gestor/features/reproducao/presentation/iatf_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,22 +22,22 @@ import 'package:intl/intl.dart';
 // Fake repository (05-06 — composition remove flow)
 // ---------------------------------------------------------------------------
 
-class _FakeAtfRepo extends AtfRepository {
-  _FakeAtfRepo({this.shouldThrow = false}) : super(SupabaseService());
+class _FakeIatfRepo extends IatfRepository {
+  _FakeIatfRepo({this.shouldThrow = false}) : super(SupabaseService());
 
   final bool shouldThrow;
   int removeCallCount = 0;
   String? capturedAnimalId;
 
-  // 05-08 — DG batch save capture. AtfRepository has no update/delete method
+  // 05-08 — DG batch save capture. IatfRepository has no update/delete method
   // for dg_records at all (insert-only RPC, 05-01/05-03), so "no update or
   // delete call" is guaranteed by the API shape, not something this fake
   // needs to additionally track.
   List<Map<String, dynamic>>? capturedDgRecords;
 
   @override
-  Future<void> removeAnimalFromAtf({
-    required String atfBatchId,
+  Future<void> removeAnimalFromIatf({
+    required String iatfBatchId,
     required String animalId,
   }) async {
     removeCallCount++;
@@ -47,7 +47,7 @@ class _FakeAtfRepo extends AtfRepository {
 
   @override
   Future<void> saveDgRecords({
-    required String atfBatchId,
+    required String iatfBatchId,
     required List<Map<String, dynamic>> records,
   }) async {
     if (shouldThrow) throw Exception('boom');
@@ -63,15 +63,15 @@ const _reader = PropertyMembership(property: _prop, role: 'reader');
 // Sample data
 // ---------------------------------------------------------------------------
 
-AtfBatch _atf({
-  String id = 'atf-1',
-  String name = 'ATF Primavera',
+IatfBatch _atf({
+  String id = 'iatf-1',
+  String name = 'IATF Primavera',
   String? bullAnimalId,
   String? bullName,
   String? observation,
   bool active = true,
 }) =>
-    AtfBatch(
+    IatfBatch(
       id: id,
       propertyId: 'prop-1',
       name: name,
@@ -84,15 +84,15 @@ AtfBatch _atf({
       createdAt: DateTime(2026, 9, 12),
     );
 
-AtfMembershipView _membership(
+IatfMembershipView _membership(
   String animalId, {
   int number = 1,
   bool active = true,
   bool animalDeleted = false,
 }) =>
-    AtfMembershipView(
+    IatfMembershipView(
       membershipId: 'm-$animalId',
-      atfBatchId: 'atf-1',
+      iatfBatchId: 'iatf-1',
       animalId: animalId,
       active: active,
       animalNumber: number,
@@ -103,7 +103,7 @@ AtfMembershipView _membership(
 /// Drives the real `showDatePicker` via its input-mode toggle (Material 3
 /// icon `Icons.edit_outlined`), typing [ddmmyyyy] rather than tapping a
 /// calendar day — avoids depending on "today"'s position in the grid.
-/// Mirrors the identical helper in atf_form_dialog_test.dart.
+/// Mirrors the identical helper in iatf_form_dialog_test.dart.
 Future<void> _setDateViaInput(
   WidgetTester tester,
   Finder calendarIcon,
@@ -129,7 +129,7 @@ DgRecord _dg(
     DgRecord(
       id: id ?? 'dg-$animalId',
       propertyId: 'prop-1',
-      atfBatchId: 'atf-1',
+      iatfBatchId: 'iatf-1',
       animalId: animalId,
       result: result,
       examDate: examDate ?? DateTime(2026, 10, 1),
@@ -141,38 +141,38 @@ DgRecord _dg(
 // ---------------------------------------------------------------------------
 
 Widget _buildScreen({
-  required AsyncValue<AtfBatch?> atf,
-  List<AtfMembershipView> activeMemberships = const [],
+  required AsyncValue<IatfBatch?> iatf,
+  List<IatfMembershipView> activeMemberships = const [],
   // 05-08 — the DG section reads the UNFILTERED membership list
-  // (atfMembershipsProvider). Defaults to activeMemberships so plan-05-04/06
+  // (iatfMembershipsProvider). Defaults to activeMemberships so plan-05-04/06
   // tests (which only ever set one list) keep behaving identically; DG tests
-  // that need a closed-ATF full roster (D-16) pass this explicitly.
-  List<AtfMembershipView>? allMemberships,
+  // that need a closed-IATF full roster (D-16) pass this explicitly.
+  List<IatfMembershipView>? allMemberships,
   List<DgRecord> dgRecords = const [],
   PropertyMembership membership = _vet,
-  AtfRepository? repo,
+  IatfRepository? repo,
 }) {
   return ProviderScope(
     overrides: [
-      atfByIdProvider.overrideWith((ref, id) {
-        return atf.when(
+      iatfByIdProvider.overrideWith((ref, id) {
+        return iatf.when(
           data: (v) => Future.value(v),
-          loading: () => Completer<AtfBatch?>().future,
+          loading: () => Completer<IatfBatch?>().future,
           error: (e, st) => Future.error(e, st),
         );
       }),
-      atfActiveMembershipsProvider
+      iatfActiveMembershipsProvider
           .overrideWith((ref, id) async => activeMemberships),
-      atfMembershipsProvider
+      iatfMembershipsProvider
           .overrideWith((ref, id) async => allMemberships ?? activeMemberships),
-      dgRecordsByAtfProvider.overrideWith((ref, id) async => dgRecords),
-      atfListByPropertyProvider.overrideWith((ref) async => const []),
+      dgRecordsByIatfProvider.overrideWith((ref, id) async => dgRecords),
+      iatfListByPropertyProvider.overrideWith((ref) async => const []),
       memberPropertiesProvider.overrideWith((ref) async => [membership]),
-      atfRepositoryProvider.overrideWithValue(repo ?? _FakeAtfRepo()),
+      iatfRepositoryProvider.overrideWithValue(repo ?? _FakeIatfRepo()),
     ],
     child: const MaterialApp(
       // 05-08 — full Global* delegates + pt-BR supportedLocales, matching
-      // atf_form_dialog_test.dart's pattern: _DgSection's session-date and
+      // iatf_form_dialog_test.dart's pattern: _DgSection's session-date and
       // per-row date pickers pass locale: Locale('pt', 'BR') explicitly,
       // which requires it present in supportedLocales.
       localizationsDelegates: [
@@ -181,7 +181,7 @@ Widget _buildScreen({
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: [Locale('pt', 'BR')],
-      home: AtfDetailScreen(atfId: 'atf-1'),
+      home: IatfDetailScreen(iatfId: 'iatf-1'),
     ),
   );
 }
@@ -191,14 +191,14 @@ Widget _buildScreen({
 // the tree to exercise the canPop()/pop() vs go(reproducao) fallback.
 // ---------------------------------------------------------------------------
 
-Widget _buildRoutedScreen({required AsyncValue<AtfBatch?> atf}) {
+Widget _buildRoutedScreen({required AsyncValue<IatfBatch?> iatf}) {
   final router = GoRouter(
-    initialLocation: '/atf/atf-1',
+    initialLocation: '/iatf/iatf-1',
     routes: [
       GoRoute(
-        path: '/atf/:atfId',
+        path: '/iatf/:iatfId',
         builder: (context, state) =>
-            AtfDetailScreen(atfId: state.pathParameters['atfId']!),
+            IatfDetailScreen(iatfId: state.pathParameters['iatfId']!),
       ),
       GoRoute(
         path: '/reproducao',
@@ -209,19 +209,19 @@ Widget _buildRoutedScreen({required AsyncValue<AtfBatch?> atf}) {
   );
   return ProviderScope(
     overrides: [
-      atfByIdProvider.overrideWith((ref, id) {
-        return atf.when(
+      iatfByIdProvider.overrideWith((ref, id) {
+        return iatf.when(
           data: (v) => Future.value(v),
-          loading: () => Completer<AtfBatch?>().future,
+          loading: () => Completer<IatfBatch?>().future,
           error: (e, st) => Future.error(e, st),
         );
       }),
-      atfActiveMembershipsProvider.overrideWith((ref, id) async => const []),
-      atfMembershipsProvider.overrideWith((ref, id) async => const []),
-      dgRecordsByAtfProvider.overrideWith((ref, id) async => const []),
-      atfListByPropertyProvider.overrideWith((ref) async => const []),
+      iatfActiveMembershipsProvider.overrideWith((ref, id) async => const []),
+      iatfMembershipsProvider.overrideWith((ref, id) async => const []),
+      dgRecordsByIatfProvider.overrideWith((ref, id) async => const []),
+      iatfListByPropertyProvider.overrideWith((ref) async => const []),
       memberPropertiesProvider.overrideWith((ref) async => const [_vet]),
-      atfRepositoryProvider.overrideWithValue(_FakeAtfRepo()),
+      iatfRepositoryProvider.overrideWithValue(_FakeIatfRepo()),
     ],
     child: MaterialApp.router(
       localizationsDelegates: const [
@@ -240,25 +240,25 @@ Widget _buildRoutedScreen({required AsyncValue<AtfBatch?> atf}) {
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('AtfDetailScreen (REPR-01, REPR-04, 05-UI-SPEC E4/E10)', () {
+  group('IatfDetailScreen (REPR-01, REPR-04, 05-UI-SPEC E4/E10)', () {
     testWidgets('loading: renders a CircularProgressIndicator', (
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildScreen(atf: const AsyncValue.loading()),
+        _buildScreen(iatf: const AsyncValue.loading()),
       );
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byType(AtfHeaderCard), findsNothing);
+      expect(find.byType(IatfHeaderCard), findsNothing);
     });
 
     testWidgets(
-        'error: renders the generic load-failure copy and no AtfHeaderCard',
+        'error: renders the generic load-failure copy and no IatfHeaderCard',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.error(Exception('boom'), StackTrace.empty),
+          iatf: AsyncValue.error(Exception('boom'), StackTrace.empty),
         ),
       );
       await tester.pumpAndSettle();
@@ -267,7 +267,7 @@ void main() {
         find.text('Erro ao carregar. Verifique sua conexão e tente novamente.'),
         findsOneWidget,
       );
-      expect(find.byType(AtfHeaderCard), findsNothing);
+      expect(find.byType(IatfHeaderCard), findsNothing);
     });
 
     testWidgets('populated: renders name, both dates, and the bull name', (
@@ -275,24 +275,24 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(bullName: 'Trovão')),
+          iatf: AsyncValue.data(_atf(bullName: 'Trovão')),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('ATF Primavera'), findsWidgets);
+      expect(find.text('IATF Primavera'), findsWidgets);
       expect(find.text('12/09/2026'), findsOneWidget);
       expect(find.text('22/09/2026'), findsOneWidget);
       expect(find.text('Trovão'), findsOneWidget);
     });
 
     testWidgets(
-        'partial: an ATF with null observation renders no Observação label',
+        'partial: an IATF with null observation renders no Observação label',
         (tester) async {
       await tester.pumpWidget(
-        _buildScreen(atf: AsyncValue.data(_atf())),
+        _buildScreen(iatf: AsyncValue.data(_atf())),
       );
       await tester.pumpAndSettle();
 
@@ -304,17 +304,17 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(bullAnimalId: 'animal-9', bullName: 'Trovão')),
+          iatf: AsyncValue.data(_atf(bullAnimalId: 'animal-9', bullName: 'Trovão')),
         ),
       );
       await tester.pumpAndSettle();
 
-      // Scoped to AtfHeaderCard (05-06): _CompositionSection's own buttons
+      // Scoped to IatfHeaderCard (05-06): _CompositionSection's own buttons
       // (OutlinedButton) also use InkWell internally, so an unscoped search
       // would collide with sibling widgets unrelated to the bull row.
       expect(
         find.descendant(
-          of: find.byType(AtfHeaderCard),
+          of: find.byType(IatfHeaderCard),
           matching: find.byType(InkWell),
         ),
         findsOneWidget,
@@ -325,14 +325,14 @@ void main() {
         'bull link: only bullName set renders plain text, no tappable',
         (tester) async {
       await tester.pumpWidget(
-        _buildScreen(atf: AsyncValue.data(_atf(bullName: 'Sêmen externo X'))),
+        _buildScreen(iatf: AsyncValue.data(_atf(bullName: 'Sêmen externo X'))),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Sêmen externo X'), findsOneWidget);
       expect(
         find.descendant(
-          of: find.byType(AtfHeaderCard),
+          of: find.byType(IatfHeaderCard),
           matching: find.byType(InkWell),
         ),
         findsNothing,
@@ -345,19 +345,19 @@ void main() {
       const legacyUuid = '11111111-2222-3333-4444-555555555555';
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(bullAnimalId: legacyUuid)),
+          iatf: AsyncValue.data(_atf(bullAnimalId: legacyUuid)),
         ),
       );
       await tester.pumpAndSettle();
 
       // Load-bearing: the uuid must never reach the widget tree as text.
-      // Reverting the production `atf.bullName ?? 'Ver touro'` change (i.e.
-      // going back to `atf.bullName ?? atf.bullAnimalId!`) must turn this red.
+      // Reverting the production `iatf.bullName ?? 'Ver touro'` change (i.e.
+      // going back to `iatf.bullName ?? iatf.bullAnimalId!`) must turn this red.
       expect(find.text(legacyUuid), findsNothing);
       expect(find.text('Ver touro'), findsOneWidget);
       expect(
         find.descendant(
-          of: find.byType(AtfHeaderCard),
+          of: find.byType(IatfHeaderCard),
           matching: find.byType(InkWell),
         ),
         findsOneWidget,
@@ -369,7 +369,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
           dgRecords: const [],
         ),
@@ -392,7 +392,7 @@ void main() {
       ];
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: memberships,
           dgRecords: records,
         ),
@@ -405,11 +405,11 @@ void main() {
       expect(find.text('prenhez · 50 de 50'), findsOneWidget);
     });
 
-    testWidgets('status badge: inactive ATF renders Encerrado', (
+    testWidgets('status badge: inactive IATF renders Encerrado', (
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildScreen(atf: AsyncValue.data(_atf(active: false))),
+        _buildScreen(iatf: AsyncValue.data(_atf(active: false))),
       );
       await tester.pumpAndSettle();
 
@@ -417,9 +417,9 @@ void main() {
       expect(find.text('Ativo'), findsNothing);
     });
 
-    testWidgets('status badge: active ATF renders Ativo', (tester) async {
+    testWidgets('status badge: active IATF renders Ativo', (tester) async {
       await tester.pumpWidget(
-        _buildScreen(atf: AsyncValue.data(_atf())),
+        _buildScreen(iatf: AsyncValue.data(_atf())),
       );
       await tester.pumpAndSettle();
 
@@ -433,7 +433,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [
             _membership('a1'),
             _membership('a2', number: 2),
@@ -453,7 +453,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
           dgRecords: [_dg('a1', 'pregnant')],
         ),
@@ -464,7 +464,7 @@ void main() {
       // Scoped by tooltip (05-08): the DG section now also renders
       // IconButtons (session date, per-row date/observation), so an
       // unscoped byType(IconButton) search is no longer unambiguous.
-      expect(find.byTooltip('Remover do ATF'), findsOneWidget);
+      expect(find.byTooltip('Remover do IATF'), findsOneWidget);
     });
 
     testWidgets('"+ Animais" is absent for a non-veterinarian override', (
@@ -472,7 +472,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           membership: _reader,
         ),
@@ -482,10 +482,10 @@ void main() {
       expect(find.text('Animais'), findsNothing);
     });
 
-    testWidgets('"+ Animais" is absent for a closed ATF', (tester) async {
+    testWidgets('"+ Animais" is absent for a closed IATF', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(active: false)),
+          iatf: AsyncValue.data(_atf(active: false)),
           activeMemberships: [_membership('a1')],
         ),
       );
@@ -494,24 +494,24 @@ void main() {
       expect(find.text('Animais'), findsNothing);
     });
 
-    testWidgets('a zero-membership ATF renders "Nenhum animal neste ATF."', (
+    testWidgets('a zero-membership IATF renders "Nenhum animal neste IATF."', (
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildScreen(atf: AsyncValue.data(_atf())),
+        _buildScreen(iatf: AsyncValue.data(_atf())),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Nenhum animal neste ATF.'), findsOneWidget);
+      expect(find.text('Nenhum animal neste IATF.'), findsOneWidget);
     });
 
-    testWidgets('confirming the remove dialog calls removeAnimalFromAtf once', (
+    testWidgets('confirming the remove dialog calls removeAnimalFromIatf once', (
       tester,
     ) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           repo: repo,
         ),
@@ -520,7 +520,7 @@ void main() {
 
       // Scoped by tooltip (05-08): see note above — no longer the only
       // IconButton in the tree once the DG section renders alongside it.
-      await tester.tap(find.byTooltip('Remover do ATF'));
+      await tester.tap(find.byTooltip('Remover do IATF'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Remover'));
       await tester.pumpAndSettle();
@@ -536,7 +536,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           allMemberships: [
             _membership('a1'),
@@ -555,7 +555,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           allMemberships: [
             _membership('a1'),
@@ -579,7 +579,7 @@ void main() {
         'an archived animal', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: const [],
           allMemberships: [
             _membership('a1', active: false, animalDeleted: true),
@@ -597,7 +597,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
         ),
       );
@@ -621,10 +621,10 @@ void main() {
     testWidgets(
         'tapping a different chip on an animal with an existing DG stages exactly one changed row',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
           repo: repo,
@@ -655,15 +655,15 @@ void main() {
     testWidgets(
         'exam_date defaults to the session date, and a per-animal override lands only in that entry',
         (tester) async {
-      final repo = _FakeAtfRepo();
-      // Local date, no `.toUtc()` — must mirror AtfRepository's `_dateOnlyFmt`
+      final repo = _FakeIatfRepo();
+      // Local date, no `.toUtc()` — must mirror IatfRepository's `_dateOnlyFmt`
       // (WR-03). Converting to UTC first shifts the calendar day for any
       // UTC-behind offset, so this assertion used to fail after 21:00 in
       // America/Sao_Paulo while the app was behaving correctly.
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [
             _membership('a1'),
             _membership('a2', number: 2),
@@ -709,10 +709,10 @@ void main() {
 
     testWidgets('a row with an observation entered carries it in the payload',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           repo: repo,
         ),
@@ -745,10 +745,10 @@ void main() {
         'CR-01: typing an observation on a row whose chip is never touched '
         'still saves that row, carrying the existing DG result forward',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
           repo: repo,
@@ -796,10 +796,10 @@ void main() {
     testWidgets(
         'G-05-4: DG chip preselection follows examDate, not insertion order',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [
             // Inserted first (earlier createdAt), but greater examDate.
@@ -838,10 +838,10 @@ void main() {
     testWidgets(
         'G-05-4: with no chip touched, an observation-only save carries '
         'forward the greater-examDate result', (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [
             _dg(
@@ -889,10 +889,10 @@ void main() {
     testWidgets(
         'a failing saveDgRecords leaves the staged chip selection intact',
         (tester) async {
-      final repo = _FakeAtfRepo(shouldThrow: true);
+      final repo = _FakeIatfRepo(shouldThrow: true);
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           repo: repo,
         ),
@@ -919,10 +919,10 @@ void main() {
       );
     });
 
-    testWidgets('the section is hidden for an ATF with zero active memberships',
+    testWidgets('the section is hidden for an IATF with zero active memberships',
         (tester) async {
       await tester.pumpWidget(
-        _buildScreen(atf: AsyncValue.data(_atf())),
+        _buildScreen(iatf: AsyncValue.data(_atf())),
       );
       await tester.pumpAndSettle();
 
@@ -931,11 +931,11 @@ void main() {
     });
 
     testWidgets(
-        'the DG chips are tappable for a CLOSED ATF while "+ Animais" stays absent (D-16)',
+        'the DG chips are tappable for a CLOSED IATF while "+ Animais" stays absent (D-16)',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(active: false)),
+          iatf: AsyncValue.data(_atf(active: false)),
           allMemberships: [_membership('a1', active: false)],
         ),
       );
@@ -960,7 +960,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           membership: _reader,
         ),
@@ -975,7 +975,7 @@ void main() {
         'never a DgSegmentButton', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
           membership: _reader,
@@ -992,7 +992,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
         ),
@@ -1003,15 +1003,15 @@ void main() {
     });
 
     testWidgets(
-        'E6 backstop: a 200-animal ATF builds, and the payload carries only the 3 changed rows',
+        'E6 backstop: a 200-animal IATF builds, and the payload carries only the 3 changed rows',
         (tester) async {
-      final repo = _FakeAtfRepo();
+      final repo = _FakeIatfRepo();
       final memberships = [
         for (var i = 0; i < 200; i++) _membership('a$i', number: i + 1),
       ];
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           // Composition stays small on purpose: it uses its own nested
           // shrinkWrap ListView (05-06), and a 200-row composition list
           // ahead of _DgSection in the outer page ListView would push the
@@ -1058,7 +1058,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
         ),
@@ -1072,7 +1072,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
           dgRecords: [_dg('a1', 'pregnant')],
         ),
@@ -1083,11 +1083,11 @@ void main() {
     });
 
     testWidgets(
-        'the banner does not render for a non-veterinarian override, nor for a closed ATF',
+        'the banner does not render for a non-veterinarian override, nor for a closed IATF',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
           membership: _reader,
@@ -1098,7 +1098,7 @@ void main() {
 
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(active: false)),
+          iatf: AsyncValue.data(_atf(active: false)),
           activeMemberships: [_membership('a1')],
           allMemberships: [_membership('a1', active: false)],
           dgRecords: [_dg('a1', 'pregnant')],
@@ -1114,12 +1114,12 @@ void main() {
         'CURRENT members are covered', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
           // Both DG records belong to animals no longer in the composition —
           // under the old gate (summarizeDg(...).pending) the historical
           // total reaches 2, matching compositionCount, and the banner
-          // appeared. This is the churn case the user hit on ATF 4.
+          // appeared. This is the churn case the user hit on IATF 4.
           dgRecords: [_dg('gone1', 'pregnant'), _dg('gone2', 'pregnant')],
         ),
       );
@@ -1134,14 +1134,14 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1'), _membership('a2', number: 2)],
           dgRecords: [_dg('gone1', 'pregnant'), _dg('gone2', 'pregnant')],
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('Encerrar ATF'));
+      await tester.tap(find.byTooltip('Encerrar IATF'));
       await tester.pumpAndSettle();
 
       expect(
@@ -1154,7 +1154,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           dgRecords: [_dg('a1', 'pregnant')],
         ),
@@ -1169,35 +1169,35 @@ void main() {
     });
 
     testWidgets(
-        'the AppBar encerrar action is absent for a closed ATF and for a non-veterinarian override',
+        'the AppBar encerrar action is absent for a closed IATF and for a non-veterinarian override',
         (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(active: false)),
+          iatf: AsyncValue.data(_atf(active: false)),
           allMemberships: [_membership('a1', active: false)],
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byTooltip('Encerrar ATF'), findsNothing);
+      expect(find.byTooltip('Encerrar IATF'), findsNothing);
 
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf()),
+          iatf: AsyncValue.data(_atf()),
           activeMemberships: [_membership('a1')],
           membership: _reader,
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byTooltip('Encerrar ATF'), findsNothing);
+      expect(find.byTooltip('Encerrar IATF'), findsNothing);
     });
 
     testWidgets(
-        'for a closed ATF: "+ Animais", the remove icons, the banner, and the '
+        'for a closed IATF: "+ Animais", the remove icons, the banner, and the '
         'AppBar encerrar action are all absent, while the DG chips stay '
         'present and interactive (D-16)', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.data(_atf(active: false)),
+          iatf: AsyncValue.data(_atf(active: false)),
           activeMemberships: [_membership('a1')],
           allMemberships: [_membership('a1', active: false)],
         ),
@@ -1205,9 +1205,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Animais'), findsNothing);
-      expect(find.byTooltip('Remover do ATF'), findsNothing);
+      expect(find.byTooltip('Remover do IATF'), findsNothing);
       expect(find.text('Todos os animais têm DG registrado.'), findsNothing);
-      expect(find.byTooltip('Encerrar ATF'), findsNothing);
+      expect(find.byTooltip('Encerrar IATF'), findsNothing);
 
       expect(find.byType(DgSegmentButton), findsNWidgets(3));
       final chip = find.widgetWithText(DgSegmentButton, 'Prenhe').first;
@@ -1223,7 +1223,7 @@ void main() {
   group('back control (G-05-1-nav)', () {
     testWidgets('loading state renders a back control', (tester) async {
       await tester.pumpWidget(
-        _buildScreen(atf: const AsyncValue.loading()),
+        _buildScreen(iatf: const AsyncValue.loading()),
       );
       await tester.pump();
 
@@ -1233,7 +1233,7 @@ void main() {
     testWidgets('error state renders a back control', (tester) async {
       await tester.pumpWidget(
         _buildScreen(
-          atf: AsyncValue.error(Exception('boom'), StackTrace.empty),
+          iatf: AsyncValue.error(Exception('boom'), StackTrace.empty),
         ),
       );
       await tester.pumpAndSettle();
@@ -1241,9 +1241,9 @@ void main() {
       expect(find.byTooltip('Voltar'), findsOneWidget);
     });
 
-    testWidgets('null-ATF state renders a back control', (tester) async {
+    testWidgets('null-IATF state renders a back control', (tester) async {
       await tester.pumpWidget(
-        _buildScreen(atf: const AsyncValue.data(null)),
+        _buildScreen(iatf: const AsyncValue.data(null)),
       );
       await tester.pumpAndSettle();
 
@@ -1252,7 +1252,7 @@ void main() {
 
     testWidgets('loaded-data state renders a back control', (tester) async {
       await tester.pumpWidget(
-        _buildScreen(atf: AsyncValue.data(_atf())),
+        _buildScreen(iatf: AsyncValue.data(_atf())),
       );
       await tester.pumpAndSettle();
 
@@ -1263,7 +1263,7 @@ void main() {
         'tapping the back control with no navigation history lands on /reproducao',
         (tester) async {
       await tester.pumpWidget(
-        _buildRoutedScreen(atf: AsyncValue.data(_atf())),
+        _buildRoutedScreen(iatf: AsyncValue.data(_atf())),
       );
       await tester.pumpAndSettle();
 

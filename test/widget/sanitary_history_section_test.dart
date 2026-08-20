@@ -2,8 +2,8 @@
 // Widget under test is AnimalSanitaryHistorySection mounted directly (not
 // the whole ficha) — faster and isolates the D-04 retry behavior. See
 // 08-PATTERNS.md §Retry-per-block and 08-03-PLAN.md Task 1.
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/presentation/animal_reproductive_history_section.dart';
 import 'package:campo_gestor/features/sanitario/data/sanitary_application_model.dart';
 import 'package:campo_gestor/features/sanitario/data/sanitary_application_repository.dart';

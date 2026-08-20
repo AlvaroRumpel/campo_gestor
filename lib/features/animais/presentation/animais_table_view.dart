@@ -6,7 +6,7 @@ import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../piquetes/data/piquete_model.dart';
-import '../../reproducao/data/atf_repository.dart';
+import '../../reproducao/data/iatf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../../planilhas/domain/sheet_schema.dart';
 import '../../planilhas/presentation/export_button.dart';
@@ -419,7 +419,7 @@ class AnimaisTableView extends ConsumerWidget {
     final selected = a.id == selectedId;
     final categoryLabel = kCategoryLabels[a.category] ?? a.category;
     final ua = kUaWeights[a.category] ?? 0.0;
-    final reproStatus = reproStatusMap[a.id] ?? AnimalReproStatus.foraDoAtf;
+    final reproStatus = reproStatusMap[a.id] ?? AnimalReproStatus.foraDoIatf;
     final breed = a.breed;
     final breedLabel =
         breed == null || breed.trim().isEmpty ? '—' : breed;

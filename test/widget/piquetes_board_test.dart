@@ -17,7 +17,7 @@ import 'package:campo_gestor/features/piquetes/data/piquete_model.dart';
 import 'package:campo_gestor/features/piquetes/data/piquete_repository.dart';
 import 'package:campo_gestor/features/piquetes/presentation/piquetes_board_view.dart';
 import 'package:campo_gestor/features/piquetes/presentation/piquetes_screen.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_summary.dart';
 import 'package:campo_gestor/features/sanitario/data/sanitary_application_repository.dart';
 import 'package:flutter/material.dart';

@@ -4,8 +4,8 @@
 // mirrors sanitary_history_section_test.dart's approach (08-03), possible
 // only because 08-02 extracted the section into its own public widget. See
 // 08-PATTERNS.md §DG row expansion and §360px-width widget test harness.
-import 'package:campo_gestor/features/reproducao/data/atf_model.dart';
-import 'package:campo_gestor/features/reproducao/data/atf_repository.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_model.dart';
+import 'package:campo_gestor/features/reproducao/data/iatf_repository.dart';
 import 'package:campo_gestor/features/reproducao/data/dg_record_model.dart';
 import 'package:campo_gestor/features/reproducao/presentation/animal_reproductive_history_section.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +36,7 @@ const _longObservation =
 final _dg1 = DgRecord(
   id: 'dg-1',
   propertyId: 'prop-1',
-  atfBatchId: 'atf-3dg',
+  iatfBatchId: 'iatf-3dg',
   animalId: _animalId,
   result: DgResult.pregnant.dbValue,
   examDate: DateTime(2026, 3, 10),
@@ -46,7 +46,7 @@ final _dg1 = DgRecord(
 final _dg2 = DgRecord(
   id: 'dg-2',
   propertyId: 'prop-1',
-  atfBatchId: 'atf-3dg',
+  iatfBatchId: 'iatf-3dg',
   animalId: _animalId,
   result: DgResult.doubtful.dbValue,
   examDate: DateTime(2026, 2, 5),
@@ -55,7 +55,7 @@ final _dg2 = DgRecord(
 final _dg3 = DgRecord(
   id: 'dg-3',
   propertyId: 'prop-1',
-  atfBatchId: 'atf-3dg',
+  iatfBatchId: 'iatf-3dg',
   animalId: _animalId,
   result: DgResult.notPregnant.dbValue,
   examDate: DateTime(2026, 1, 2),
@@ -64,7 +64,7 @@ final _dg3 = DgRecord(
 final _dgSingle = DgRecord(
   id: 'dg-single',
   propertyId: 'prop-1',
-  atfBatchId: 'atf-1dg',
+  iatfBatchId: 'iatf-1dg',
   animalId: _animalId,
   result: DgResult.pregnant.dbValue,
   examDate: DateTime(2026, 5, 1),
@@ -73,10 +73,10 @@ final _dgSingle = DgRecord(
 
 /// 3 DGs — gains the expand affordance (D-08); has a bull (D-09).
 final _entryThreeDgs = ReproductiveHistoryEntry(
-  atfBatchId: 'atf-3dg',
-  atfName: 'ATF Três DGs',
+  iatfBatchId: 'iatf-3dg',
+  iatfName: 'IATF Três DGs',
   inseminationDate: DateTime(2026, 1, 1),
-  atfActive: true,
+  iatfActive: true,
   lastDgResult: DgResult.pregnant,
   lastDgDate: DateTime(2026, 3, 10),
   dgRecords: [_dg1, _dg2, _dg3],
@@ -86,10 +86,10 @@ final _entryThreeDgs = ReproductiveHistoryEntry(
 
 /// 1 DG — no expand affordance; bull left null to cover the optional branch.
 final _entryOneDg = ReproductiveHistoryEntry(
-  atfBatchId: 'atf-1dg',
-  atfName: 'ATF Um DG',
+  iatfBatchId: 'iatf-1dg',
+  iatfName: 'IATF Um DG',
   inseminationDate: DateTime(2026, 4, 1),
-  atfActive: true,
+  iatfActive: true,
   lastDgResult: DgResult.pregnant,
   lastDgDate: DateTime(2026, 5, 1),
   dgRecords: [_dgSingle],
@@ -98,10 +98,10 @@ final _entryOneDg = ReproductiveHistoryEntry(
 
 /// 0 DGs — no expand affordance.
 final _entryZeroDgs = ReproductiveHistoryEntry(
-  atfBatchId: 'atf-0dg',
-  atfName: 'ATF Zero DG',
+  iatfBatchId: 'iatf-0dg',
+  iatfName: 'IATF Zero DG',
   inseminationDate: DateTime(2026, 6, 1),
-  atfActive: true,
+  iatfActive: true,
   lastDgResult: null,
   lastDgDate: null,
   dgRecords: const [],
@@ -149,9 +149,9 @@ Widget _buildRoutedSection({
         ),
       ),
       GoRoute(
-        path: '/atf/:atfId',
+        path: '/iatf/:iatfId',
         builder: (context, state) =>
-            Scaffold(body: Text('atf-detail-${state.pathParameters['atfId']}')),
+            Scaffold(body: Text('iatf-detail-${state.pathParameters['iatfId']}')),
       ),
     ],
   );
@@ -178,7 +178,7 @@ void main() {
   group(
     'AnimalReproductiveHistorySection — DG expansion (SC-2, SC-3, D-08)',
     () {
-      testWidgets('ATF with 3 DGs renders an ExpansionTile', (tester) async {
+      testWidgets('IATF with 3 DGs renders an ExpansionTile', (tester) async {
         await tester.pumpWidget(
           _buildSection(historyBuilder: (id) async => [_entryThreeDgs]),
         );
@@ -187,7 +187,7 @@ void main() {
         expect(find.byType(ExpansionTile), findsOneWidget);
       });
 
-      testWidgets('ATF with 1 DG or 0 DGs render no ExpansionTile', (
+      testWidgets('IATF with 1 DG or 0 DGs render no ExpansionTile', (
         tester,
       ) async {
         await tester.pumpWidget(
@@ -292,7 +292,7 @@ void main() {
 
   group('AnimalReproductiveHistorySection — navigation vs expansion coexist '
       '(planner assumption 2)', () {
-    testWidgets('tapping the ATF name text navigates to the ATF detail route', (
+    testWidgets('tapping the IATF name text navigates to the IATF detail route', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -300,10 +300,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.textContaining('ATF Três DGs'));
+      await tester.tap(find.textContaining('IATF Três DGs'));
       await tester.pumpAndSettle();
 
-      expect(find.text('atf-detail-atf-3dg'), findsOneWidget);
+      expect(find.text('iatf-detail-iatf-3dg'), findsOneWidget);
     });
 
     testWidgets(
@@ -317,7 +317,7 @@ void main() {
         await tester.tap(find.byIcon(Icons.expand_more));
         await tester.pumpAndSettle();
 
-        expect(find.text('atf-detail-atf-3dg'), findsNothing);
+        expect(find.text('iatf-detail-iatf-3dg'), findsNothing);
         expect(find.text(_examFmt.format(_dg1.examDate)), findsOneWidget);
       },
     );
@@ -370,7 +370,7 @@ void main() {
           find.text('Erro ao carregar histórico reprodutivo.'),
           findsNothing,
         );
-        expect(find.textContaining('ATF Um DG'), findsOneWidget);
+        expect(find.textContaining('IATF Um DG'), findsOneWidget);
       },
     );
 
@@ -402,7 +402,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.text('Nenhum ATF registrado para este animal.'),
+          find.text('Nenhum IATF registrado para este animal.'),
           findsOneWidget,
         );
       });
@@ -421,9 +421,9 @@ void main() {
           );
           await tester.pumpAndSettle();
 
-          expect(find.textContaining('ATF Três DGs'), findsOneWidget);
-          expect(find.textContaining('ATF Um DG'), findsOneWidget);
-          expect(find.textContaining('ATF Zero DG'), findsOneWidget);
+          expect(find.textContaining('IATF Três DGs'), findsOneWidget);
+          expect(find.textContaining('IATF Um DG'), findsOneWidget);
+          expect(find.textContaining('IATF Zero DG'), findsOneWidget);
           expect(find.textContaining('Ver todo'), findsNothing);
         },
       );

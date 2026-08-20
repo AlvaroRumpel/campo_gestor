@@ -26,18 +26,18 @@ class ImportRow {
 }
 
 /// Dados da propriedade carregados dos providers, usados nas checagens de
-/// existência (lote, dose, animal, membro do ATF).
+/// existência (lote, dose, animal, membro do IATF).
 class ImportContext {
   const ImportContext({
     this.existingAnimalNumbers = const {},
     this.lotNamesLower = const {},
     this.doseNamesLower = const {},
-    this.atfAnimalNumbers = const {},
+    this.iatfAnimalNumbers = const {},
   });
   final Set<int> existingAnimalNumbers;
   final Set<String> lotNamesLower;
   final Set<String> doseNamesLower;
-  final Set<int> atfAnimalNumbers;
+  final Set<int> iatfAnimalNumbers;
 }
 
 final _excelEpoch = DateTime(1899, 12, 30);
@@ -160,8 +160,8 @@ List<ImportRow> validateRows({
         }
       case SheetEntity.dg:
         final n = values['animal_number'] as int?;
-        if (n != null && !ctx.atfAnimalNumbers.contains(n)) {
-          errors.add('Animal nº $n não está neste ATF');
+        if (n != null && !ctx.iatfAnimalNumbers.contains(n)) {
+          errors.add('Animal nº $n não está neste IATF');
         }
     }
 

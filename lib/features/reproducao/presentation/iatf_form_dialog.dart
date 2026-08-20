@@ -7,7 +7,7 @@ import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_model.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../gastos/data/expense_repository.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_repository.dart';
 
 /// Sentinel dropdown value for the "Outro / sêmen externo" bull option (D-05).
 const kOtherBull = '__other__';
@@ -19,24 +19,24 @@ String _bullLabel(AnimalWithContext aw) => aw.animal.breed != null
     ? '#${aw.animal.number} — ${aw.animal.breed}'
     : '#${aw.animal.number}';
 
-/// Creation-only dialog for a new LoteATF (REPR-01, D-01, D-05).
+/// Creation-only dialog for a new LoteIATF (REPR-01, D-01, D-05).
 ///
 /// Sheet-style content shown via `showAdaptiveForm` (redesign): title 20/700,
-/// theme inputs, footer Cancelar outline + "Criar ATF" filled h52 r14, with a
+/// theme inputs, footer Cancelar outline + "Criar IATF" filled h52 r14, with a
 /// `LinearProgressIndicator` on top while saving — mirrors `LoteFormDialog`.
 ///
-/// Create-only — no edit path ships this phase, since `atf_batches` has no
+/// Create-only — no edit path ships this phase, since `iatf_batches` has no
 /// UPDATE RLS policy (05-RESEARCH.md assumption A3).
-class AtfFormDialog extends ConsumerStatefulWidget {
-  const AtfFormDialog({super.key, required this.propertyId});
+class IatfFormDialog extends ConsumerStatefulWidget {
+  const IatfFormDialog({super.key, required this.propertyId});
 
   final String propertyId;
 
   @override
-  ConsumerState<AtfFormDialog> createState() => _AtfFormDialogState();
+  ConsumerState<IatfFormDialog> createState() => _IatfFormDialogState();
 }
 
-class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
+class _IatfFormDialogState extends ConsumerState<IatfFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _dateFmt = DateFormat('dd/MM/yyyy');
 
@@ -146,13 +146,13 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
 
     setState(() => _saving = true);
     try {
-      final repo = ref.read(atfRepositoryProvider);
+      final repo = ref.read(iatfRepositoryProvider);
       final obsText = _obsCtrl.text.trim();
       final animals = ref.read(animalListByPropertyProvider).asData?.value ??
           const <AnimalWithContext>[];
       final selectedBull =
           animals.where((aw) => aw.animal.id == _selectedBull).firstOrNull;
-      final created = await repo.createAtf(
+      final created = await repo.createIatf(
         propertyId: widget.propertyId,
         name: _nameCtrl.text.trim(),
         implantationDate: _implantationDate,
@@ -187,7 +187,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Não foi possível criar o ATF. Verifique os dados e tente novamente.',
+            'Não foi possível criar o IATF. Verifique os dados e tente novamente.',
           ),
         ),
       );
@@ -227,7 +227,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                 child: LinearProgressIndicator(),
               ),
             const Text(
-              'Novo ATF',
+              'Novo IATF',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 14),
@@ -241,10 +241,10 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                       controller: _nameCtrl,
                       autofocus: true,
                       decoration: const InputDecoration(
-                        labelText: 'Nome do ATF *',
+                        labelText: 'Nome do IATF *',
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'Nome do ATF é obrigatório'
+                          ? 'Nome do IATF é obrigatório'
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -389,7 +389,7 @@ class _AtfFormDialogState extends ConsumerState<AtfFormDialog> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Criar ATF'),
+                        : const Text('Criar IATF'),
                   ),
                 ),
               ],

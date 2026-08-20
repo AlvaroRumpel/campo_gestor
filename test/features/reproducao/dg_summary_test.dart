@@ -15,7 +15,7 @@ DgRecord _dg(
     DgRecord(
       id: 'dg-$animalId-${createdAt.microsecondsSinceEpoch}',
       propertyId: 'prop-id',
-      atfBatchId: 'atf-id',
+      iatfBatchId: 'iatf-id',
       animalId: animalId,
       result: result,
       examDate: examDate ?? createdAt,

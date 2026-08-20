@@ -25,7 +25,7 @@ class DgSummary {
 }
 
 /// Returns true when [candidate] supersedes [current] as an animal's (or an
-/// ATF's) latest DG.
+/// IATF's) latest DG.
 ///
 /// The tie-breaker is the vet-entered exam date (A-DG-ORDER, resolved by the
 /// veterinarian 2026-08-05 in 05-UAT.md test 4, G-05-4): the record with the
@@ -42,8 +42,8 @@ bool isLaterDg(DgRecord candidate, DgRecord current) {
 
 /// Most-recent DG for [animalId] within [records] (the [isLaterDg] winner,
 /// G-05-4). Null when [animalId] has no record in [records]. The ONE place
-/// this per-animal lookup lives — `_AtfDgBodyState._mostRecentDg` (mobile)
-/// and `AtfDgTableView` (desktop, quick task 260813-tos) both delegate here
+/// this per-animal lookup lives — `_IatfDgBodyState._mostRecentDg` (mobile)
+/// and `IatfDgTableView` (desktop, quick task 260813-tos) both delegate here
 /// so the two surfaces can never drift on the tie-break rule.
 DgRecord? latestDgFor(List<DgRecord> records, String animalId) {
   DgRecord? latest;
@@ -108,7 +108,7 @@ enum AnimalReproStatus {
   vazia,
   duvidosa,
   dgPendente,
-  foraDoAtf;
+  foraDoIatf;
 
   /// Display label in pt-BR.
   String get label => switch (this) {
@@ -116,7 +116,7 @@ enum AnimalReproStatus {
         AnimalReproStatus.vazia => 'Vazia',
         AnimalReproStatus.duvidosa => 'Duvidosa',
         AnimalReproStatus.dgPendente => 'DG pendente',
-        AnimalReproStatus.foraDoAtf => 'Fora do ATF',
+        AnimalReproStatus.foraDoIatf => 'Fora do IATF',
       };
 
   /// [StatusChip] kind pairing for the shared status chip.
@@ -125,23 +125,23 @@ enum AnimalReproStatus {
         AnimalReproStatus.vazia => StatusKind.danger,
         AnimalReproStatus.duvidosa => StatusKind.warning,
         AnimalReproStatus.dgPendente => StatusKind.neutral,
-        AnimalReproStatus.foraDoAtf => StatusKind.neutral,
+        AnimalReproStatus.foraDoIatf => StatusKind.neutral,
       };
 }
 
-/// Reduces active ATF memberships + DG records into a per-animal
+/// Reduces active IATF memberships + DG records into a per-animal
 /// reproductive status (Task 1, quick task 260813-p10). Pure — no Supabase
 /// dependency.
 ///
 /// For each entry in [activeMemberships], selects the [dgRecords] matching
-/// its `(animalId, atfBatchId)` pair and keeps the [isLaterDg] winner — the
-/// same exam-date tie-break [AtfRepository.fetchReproductiveHistory] uses,
+/// its `(animalId, iatfBatchId)` pair and keeps the [isLaterDg] winner — the
+/// same exam-date tie-break [IatfRepository.fetchReproductiveHistory] uses,
 /// so the two never drift. No matching DG yields
 /// [AnimalReproStatus.dgPendente]. An animal absent from [activeMemberships]
 /// is absent from the result map — the consumer applies
-/// [AnimalReproStatus.foraDoAtf] as the default.
+/// [AnimalReproStatus.foraDoIatf] as the default.
 Map<String, AnimalReproStatus> reduceAnimalReproStatus({
-  required List<({String animalId, String atfBatchId})> activeMemberships,
+  required List<({String animalId, String iatfBatchId})> activeMemberships,
   required List<DgRecord> dgRecords,
 }) {
   final result = <String, AnimalReproStatus>{};
@@ -149,7 +149,7 @@ Map<String, AnimalReproStatus> reduceAnimalReproStatus({
     DgRecord? winner;
     for (final dg in dgRecords) {
       if (dg.animalId != membership.animalId ||
-          dg.atfBatchId != membership.atfBatchId) {
+          dg.iatfBatchId != membership.iatfBatchId) {
         continue;
       }
       if (winner == null || isLaterDg(dg, winner)) {

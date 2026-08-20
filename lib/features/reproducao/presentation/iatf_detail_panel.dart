@@ -9,36 +9,36 @@ import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
-import '../data/atf_model.dart';
-import '../data/atf_repository.dart';
+import '../data/iatf_model.dart';
+import '../data/iatf_repository.dart';
 
 final _dateFmt = DateFormat('dd/MM/yyyy');
 
-/// Painel lateral desktop de 380px com o resumo do ciclo ATF (quick task
+/// Painel lateral desktop de 380px com o resumo do ciclo IATF (quick task
 /// 260813-r4s) — mestre-detalhe em `ReproducaoScreen` a partir de
 /// `Breakpoints.rail`. Molde: `animal_detail_panel.dart`.
-class AtfDetailPanel extends ConsumerWidget {
-  const AtfDetailPanel({super.key, required this.summary, required this.onClose});
+class IatfDetailPanel extends ConsumerWidget {
+  const IatfDetailPanel({super.key, required this.summary, required this.onClose});
 
-  final AtfSummary summary;
+  final IatfSummary summary;
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final atf = summary.atf;
+    final iatf = summary.iatf;
     final dg = summary.dgSummary;
-    final hasPending = atf.active && dg.pending > 0;
-    // Same rule as ReproducaoTableView/_AtfCard: closed ATFs report zero
+    final hasPending = iatf.active && dg.pending > 0;
+    // Same rule as ReproducaoTableView/_IatfCard: closed IATFs report zero
     // active memberships, so the denominator never falls below the DG total.
     final denominador = math.max(summary.animalCount, dg.total);
-    final bullName = atf.bullName;
+    final bullName = iatf.bullName;
     final hasBull = bullName != null && bullName.trim().isNotEmpty;
 
     final activeMemberships =
-        ref.watch(atfActiveMembershipsProvider(atf.id)).asData?.value ??
+        ref.watch(iatfActiveMembershipsProvider(iatf.id)).asData?.value ??
             const [];
     final dgRecords =
-        ref.watch(dgRecordsByAtfProvider(atf.id)).asData?.value ?? const [];
+        ref.watch(dgRecordsByIatfProvider(iatf.id)).asData?.value ?? const [];
     final dgAnimalIds = dgRecords.map((r) => r.animalId).toSet();
     final semDg = activeMemberships
         .where((m) => !m.animalDeleted && !dgAnimalIds.contains(m.animalId))
@@ -64,7 +64,7 @@ class AtfDetailPanel extends ConsumerWidget {
                   children: [
                     const Expanded(
                       child: OverlineLabel(
-                        'Ciclo ATF',
+                        'Ciclo IATF',
                         color: AppColors.onGreenSecondary,
                       ),
                     ),
@@ -73,7 +73,7 @@ class AtfDetailPanel extends ConsumerWidget {
                           color: AppColors.onGreen, size: 20),
                       tooltip: 'Abrir ciclo',
                       onPressed: () =>
-                          context.go(AppRoutes.atfDetail(atf.id)),
+                          context.go(AppRoutes.iatfDetail(iatf.id)),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close,
@@ -83,7 +83,7 @@ class AtfDetailPanel extends ConsumerWidget {
                   ],
                 ),
                 Text(
-                  atf.name,
+                  iatf.name,
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -91,7 +91,7 @@ class AtfDetailPanel extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (!atf.active)
+                if (!iatf.active)
                   const StatusChip('Encerrado', kind: StatusKind.neutral)
                 else if (hasPending)
                   StatusChip(
@@ -130,12 +130,12 @@ class AtfDetailPanel extends ConsumerWidget {
                   const SizedBox(height: 8),
                   _PanelStat(
                     label: 'implante',
-                    value: _dateFmt.format(atf.implantationDate),
+                    value: _dateFmt.format(iatf.implantationDate),
                   ),
                   const SizedBox(height: 6),
                   _PanelStat(
                     label: 'inseminação',
-                    value: _dateFmt.format(atf.inseminationDate),
+                    value: _dateFmt.format(iatf.inseminationDate),
                   ),
                   if (hasBull) ...[
                     const SizedBox(height: 6),
@@ -192,7 +192,7 @@ class AtfDetailPanel extends ConsumerWidget {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () => context.go(AppRoutes.atfDetail(atf.id)),
+                onPressed: () => context.go(AppRoutes.iatfDetail(iatf.id)),
                 child: Text(
                   hasPending ? 'Continuar DGs (${dg.pending})' : 'Abrir ciclo',
                 ),
@@ -209,7 +209,7 @@ class AtfDetailPanel extends ConsumerWidget {
 class _SemDgRow extends StatelessWidget {
   const _SemDgRow(this.membership);
 
-  final AtfMembershipView membership;
+  final IatfMembershipView membership;
 
   @override
   Widget build(BuildContext context) {
