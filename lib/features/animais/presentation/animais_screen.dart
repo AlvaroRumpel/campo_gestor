@@ -385,6 +385,7 @@ class _AnimaisScreenState extends ConsumerState<AnimaisScreen> {
                       sortDescending: _sortDescending,
                       onToggleSort: () =>
                           setState(() => _sortDescending = !_sortDescending),
+                      propertyName: currentProperty?.name ?? '',
                     ),
                   ),
                   if (selected != null)
