@@ -2,15 +2,19 @@
 -- (bulk_upsert_doses, bulk_upsert_animals, bulk_register_sanitary — migration
 -- 20260820_15_bulk_sheets.sql).
 --
--- Run via: supabase test db (fallback: MCP execute_sql BEGIN/ROLLBACK replay,
--- o caminho estabelecido desde a Fase 3 — Docker indisponível nesta máquina).
---
--- Estrutura espelha 06_sanitary_test.sql: fixtures, impersonação via set_config,
--- BEGIN/ROLLBACK, throws_ok/lives_ok.
+-- Formato "SQL editor": o Studio só exibe o último result set, então cada
+-- assert pgTAP é acumulado numa temp table e devolvido de uma vez no SELECT
+-- final — as 15 linhas ok/not ok aparecem juntas. BEGIN/ROLLBACK: nada
+-- persiste. (Projeto sem Docker — supabase test db não roda aqui.)
+
 
 BEGIN;
 
-SELECT plan(15);
+
+
+CREATE TEMP TABLE _r (n serial, line text) ON COMMIT DROP;
+
+INSERT INTO _r (line) SELECT plan(15);
 
 -- ============================================================
 -- Fixtures: propriedade A (vet + reader), propriedade B (vet), paddock + lote
@@ -47,7 +51,10 @@ INSERT INTO paddocks (id, property_id, name, area_ha, ua_capacity) VALUES
 INSERT INTO lots (id, property_id, paddock_id, name) VALUES
   ('a0000000-0015-0015-0015-000000000020', 'a0000000-0015-0015-0015-000000000001', 'a0000000-0015-0015-0015-000000000010', 'Lote A1');
 
+INSERT INTO _r (line)
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
+
+INSERT INTO _r (line)
 SELECT set_config('request.jwt.claim.sub', 'c0000000-0015-0015-0015-0000000000a1', true);
 
 -- ============================================================
@@ -59,17 +66,20 @@ SELECT lives_ok(
     '[{"name":"Ivermectina","active_ingredient":"ivermectina","dosage_per_kg":0.02,"cost_per_kg":0.5}]'::jsonb)$$,
   'doses: insert ok');
 
+INSERT INTO _r (line)
 SELECT is(
   (SELECT count(*) FROM doses
     WHERE property_id = 'a0000000-0015-0015-0015-000000000001'
       AND lower(name) = 'ivermectina' AND deleted_at IS NULL),
   1::bigint, 'doses: 1 row created');
 
+INSERT INTO _r (line)
 SELECT is(
   (bulk_upsert_doses('a0000000-0015-0015-0015-000000000001',
     '[{"name":"ivermectina","dosage_per_kg":0.03}]'::jsonb))->>'updated',
   '1', 'doses: same name (case-insensitive) updates');
 
+INSERT INTO _r (line)
 SELECT is(
   (SELECT dosage_per_kg FROM doses
     WHERE property_id = 'a0000000-0015-0015-0015-000000000001'
@@ -86,22 +96,26 @@ SELECT is(
       {"number":null,"category":"novilha","lot_name":"Lote A1"}]'::jsonb))->>'created',
   '2', 'animals: 2 created (one with generated number)');
 
+INSERT INTO _r (line)
 SELECT is(
   (SELECT count(*) FROM animals
     WHERE property_id = 'a0000000-0015-0015-0015-000000000001' AND deleted_at IS NULL),
   2::bigint, 'animals: rows exist');
 
+INSERT INTO _r (line)
 SELECT is(
   (bulk_upsert_animals('a0000000-0015-0015-0015-000000000001',
     '[{"number":500,"category":"vaca","body_condition":4,"lot_name":"Lote A1"}]'::jsonb))->>'updated',
   '1', 'animals: existing number updates');
 
+INSERT INTO _r (line)
 SELECT is(
   (SELECT body_condition FROM animals
     WHERE number = 500 AND property_id = 'a0000000-0015-0015-0015-000000000001'
       AND deleted_at IS NULL),
   4, 'animals: ecc updated');
 
+INSERT INTO _r (line)
 SELECT throws_ok(
   $$SELECT bulk_upsert_animals('a0000000-0015-0015-0015-000000000001',
     '[{"number":501,"category":"vaca","lot_name":"Lote A1"},
@@ -109,11 +123,13 @@ SELECT throws_ok(
   'P0001', 'linha 2: lote "Nao Existe" não encontrado',
   'animals: unknown lot raises with line number');
 
+INSERT INTO _r (line)
 SELECT is(
   (SELECT count(*) FROM animals
     WHERE number = 501 AND property_id = 'a0000000-0015-0015-0015-000000000001'),
   0::bigint, 'animals: whole batch rolled back on error');
 
+INSERT INTO _r (line)
 SELECT throws_ok(
   $$SELECT bulk_upsert_animals('a0000000-0015-0015-0015-000000000001',
     '[{"number":503,"category":"bezerro","lot_name":"Lote A1"}]'::jsonb)$$,
@@ -130,6 +146,7 @@ SELECT is(
       {"animal_number":500,"dose_name":"Ivermectina","applied_at":"2026-08-02"}]'::jsonb))->>'applications',
   '2', 'sanitary: distinct dates yield 2 applications');
 
+INSERT INTO _r (line)
 SELECT is(
   (SELECT count(*) FROM sanitary_applications
     WHERE property_id = 'a0000000-0015-0015-0015-000000000001'),
@@ -141,16 +158,26 @@ SELECT is(
 
 SELECT set_config('request.jwt.claim.sub', 'c0000000-0015-0015-0015-0000000000a2', true);
 
+INSERT INTO _r (line)
 SELECT throws_ok(
   $$SELECT bulk_upsert_doses('a0000000-0015-0015-0015-000000000001',
     '[{"name":"X","dosage_per_kg":1}]'::jsonb)$$,
   '42501', NULL, 'doses: reader forbidden');
 
+INSERT INTO _r (line)
 SELECT throws_ok(
   $$SELECT bulk_upsert_animals('a0000000-0015-0015-0015-000000000001',
     '[{"number":600,"category":"vaca","lot_name":"Lote A1"}]'::jsonb)$$,
   '42501', NULL, 'animals: reader forbidden');
 
-SELECT * FROM finish();
+INSERT INTO _r (line) SELECT * FROM finish();
+
+
+
+-- Resultado completo (todas as linhas ok/not ok):
+
+SELECT line FROM _r ORDER BY n;
+
+
 
 ROLLBACK;
