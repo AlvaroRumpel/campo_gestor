@@ -132,9 +132,6 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
                   onPressed: _saving ? null : () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
                   ),
                   child: const Text('Cancelar'),
                 ),
@@ -147,9 +144,6 @@ class _MoverLoteDialogState extends ConsumerState<MoverLoteDialog> {
                       (_saving || _selectedPaddockId == null) ? null : _submit,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
                   ),
                   child: _saving
                       ? const SizedBox(

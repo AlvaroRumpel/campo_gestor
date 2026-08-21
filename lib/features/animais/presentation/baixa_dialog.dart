@@ -254,9 +254,7 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
                     onPressed:
                         _saving ? null : () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 54),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      minimumSize: const Size(0, 54),
                     ),
                     child: const Text('Cancelar'),
                   ),
@@ -268,9 +266,7 @@ class _BaixaDialogState extends ConsumerState<BaixaDialog> {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.danger,
                       foregroundColor: AppColors.onDanger,
-                      minimumSize: const Size(0, 54),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      minimumSize: const Size(0, 54),
                     ),
                     onPressed: _saving ? null : _submit,
                     child: _saving

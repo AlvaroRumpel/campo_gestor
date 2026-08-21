@@ -143,7 +143,7 @@ class _ReproducaoScreenState extends ConsumerState<ReproducaoScreen> {
                                           "Toque em 'Encerrados' para ver o histórico.",
                                     ))
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              padding: const EdgeInsets.fromLTRB(0, 6, 0, 96),
                               itemCount: shown.length,
                               itemBuilder: (context, i) =>
                                   _IatfCard(summary: shown[i]),

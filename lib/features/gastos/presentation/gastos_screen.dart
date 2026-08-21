@@ -8,6 +8,7 @@ import '../../../core/providers/current_property_provider.dart';
 import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../piquetes/data/piquete_repository.dart';
 import '../data/expense_calculations.dart';
@@ -160,41 +161,19 @@ class _GastosScreenState extends ConsumerState<GastosScreen> {
     final propertyId = currentPropAsync.asData?.value?.id ?? '';
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 6,
-        toolbarHeight: 48,
-        title: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back, size: 24),
-              tooltip: 'Voltar',
-              // Explicit back control: /gastos/:paddockId is a root-level
-              // route that is also a deep-link target (D-08), so it can be
-              // entered with no Navigator history at all. Falls back to this
-              // paddock's detail screen.
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                  return;
-                }
-                context.go('/piquetes/${widget.paddockId}');
-              },
-            ),
-            Expanded(
-              child: Text(
-                paddockName != null ? 'Gastos · $paddockName' : 'Gastos',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onGreen,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+      // /gastos/:paddockId é rota root e alvo de deep-link (D-08): pode
+      // entrar sem histórico de Navigator — o fallback volta ao detalhe do
+      // piquete. DetailAppBar padrão (VIS-07).
+      appBar: DetailAppBar(
+        parentLabel:
+            paddockName != null ? 'Gastos · $paddockName' : 'Gastos',
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+            return;
+          }
+          context.go('/piquetes/${widget.paddockId}');
+        },
       ),
       body: itemsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

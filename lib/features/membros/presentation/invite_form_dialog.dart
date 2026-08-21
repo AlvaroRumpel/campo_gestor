@@ -114,10 +114,7 @@ class _InviteFormDialogState extends ConsumerState<InviteFormDialog> {
                       onPressed:
                           _saving ? null : () => Navigator.pop(context, false),
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        minimumSize: const Size.fromHeight(52),
                       ),
                       child: const Text('Cancelar'),
                     ),
@@ -128,10 +125,7 @@ class _InviteFormDialogState extends ConsumerState<InviteFormDialog> {
                     child: FilledButton(
                       onPressed: _saving ? null : _submit,
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        minimumSize: const Size.fromHeight(52),
                       ),
                       child: _saving
                           ? const SizedBox(

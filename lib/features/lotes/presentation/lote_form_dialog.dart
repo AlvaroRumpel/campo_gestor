@@ -297,10 +297,7 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
                     onPressed:
                         _saving ? null : () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size(0, 52),
                     ),
                     child: const Text('Cancelar'),
                   ),
@@ -312,10 +309,7 @@ class _LoteFormDialogState extends ConsumerState<LoteFormDialog> {
                     key: const ValueKey('lote_submit'),
                     onPressed: _saving ? null : _submit,
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size(0, 52),
                     ),
                     child: _saving
                         ? const SizedBox(

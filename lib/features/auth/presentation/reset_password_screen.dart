@@ -74,7 +74,6 @@ class _S extends ConsumerState<ResetPasswordScreen> {
 
   ButtonStyle get _ctaStyle => FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(54),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
       );
 

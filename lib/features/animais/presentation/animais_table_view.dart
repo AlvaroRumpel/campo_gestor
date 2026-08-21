@@ -381,7 +381,11 @@ class AnimaisTableView extends ConsumerWidget {
           // Linhas
           Expanded(
             child: filtered.isEmpty
-                ? const Center(child: Text('Nenhum animal encontrado.'))
+                ? const EmptyState(
+                    icon: Icons.pets_outlined,
+                    title: 'Nenhum animal encontrado',
+                    message: 'Ajuste a busca ou os filtros para ver animais.',
+                  )
                 : ListView.builder(
                     itemCount: filtered.length,
                     itemBuilder: (context, i) => _buildRow(

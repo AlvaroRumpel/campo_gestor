@@ -165,9 +165,6 @@ class _PaddockFormDialogState extends ConsumerState<PaddockFormDialog> {
                         _saving ? null : () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
                     ),
                     child: const Text('Cancelar'),
                   ),
@@ -179,9 +176,6 @@ class _PaddockFormDialogState extends ConsumerState<PaddockFormDialog> {
                     onPressed: _saving ? null : _submit,
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
                     ),
                     child: _saving
                         ? const SizedBox(

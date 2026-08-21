@@ -114,9 +114,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onPressed: _busy ? null : _submit,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(54),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
                 textStyle: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

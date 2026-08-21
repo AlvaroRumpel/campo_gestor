@@ -758,10 +758,7 @@ class _DangerConfirmDialog extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
                     ),
                     child: const Text('Cancelar'),
                   ),
@@ -774,10 +771,7 @@ class _DangerConfirmDialog extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.danger,
                       foregroundColor: AppColors.onDanger,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
                     ),
                     child: Text(confirmLabel),
                   ),
@@ -840,10 +834,7 @@ class _RoleChangeSheetState extends State<_RoleChangeSheet> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
                     ),
                     child: const Text('Cancelar'),
                   ),
@@ -854,10 +845,7 @@ class _RoleChangeSheetState extends State<_RoleChangeSheet> {
                   child: FilledButton(
                     onPressed: () => Navigator.pop(context, _selected),
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
                     ),
                     child: const Text('Salvar'),
                   ),

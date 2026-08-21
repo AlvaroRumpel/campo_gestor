@@ -339,7 +339,6 @@ class _RegistrarAplicacaoScreenState
     }
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
       body: Column(
         children: [
           _buildHeader(lotName),
@@ -642,9 +641,6 @@ class _RegistrarAplicacaoScreenState
               child: FilledButton(
                 onPressed: canSubmit ? () => _submit(selected) : null,
                 style: FilledButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
                 ),
                 child: _saving
                     ? const SizedBox(

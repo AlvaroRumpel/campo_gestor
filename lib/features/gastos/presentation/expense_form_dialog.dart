@@ -326,10 +326,7 @@ class _ExpenseFormDialogState extends ConsumerState<ExpenseFormDialog> {
                           ? null
                           : () => Navigator.pop(context, false),
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        minimumSize: const Size.fromHeight(54),
                       ),
                       child: const Text('Cancelar'),
                     ),
@@ -340,10 +337,7 @@ class _ExpenseFormDialogState extends ConsumerState<ExpenseFormDialog> {
                     child: FilledButton(
                       onPressed: _saving ? null : _submit,
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        minimumSize: const Size.fromHeight(54),
                       ),
                       child: _saving
                           ? const SizedBox(

@@ -138,7 +138,7 @@ abstract final class AppTheme {
           foregroundColor: AppColors.onGreen,
           minimumSize: const Size(48, 48),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 15,
@@ -153,7 +153,7 @@ abstract final class AppTheme {
           elevation: 0,
           minimumSize: const Size(48, 48),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 15,
@@ -168,7 +168,7 @@ abstract final class AppTheme {
           minimumSize: const Size(48, 48),
           side: const BorderSide(color: AppColors.outlineBorder),
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(
             fontFamily: AppFonts.ui,
             fontSize: 15,
@@ -208,10 +208,16 @@ abstract final class AppTheme {
         checkmarkColor: AppColors.onGreen,
         side: const BorderSide(color: AppColors.chipBorder),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-        labelStyle: const TextStyle(
+        // Label resolve por estado: selecionado = onGreen sobre primary
+        // (ink sobre primary reprova WCAG ~1.8:1 — VIS-02).
+        labelStyle: TextStyle(
           fontFamily: AppFonts.ui,
           fontSize: 13,
-          color: AppColors.ink,
+          color: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? AppColors.onGreen
+                : AppColors.ink,
+          ),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),

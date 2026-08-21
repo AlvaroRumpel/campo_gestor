@@ -94,7 +94,11 @@ class AplicacoesTableView extends ConsumerWidget {
           ),
           Expanded(
             child: rows.isEmpty
-                ? const Center(child: Text('Nenhuma aplicação encontrada.'))
+                ? const EmptyState(
+                    icon: Icons.medical_services_outlined,
+                    title: 'Nenhuma aplicação encontrada',
+                    message: 'Ajuste os filtros ou registre uma aplicação.',
+                  )
                 : ListView.builder(
                     itemCount: rows.length,
                     itemBuilder: (context, i) =>

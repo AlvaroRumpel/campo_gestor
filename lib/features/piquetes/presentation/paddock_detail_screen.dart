@@ -85,7 +85,7 @@ class PaddockDetailScreen extends ConsumerWidget {
             return const Center(child: Text('Piquete não encontrado.'));
           }
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
               _PaddockInfoCard(paddock: paddock),
               const SizedBox(height: 8),

@@ -113,9 +113,6 @@ class _PropertyFormDialogState extends ConsumerState<PropertyFormDialog> {
                           _saving ? null : () => Navigator.pop(context, false),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
                       ),
                       child: const Text('Cancelar'),
                     ),
@@ -127,9 +124,6 @@ class _PropertyFormDialogState extends ConsumerState<PropertyFormDialog> {
                       onPressed: _saving ? null : _submit,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
                       ),
                       child: _saving
                           ? const SizedBox(

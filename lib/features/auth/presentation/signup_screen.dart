@@ -69,10 +69,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   }
 
   static final ButtonStyle _primaryButtonStyle = FilledButton.styleFrom(
-    minimumSize: const Size.fromHeight(54),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
-    ),
+    minimumSize: const Size.fromHeight(54),
     textStyle: const TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.w700,

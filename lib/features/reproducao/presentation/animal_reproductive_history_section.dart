@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../data/iatf_model.dart';
 import '../data/iatf_repository.dart';
@@ -14,34 +15,23 @@ import '../data/dg_record_model.dart';
 /// a DG sub-row has no other context to imply the year.
 final _dgDateFmt = DateFormat('dd/MM/yyyy', 'pt_BR');
 
-/// Result→color mapping shared by the collapsed row's summary chip and each
-/// DG sub-row chip inside the expansion (D-08/D-09) — extracted to one place
-/// so the two presentations cannot drift from each other.
-(Color, Color) _dgResultColors(ColorScheme colorScheme, DgResult result) {
-  return switch (result) {
-    DgResult.pregnant => (
-      colorScheme.primaryContainer,
-      colorScheme.onPrimaryContainer,
-    ),
-    DgResult.notPregnant => (
-      colorScheme.errorContainer,
-      colorScheme.onErrorContainer,
-    ),
-    DgResult.doubtful => (
-      colorScheme.tertiaryContainer,
-      colorScheme.onTertiaryContainer,
-    ),
-  };
-}
+/// Result→StatusChip kind, shared by the collapsed row's summary chip and
+/// each DG sub-row chip inside the expansion (D-08/D-09) — one place so the
+/// two presentations cannot drift. Prenhe verde / Vazia vermelho / Duvidosa
+/// laranja, o mesmo semáforo do DG em massa.
+StatusKind _dgResultKind(DgResult result) => switch (result) {
+      DgResult.pregnant => StatusKind.positive,
+      DgResult.notPregnant => StatusKind.danger,
+      DgResult.doubtful => StatusKind.warning,
+    };
 
 /// Read-only reproductive history list on the animal ficha (REPR-05, D-14).
 ///
 /// One row per IATF the animal participated in — active or closed alike —
 /// ordered by insemination date descending, each showing that IATF's most
 /// recent DG result. D-13 makes this block strictly read-only: no mutation
-/// call, no interactive control, for any role. Same outlined-card shell
-/// (rounded 12, outline 38%, colorScheme.surface) as the sanitary history
-/// section beside it.
+/// call, no interactive control, for any role. Same `SectionCard` shell as
+/// the sanitary history section beside it (VIS-01).
 ///
 /// D-11/D-37 contract: this widget takes nothing but an animal id and
 /// resolves its own provider, so the ficha can compose it without passing
@@ -53,60 +43,44 @@ class AnimalReproductiveHistorySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final historyAsync = ref.watch(
       reproductiveHistoryByAnimalProvider(animalId),
     );
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outline.withValues(alpha: 0.38),
+    return SectionCard(
+      title: 'Histórico Reprodutivo',
+      child: historyAsync.when(
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: CircularProgressIndicator(),
+          ),
         ),
-      ),
-      color: theme.colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Histórico Reprodutivo', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            historyAsync.when(
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              error: (err, st) => ErrorRetry(
-                message: 'Erro ao carregar histórico reprodutivo.',
-                onRetry: () => ref.invalidate(
-                  reproductiveHistoryByAnimalProvider(animalId),
-                ),
-              ),
-              data: (entries) {
-                if (entries.isEmpty) {
-                  return Text(
-                    'Nenhum IATF registrado para este animal.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  );
-                }
-                final dateFmt = DateFormat('dd/MM', 'pt_BR');
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final entry in entries)
-                      _ReproductiveHistoryRow(entry: entry, dateFmt: dateFmt),
-                  ],
-                );
-              },
-            ),
-          ],
+        error: (err, st) => ErrorRetry(
+          message: 'Erro ao carregar histórico reprodutivo.',
+          onRetry: () => ref.invalidate(
+            reproductiveHistoryByAnimalProvider(animalId),
+          ),
         ),
+        data: (entries) {
+          if (entries.isEmpty) {
+            return const Text(
+              'Nenhum IATF registrado para este animal.',
+              style: TextStyle(
+                fontSize: 13.5,
+                color: AppColors.textSecondary,
+              ),
+            );
+          }
+          final dateFmt = DateFormat('dd/MM', 'pt_BR');
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final entry in entries)
+                _ReproductiveHistoryRow(entry: entry, dateFmt: dateFmt),
+            ],
+          );
+        },
       ),
     );
   }
@@ -123,34 +97,21 @@ class _ReproductiveHistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     final Widget resultSlot;
     final lastDgResult = entry.lastDgResult;
     if (lastDgResult == null) {
-      resultSlot = Text('aguardando DG', style: theme.textTheme.bodyMedium);
-    } else {
-      final (bg, fg) = _dgResultColors(colorScheme, lastDgResult);
-      resultSlot = Chip(
-        label: Text(lastDgResult.label),
-        backgroundColor: bg,
-        labelStyle: TextStyle(color: fg),
-        side: BorderSide.none,
+      resultSlot = const Text(
+        'aguardando DG',
+        style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary),
       );
+    } else {
+      resultSlot =
+          StatusChip(lastDgResult.label, kind: _dgResultKind(lastDgResult));
     }
 
     final statusBadge = entry.iatfActive
-        ? Chip(
-            label: const Text('Ativo'),
-            backgroundColor: Colors.transparent,
-            side: BorderSide(color: colorScheme.outline),
-          )
-        : Chip(
-            label: const Text('Encerrado'),
-            backgroundColor: colorScheme.surfaceContainerHigh,
-            side: BorderSide.none,
-          );
+        ? const StatusChip('Ativo', kind: StatusKind.positive)
+        : const StatusChip('Encerrado', kind: StatusKind.neutral);
 
     final bullName = entry.bullName;
     final hasBull = bullName != null && bullName.trim().isNotEmpty;
@@ -166,7 +127,10 @@ class _ReproductiveHistoryRow extends StatelessWidget {
           children: [
             Text(
               '${entry.iatfName} — insem. ${dateFmt.format(entry.inseminationDate)}',
-              style: theme.textTheme.bodyLarge,
+              style: const TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const Text('·'),
             Text('implant. ${dateFmt.format(entry.implantationDate)}'),
@@ -182,10 +146,9 @@ class _ReproductiveHistoryRow extends StatelessWidget {
 
     // Expand affordance only when there is more than one DG to reveal — a
     // 0- or 1-DG IATF's collapsed row already shows everything there is
-    // (D-08, UI-SPEC zero-one-many). This ExpansionTile is the project's
-    // first use of the widget; the summary (with its own InkWell) sits in
-    // `title`, so a tap on the summary text still navigates while a tap on
-    // the chevron (outside the InkWell's bounds) only toggles expansion.
+    // (D-08, UI-SPEC zero-one-many). The summary (with its own InkWell) sits
+    // in `title`, so a tap on the summary text still navigates while a tap
+    // on the chevron (outside the InkWell's bounds) only toggles expansion.
     if (entry.dgRecords.length > 1) {
       return ExpansionTile(
         tilePadding: EdgeInsets.zero,
@@ -199,7 +162,7 @@ class _ReproductiveHistoryRow extends StatelessWidget {
 }
 
 /// One DG sub-row inside an IATF's [ExpansionTile] (D-08/D-09) — date, a
-/// result chip sharing [_dgResultColors] with the collapsed row's own chip,
+/// result chip sharing [_dgResultKind] with the collapsed row's own chip,
 /// and the observation when present. The observation is a `Column` sibling
 /// of the date/chip `Wrap`, not a member of it, so it gets a bounded width
 /// from its ancestor and wraps across lines instead of overflowing at
@@ -211,9 +174,7 @@ class _DgSubRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final result = DgResult.fromDb(dg.result)!;
-    final (bg, fg) = _dgResultColors(theme.colorScheme, result);
     final observation = dg.observation?.trim();
 
     return Padding(
@@ -228,20 +189,21 @@ class _DgSubRow extends StatelessWidget {
             children: [
               Text(
                 _dgDateFmt.format(dg.examDate),
-                style: theme.textTheme.bodyMedium,
+                style: monoStyle(size: 12.5),
               ),
               const Text('·'),
-              Chip(
-                label: Text(result.label),
-                backgroundColor: bg,
-                labelStyle: TextStyle(color: fg),
-                side: BorderSide.none,
-              ),
+              StatusChip(result.label, kind: _dgResultKind(result)),
             ],
           ),
           if (observation != null && observation.isNotEmpty) ...[
             const SizedBox(height: 2),
-            Text('· $observation', style: theme.textTheme.bodyMedium),
+            Text(
+              '· $observation',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ],
       ),

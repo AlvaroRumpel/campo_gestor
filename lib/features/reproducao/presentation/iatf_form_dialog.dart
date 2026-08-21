@@ -364,10 +364,7 @@ class _IatfFormDialogState extends ConsumerState<IatfFormDialog> {
                         ? null
                         : () => Navigator.pop<String>(context, null),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size(0, 52),
                     ),
                     child: const Text('Cancelar'),
                   ),
@@ -378,10 +375,7 @@ class _IatfFormDialogState extends ConsumerState<IatfFormDialog> {
                   child: FilledButton(
                     onPressed: _saving ? null : _submit,
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size(0, 52),
                     ),
                     child: _saving
                         ? const SizedBox(

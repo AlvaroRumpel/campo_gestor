@@ -163,7 +163,11 @@ class _IatfDgTableViewState extends ConsumerState<IatfDgTableView> {
           _buildColumnHeader(),
           Expanded(
             child: widget.rows.isEmpty
-                ? const Center(child: Text('Nenhum animal neste IATF.'))
+                ? const EmptyState(
+                    icon: Icons.pets_outlined,
+                    title: 'Nenhum animal neste IATF',
+                    message: 'Adicione animais para registrar DGs.',
+                  )
                 : ListView.builder(
                     itemCount: widget.rows.length,
                     itemBuilder: (context, i) =>

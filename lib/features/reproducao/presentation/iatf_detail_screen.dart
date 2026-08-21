@@ -1142,10 +1142,7 @@ class _SaveFooter extends StatelessWidget {
               child: SizedBox(
                 height: 52,
                 child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                  style: FilledButton.styleFrom(
                   ),
                   onPressed: onSave,
                   child: saving

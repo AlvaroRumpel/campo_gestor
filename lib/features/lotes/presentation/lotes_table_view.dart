@@ -145,7 +145,11 @@ class _LotesTableViewState extends State<LotesTableView> {
           ),
           Expanded(
             child: sorted.isEmpty
-                ? const Center(child: Text('Nenhum lote cadastrado'))
+                ? const EmptyState(
+                    icon: Icons.group_work_outlined,
+                    title: 'Nenhum lote cadastrado',
+                    message: 'Crie um lote para começar a registrar animais.',
+                  )
                 : ListView.builder(
                     itemCount: sorted.length,
                     itemBuilder: (context, i) => _buildRow(sorted[i]),

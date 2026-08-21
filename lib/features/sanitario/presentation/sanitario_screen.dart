@@ -12,6 +12,7 @@ import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_constants.dart';
 import '../../animais/data/animal_repository.dart';
+import '../../animais/presentation/animais_filters.dart';
 import '../../auth/data/property_repository.dart';
 import '../../planilhas/domain/sheet_schema.dart';
 import '../../planilhas/presentation/doses_grid_view.dart';
@@ -72,6 +73,16 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
   String? _doseFilterId;
   DateTimeRange? _dateRangeFilter;
   String? _animalFilterId;
+
+  /// Busca livre da aba Aplicações (VIS-05): dose, lote ou nº de animal.
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _search = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   // Doses tab.
   bool _showArchived = false;
@@ -243,12 +254,29 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
       ],
       selected: {_tab},
       showSelectedIcon: false,
-      style: SegmentedButton.styleFrom(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(11),
-        ),
-      ),
       onSelectionChanged: (s) => setState(() => _tab = s.first),
+    );
+  }
+
+  /// Campo de busca da aba Aplicações — mesmo shape do de Animais.
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchCtrl,
+      onChanged: (v) => setState(() => _search = v),
+      decoration: InputDecoration(
+        hintText: 'Buscar por dose, lote ou nº',
+        prefixIcon: const Icon(Icons.search,
+            size: 20, color: AppColors.textSecondary),
+        suffixIcon: _search.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => setState(() {
+                  _searchCtrl.clear();
+                  _search = '';
+                }),
+              ),
+      ),
     );
   }
 
@@ -276,6 +304,14 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
               ],
             ),
           ),
+          if (_tab == 0) ...[
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 300,
+              height: 40,
+              child: _buildSearchField(),
+            ),
+          ],
           const SizedBox(width: 10),
           _buildExportButton(currentProperty),
           if (canEdit && currentProperty != null) ...[
@@ -389,6 +425,13 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
   // ---------------------------------------------------------------------
 
   bool _matchesApplicationFilters(SanitaryApplication app) {
+    final q = _search.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      final matches = app.doseName.toLowerCase().contains(q) ||
+          app.lotName.toLowerCase().contains(q) ||
+          app.compositionSnapshot.any((e) => '${e.number}' == q);
+      if (!matches) return false;
+    }
     if (_lotFilterId != null && app.lotId != _lotFilterId) return false;
     if (_doseFilterId != null && app.doseId != _doseFilterId) return false;
     final range = _dateRangeFilter;
@@ -421,6 +464,11 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
     final appsAsync = ref.watch(sanitaryApplicationListByPropertyProvider);
     return Column(
       children: [
+        if (!isDesktop)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+            child: _buildSearchField(),
+          ),
         _buildFilterRow(),
         _buildToggleRow(
           label: 'Mostrar estornadas',
@@ -497,33 +545,28 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
     final selectedDose =
         doses.where((d) => d.id == _doseFilterId).firstOrNull;
 
+    // FilterMenuChip (o mesmo componente da tela de Animais) — popup menu
+    // anexado ao chip nos dois breakpoints, sem bottom-sheet em desktop
+    // (VIS-05).
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       child: Row(
         children: [
-          _FilterChipButton(
-            label: selectedLot?.name ?? 'Todos os lotes',
-            active: selectedLot != null,
-            onTap: () => _pickFilterOption<Lot>(
-              title: 'Lote',
-              allLabel: 'Todos os lotes',
-              options: lots,
-              labelOf: (l) => l.name,
-              onSelected: (l) => setState(() => _lotFilterId = l?.id),
-            ),
+          FilterMenuChip(
+            addLabel: 'Lote',
+            selectedLabel: selectedLot?.name,
+            entries: {for (final l in lots) l.id: l.name},
+            onSelected: (id) => setState(() => _lotFilterId = id),
+            onCleared: () => setState(() => _lotFilterId = null),
           ),
           const SizedBox(width: 8),
-          _FilterChipButton(
-            label: selectedDose?.name ?? 'Todas as doses',
-            active: selectedDose != null,
-            onTap: () => _pickFilterOption<Dose>(
-              title: 'Dose',
-              allLabel: 'Todas as doses',
-              options: doses,
-              labelOf: (d) => d.name,
-              onSelected: (d) => setState(() => _doseFilterId = d?.id),
-            ),
+          FilterMenuChip(
+            addLabel: 'Dose',
+            selectedLabel: selectedDose?.name,
+            entries: {for (final d in doses) d.id: d.name},
+            onSelected: (id) => setState(() => _doseFilterId = id),
+            onCleared: () => setState(() => _doseFilterId = null),
           ),
           const SizedBox(width: 8),
           _FilterChipButton(
@@ -545,46 +588,6 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
         ],
       ),
     );
-  }
-
-  /// Bottom-sheet option picker shared by the lote/dose filter chips —
-  /// the "all" row clears the filter (null).
-  Future<void> _pickFilterOption<T>({
-    required String title,
-    required String allLabel,
-    required List<T> options,
-    required String Function(T) labelOf,
-    required void Function(T?) onSelected,
-  }) async {
-    final picked = await showModalBottomSheet<_FilterChoice<T>>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-              child: Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
-            ),
-            ListTile(
-              title: Text(allLabel),
-              onTap: () =>
-                  Navigator.pop(ctx, const _FilterChoice(null)),
-            ),
-            for (final option in options)
-              ListTile(
-                title: Text(labelOf(option)),
-                onTap: () => Navigator.pop(ctx, _FilterChoice(option)),
-              ),
-          ],
-        ),
-      ),
-    );
-    if (picked != null && mounted) onSelected(picked.value);
   }
 
   Widget _buildAnimalFilterChip() {
@@ -746,13 +749,6 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
   }
 }
 
-/// Wrapper so the sheet can distinguish "picked the all/clear row" (value
-/// null) from "dismissed the sheet" (result null).
-class _FilterChoice<T> {
-  const _FilterChoice(this.value);
-  final T? value;
-}
-
 /// Stadium dropdown-chip used by the applications filter row: label +
 /// expand_more (or close when clearable), green-tinted when active.
 class _FilterChipButton extends StatelessWidget {
@@ -776,7 +772,7 @@ class _FilterChipButton extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        height: 40,
+        height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: active ? AppColors.positiveChipBg : AppColors.surface,

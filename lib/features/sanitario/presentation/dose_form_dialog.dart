@@ -318,10 +318,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                         onPressed: _saving
                             ? null
                             : () => Navigator.pop(context, false),
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                        style: OutlinedButton.styleFrom(
                         ),
                         child: const Text('Cancelar'),
                       ),
@@ -334,10 +331,7 @@ class _DoseFormDialogState extends ConsumerState<DoseFormDialog> {
                       height: 52,
                       child: FilledButton(
                         onPressed: _saving ? null : _submit,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                        style: FilledButton.styleFrom(
                         ),
                         child: _saving
                             ? const SizedBox(

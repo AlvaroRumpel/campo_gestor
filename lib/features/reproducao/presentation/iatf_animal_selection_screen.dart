@@ -485,10 +485,7 @@ class _IatfAnimalSelectionScreenState
               child: SizedBox(
                 height: 52,
                 child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                  style: FilledButton.styleFrom(
                   ),
                   onPressed: (_saving || count == 0) ? null : _confirm,
                   child: _saving

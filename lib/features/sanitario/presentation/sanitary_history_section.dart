@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/ui.dart';
 import '../data/sanitary_application_model.dart';
 import '../data/sanitary_application_repository.dart';
@@ -235,13 +236,11 @@ Widget _buildLoteRow(
   );
 }
 
-/// Private outlined-card shell shared by both variants — the exact shape
-/// `_ReproductiveHistorySection`/`_PlaceholderSection` already use in
-/// `animal_detail_screen.dart` (borderRadius 12, outline 38%,
-/// colorScheme.surface, padding 16). Header: locked section label, a
-/// spacer, and the "Mostrar estornadas" toggle. Each placement owns its own
-/// toggle value — no shared provider, since it is a per-surface view
-/// preference, not application state.
+/// Shell no padrão do redesign (VIS-01): `SectionCard` r16 sem borda, o
+/// mesmo dos demais cards das fichas. Header: título 15.5/w700 + toggle
+/// "Mostrar estornadas". Each placement owns its own toggle value — no
+/// shared provider, since it is a per-surface view preference, not
+/// application state.
 class _SanitaryHistoryCardShell extends StatelessWidget {
   const _SanitaryHistoryCardShell({
     required this.showReversed,
@@ -255,40 +254,28 @@ class _SanitaryHistoryCardShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outline.withValues(alpha: 0.38),
-        ),
-      ),
-      color: theme.colorScheme.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Histórico Sanitário',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                Text(
-                  'Mostrar estornadas',
-                  style: theme.textTheme.bodyMedium,
-                ),
-                Switch(value: showReversed, onChanged: onShowReversedChanged),
-              ],
+    return SectionCard(
+      title: 'Histórico Sanitário',
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Mostrar estornadas',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            height: 28,
+            child: FittedBox(
+              child: Switch(
+                value: showReversed,
+                onChanged: onShowReversedChanged,
+              ),
             ),
-            const SizedBox(height: 8),
-            body,
-          ],
-        ),
+          ),
+        ],
       ),
+      child: body,
     );
   }
 }
@@ -309,13 +296,6 @@ class _HistoryRowShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final (background, foreground) = switch (badgeLabel) {
-      'Estornada' => (colorScheme.errorContainer, colorScheme.onErrorContainer),
-      'Estorno' => (colorScheme.surfaceContainerHigh, colorScheme.onSurface),
-      _ => (null, null),
-    };
-
     return InkWell(
       onTap: () => context.go(AppRoutes.aplicacaoDetail(applicationId)),
       child: Padding(
@@ -325,45 +305,15 @@ class _HistoryRowShell extends StatelessWidget {
             Expanded(child: title),
             if (badgeLabel != null) ...[
               const SizedBox(width: 8),
-              _HistoryBadge(
-                label: badgeLabel!,
-                background: background!,
-                foreground: foreground!,
+              StatusChip(
+                badgeLabel!,
+                kind: badgeLabel == 'Estornada'
+                    ? StatusKind.danger
+                    : StatusKind.neutral,
               ),
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Small rounded status badge — matches `_StatusChip` in
-/// `aplicacao_detail_screen.dart`.
-class _HistoryBadge extends StatelessWidget {
-  const _HistoryBadge({
-    required this.label,
-    required this.background,
-    required this.foreground,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: foreground),
       ),
     );
   }
@@ -418,11 +368,11 @@ class _SectionMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Text(
       text,
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+      style: const TextStyle(
+        fontSize: 13.5,
+        color: AppColors.textSecondary,
       ),
     );
   }

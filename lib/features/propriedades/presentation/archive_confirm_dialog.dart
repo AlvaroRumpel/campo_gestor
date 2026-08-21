@@ -91,10 +91,7 @@ class _ArchiveConfirmDialogState extends State<ArchiveConfirmDialog> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
                     ),
                     child: const Text('Cancelar'),
                   ),
@@ -108,10 +105,7 @@ class _ArchiveConfirmDialogState extends State<ArchiveConfirmDialog> {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.danger,
                       foregroundColor: AppColors.onDanger,
-                      minimumSize: const Size.fromHeight(52),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
                     ),
                     child: const Text('Arquivar'),
                   ),
