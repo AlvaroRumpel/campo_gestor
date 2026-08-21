@@ -13,6 +13,7 @@ import '../../reproducao/data/iatf_repository.dart';
 import '../../reproducao/data/dg_summary.dart';
 import '../../sanitario/presentation/aplicacao_form_dialog.dart';
 import '../data/lote_repository.dart';
+import 'lote_actions.dart';
 import 'mover_lote_dialog.dart';
 
 final _dateFmt = DateFormat('dd/MM/yyyy');
@@ -142,6 +143,26 @@ class _LoteDetailPanelState extends ConsumerState<LoteDetailPanel> {
                       onPressed: () =>
                           context.push(AppRoutes.loteDetail(lot.id)),
                     ),
+                    if (widget.canEdit && lot.deletedAt == null)
+                      PopupMenuButton<String>(
+                        iconColor: AppColors.onGreen,
+                        iconSize: 20,
+                        onSelected: (v) async {
+                          if (v == 'edit') {
+                            await editLotName(context, ref, lot);
+                          } else if (v == 'archive') {
+                            final archived =
+                                await archiveLot(context, ref, lot);
+                            if (archived) widget.onClose();
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                              value: 'edit', child: Text('Editar nome')),
+                          PopupMenuItem(
+                              value: 'archive', child: Text('Arquivar lote')),
+                        ],
+                      ),
                     IconButton(
                       icon: const Icon(Icons.close,
                           color: AppColors.onGreen, size: 20),

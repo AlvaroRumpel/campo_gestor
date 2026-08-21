@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/current_property_provider.dart';
 import '../../../core/providers/invalidate_property_data.dart';
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../../features/auth/data/property_repository.dart';
@@ -13,6 +14,7 @@ import '../../../features/lotes/presentation/_lots_section.dart';
 import '../../../features/lotes/presentation/lote_form_dialog.dart';
 import '../data/piquete_model.dart';
 import '../data/piquete_repository.dart';
+import 'paddock_actions.dart';
 
 class PaddockDetailScreen extends ConsumerWidget {
   const PaddockDetailScreen({super.key, required this.paddockId});
@@ -31,6 +33,7 @@ class PaddockDetailScreen extends ConsumerWidget {
 
     final propertyId = currentPropAsync.asData?.value?.id ?? '';
 
+    final paddockForActions = paddockAsync.asData?.value;
     return Scaffold(
       appBar: DetailAppBar(
         parentLabel: 'Piquetes',
@@ -41,6 +44,33 @@ class PaddockDetailScreen extends ConsumerWidget {
             context.go(AppRoutes.piquetes);
           }
         },
+        actions: [
+          if (canEdit && paddockForActions != null)
+            PopupMenuButton<String>(
+              iconColor: AppColors.onGreen,
+              onSelected: (v) async {
+                if (v == 'edit') {
+                  await editPaddock(context, ref, paddock: paddockForActions);
+                } else if (v == 'delete') {
+                  final removed = await confirmDeletePaddock(
+                      context, ref, paddockForActions);
+                  if (removed && context.mounted) {
+                    context.go(AppRoutes.piquetes);
+                  }
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Editar')),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Text(
+                    'Remover',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
       body: paddockAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

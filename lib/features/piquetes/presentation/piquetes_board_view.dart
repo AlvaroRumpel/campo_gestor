@@ -25,6 +25,9 @@ class PiquetesBoardView extends StatefulWidget {
     required this.onSelectLot,
     required this.onMoveLot,
     required this.canEdit,
+    required this.onOpenPaddock,
+    required this.onEditPaddock,
+    required this.onDeletePaddock,
   });
 
   final List<Paddock> paddocks;
@@ -35,6 +38,9 @@ class PiquetesBoardView extends StatefulWidget {
   final ValueChanged<String?> onSelectLot;
   final void Function(LotWithPaddockCount lot, Paddock target) onMoveLot;
   final bool canEdit;
+  final ValueChanged<Paddock> onOpenPaddock;
+  final ValueChanged<Paddock> onEditPaddock;
+  final ValueChanged<Paddock> onDeletePaddock;
 
   @override
   State<PiquetesBoardView> createState() => _PiquetesBoardViewState();
@@ -100,6 +106,9 @@ class _PiquetesBoardViewState extends State<PiquetesBoardView> {
                               onSelectLot: widget.onSelectLot,
                               onMoveLot: widget.onMoveLot,
                               canEdit: widget.canEdit,
+                              onOpenPaddock: widget.onOpenPaddock,
+                              onEditPaddock: widget.onEditPaddock,
+                              onDeletePaddock: widget.onDeletePaddock,
                               onDragStarted: (item) =>
                                   setState(() => _dragging = item),
                               onDragEnd: () => setState(() => _dragging = null),
@@ -128,6 +137,9 @@ class _PaddockColumn extends StatelessWidget {
     required this.onSelectLot,
     required this.onMoveLot,
     required this.canEdit,
+    required this.onOpenPaddock,
+    required this.onEditPaddock,
+    required this.onDeletePaddock,
     required this.onDragStarted,
     required this.onDragEnd,
   });
@@ -140,6 +152,9 @@ class _PaddockColumn extends StatelessWidget {
   final ValueChanged<String?> onSelectLot;
   final void Function(LotWithPaddockCount lot, Paddock target) onMoveLot;
   final bool canEdit;
+  final ValueChanged<Paddock> onOpenPaddock;
+  final ValueChanged<Paddock> onEditPaddock;
+  final ValueChanged<Paddock> onDeletePaddock;
   final ValueChanged<LotWithPaddockCount> onDragStarted;
   final VoidCallback onDragEnd;
 
@@ -163,7 +178,12 @@ class _PaddockColumn extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
+          InkWell(
+            onTap: () => onOpenPaddock(paddock),
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(14),
+            ),
+            child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: over ? AppColors.dangerContainer : AppColors.surfaceVariant,
@@ -199,6 +219,31 @@ class _PaddockColumn extends StatelessWidget {
                         color: AppColors.danger,
                       ),
                     ],
+                    if (canEdit)
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: PopupMenuButton<String>(
+                          padding: EdgeInsets.zero,
+                          iconSize: 18,
+                          tooltip: 'Ações do piquete',
+                          onSelected: (v) {
+                            if (v == 'edit') onEditPaddock(paddock);
+                            if (v == 'delete') onDeletePaddock(paddock);
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                                value: 'edit', child: Text('Editar')),
+                            PopupMenuItem(
+                              value: 'delete',
+                              child: Text(
+                                'Remover',
+                                style: TextStyle(color: AppColors.danger),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -222,6 +267,7 @@ class _PaddockColumn extends StatelessWidget {
                 const SizedBox(height: 8),
                 CapacityBar(current: ua, capacity: paddock.uaCapacity, height: 4),
               ],
+            ),
             ),
           ),
           Expanded(

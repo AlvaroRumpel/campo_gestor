@@ -19,6 +19,7 @@ import '../../sanitario/presentation/aplicacao_form_dialog.dart';
 import '../../sanitario/presentation/sanitary_history_section.dart';
 import '../data/lote_model.dart';
 import '../data/lote_repository.dart';
+import 'lote_actions.dart';
 import 'mover_lote_dialog.dart';
 
 String _fmtUa(double v) => v.toStringAsFixed(1).replaceAll('.', ',');
@@ -45,6 +46,7 @@ class LoteDetailScreen extends ConsumerWidget {
       membersAsync.asData?.value,
     );
 
+    final lotForActions = lotAsync.asData?.value;
     return Scaffold(
       appBar: DetailAppBar(
         parentLabel: 'Lotes',
@@ -60,6 +62,28 @@ class LoteDetailScreen extends ConsumerWidget {
             context.go(AppRoutes.piquetes);
           }
         },
+        actions: [
+          if (canEdit && lotForActions != null &&
+              lotForActions.deletedAt == null)
+            PopupMenuButton<String>(
+              iconColor: AppColors.onGreen,
+              onSelected: (v) async {
+                if (v == 'edit') {
+                  await editLotName(context, ref, lotForActions);
+                } else if (v == 'archive') {
+                  final archived =
+                      await archiveLot(context, ref, lotForActions);
+                  if (archived && context.mounted) {
+                    context.go('/piquetes/${lotForActions.paddockId}');
+                  }
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Editar nome')),
+                PopupMenuItem(value: 'archive', child: Text('Arquivar lote')),
+              ],
+            ),
+        ],
       ),
       body: lotAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
