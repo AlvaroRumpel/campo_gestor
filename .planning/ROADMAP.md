@@ -27,16 +27,49 @@ Detalhes completos: [milestones/v1.0-ROADMAP.md](./milestones/v1.0-ROADMAP.md)
 
 </details>
 
-### 🚧 v1.1 (planejamento)
+### 🚧 v1.1 — Acesso, Consistência e Planilhas
 
-Fases a definir via `/gsd-new-milestone`. Escopo aprovado em 2026-08-21:
+#### Fase 12: Acesso e edição de piquete/lote
 
-1. Correções de acesso — piquete clicável no board desktop, editar/arquivar piquete e lote nos detalhes/painéis.
-2. Consistência visual — auditoria UI 2026-08-21 (históricos pré-redesign, contraste de chips, tema de botões, FABs desktop, confirmações destrutivas) + alinhamento da tela Sanitário.
-3. Hub Planilhas ("modo Excel") — EditableGrid derivado de SheetSchema, schemas + RPCs bulk para lotes/piquetes/gastos/IATF, tela hub com seletor de entidade.
+**Goal:** Toda entidade estrutural (piquete, lote) é editável/arquivável a partir de onde o usuário a vê — board desktop, detalhe e painel — fechando o bug de clique morto no board.
+**Requirements:** ACES-01, ACES-02, ACES-03
+**Depends on:** —
+
+Plans:
+
+- [ ] 12-01 — onTap + menu Editar/Arquivar no header de `_PaddockColumn` (board desktop); ações Editar/Arquivar no AppBar de `PaddockDetailScreen`
+- [ ] 12-02 — Editar nome/Arquivar em `LoteDetailScreen` e `LoteDetailPanel` (extrair `_archiveLot` de `LotsSection` para reuso)
+
+#### Fase 13: Consistência visual + Sanitário
+
+**Goal:** Um só sistema visual: históricos pré-redesign migrados, contraste WCAG dos chips, tema de botões único, FABs gated, confirmações padronizadas, e a tela Sanitário alinhada às demais listas (busca incluída).
+**Requirements:** VIS-01..VIS-08
+**Depends on:** —
+
+Plans:
+
+- [ ] 13-01 — VIS-01 históricos sanitário/reprodutivo → SectionCard/StatusChip/AppColors
+- [ ] 13-02 — VIS-02 chipTheme contraste + VIS-03 radius 14 no tema (remover overrides)
+- [ ] 13-03 — VIS-04 FABs/paddings + VIS-06 confirmações + VIS-07 DetailAppBar em gastos + VIS-08 empty states
+- [ ] 13-04 — VIS-05 Sanitário: busca, header/table view, filtros desktop
+
+#### Fase 14: Hub Planilhas ("modo Excel")
+
+**Goal:** Menu "Planilhas" com todas as entidades editáveis em grade estilo Excel — grade derivada de SheetSchema, novas entidades (lotes, piquetes, gastos) com RPCs bulk transacionais e export/import.
+**Requirements:** GRID-01, GRID-02, GRID-03
+**Depends on:** Fase 13 (tema estável)
+
+Plans:
+
+- [ ] 14-01 — GRID-01 EditableGrid derivado de SheetSchema
+- [ ] 14-02 — GRID-02 migration bulk_upsert_lots/paddocks/expenses + pgTAP + schemas
+- [ ] 14-03 — GRID-03 tela hub /planilhas + item de menu + export/import por entidade
 
 ## Progress
 
 | Fase | Milestone | Status |
 | --- | --- | --- |
 | 0–11 | v1.0 | ✅ Complete (76/76 planos) |
+| 12 | v1.1 | Not started |
+| 13 | v1.1 | Not started |
+| 14 | v1.1 | Not started |
