@@ -40,6 +40,10 @@ class AppShell extends ConsumerWidget {
         icon: Icons.payments_outlined,
         selectedIcon: Icons.payments,
         label: 'Gastos'),
+    _NavItem(
+        icon: Icons.grid_on_outlined,
+        selectedIcon: Icons.grid_on,
+        label: 'Planilhas'),
   ];
 
   /// Only the bottom nav (<600px) stays at 5 destinations — Gastos is a

@@ -50,6 +50,42 @@ class GridRow {
   final bool isNew;
 }
 
+/// GRID-01: deriva as colunas da grade do [SheetSchema] da entidade —
+/// export, import e grade lendo a mesma fonte. `overrides` troca a coluna
+/// gerada (dropdown de lote, sugestões de raça); `exportOnly` fica de fora.
+List<GridColumn> gridColumnsFromSchema(
+  SheetSchema schema, {
+  Map<String, GridColumn> overrides = const {},
+  Set<String> readOnly = const {},
+  String? flexKey,
+}) {
+  double widthFor(SheetColumn c) => switch (c.type) {
+        SheetColumnType.integer => 96,
+        SheetColumnType.decimal => 120,
+        SheetColumnType.date => 120,
+        SheetColumnType.enumeration => 170,
+        SheetColumnType.text => 170,
+      };
+  return [
+    for (final c in schema.importColumns)
+      overrides[c.key] ??
+          GridColumn(
+            key: c.key,
+            label: c.label,
+            width: widthFor(c),
+            type: c.type,
+            options: c.type == SheetColumnType.enumeration
+                ? c.enumValues
+                : null,
+            editable: !readOnly.contains(c.key) && c.editable,
+            mono: c.type == SheetColumnType.integer ||
+                c.type == SheetColumnType.decimal ||
+                c.type == SheetColumnType.date,
+            flex: c.key == flexKey,
+          ),
+  ];
+}
+
 class GridChange {
   const GridChange({required this.rowId, required this.values});
   final String rowId;

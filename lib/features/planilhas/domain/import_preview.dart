@@ -33,11 +33,13 @@ class ImportContext {
     this.lotNamesLower = const {},
     this.doseNamesLower = const {},
     this.iatfAnimalNumbers = const {},
+    this.paddockNamesLower = const {},
   });
   final Set<int> existingAnimalNumbers;
   final Set<String> lotNamesLower;
   final Set<String> doseNamesLower;
   final Set<int> iatfAnimalNumbers;
+  final Set<String> paddockNamesLower;
 }
 
 final _excelEpoch = DateTime(1899, 12, 30);
@@ -119,11 +121,20 @@ List<ImportRow> validateRows({
 
     final isExistingAnimal = schema.entity == SheetEntity.animais &&
         _isExistingAnimal(values, ctx);
+    final isExistingByName = switch (schema.entity) {
+      SheetEntity.lotes => ctx.lotNamesLower
+          .contains((values['name'] as String?)?.toLowerCase() ?? ''),
+      SheetEntity.piquetes => ctx.paddockNamesLower
+          .contains((values['name'] as String?)?.toLowerCase() ?? ''),
+      _ => false,
+    };
 
     for (final c in schema.requiredColumns) {
       if (values.containsKey(c.key)) continue;
       // Animal existente atualiza campos presentes — lote não é exigido.
       if (isExistingAnimal && c.key == 'lot_name') continue;
+      // Lote/piquete existentes: só os campos presentes são atualizados.
+      if (isExistingByName && c.key != 'name') continue;
       // Categoria de animal existente também pode faltar (mantém a atual)?
       // Não — RPC exige categoria sempre; preview segue a RPC.
       if (errors.any((m) => m.startsWith(c.label))) continue;
@@ -162,6 +173,40 @@ List<ImportRow> validateRows({
         final n = values['animal_number'] as int?;
         if (n != null && !ctx.iatfAnimalNumbers.contains(n)) {
           errors.add('Animal nº $n não está neste IATF');
+        }
+      case SheetEntity.lotes:
+        final paddock = values['paddock_name'] as String?;
+        if (paddock != null &&
+            !ctx.paddockNamesLower.contains(paddock.toLowerCase())) {
+          errors.add('Piquete "$paddock" não existe');
+        }
+        final name = values['name'] as String?;
+        if (name != null && ctx.lotNamesLower.contains(name.toLowerCase())) {
+          status = ImportRowStatus.update;
+        }
+      case SheetEntity.piquetes:
+        final area = values['area_ha'] as double?;
+        if (area != null && area <= 0) {
+          errors.add('Área deve ser maior que zero');
+        }
+        final cap = values['ua_capacity'] as double?;
+        if (cap != null && cap <= 0) {
+          errors.add('Capacidade deve ser maior que zero');
+        }
+        final name = values['name'] as String?;
+        if (name != null &&
+            ctx.paddockNamesLower.contains(name.toLowerCase())) {
+          status = ImportRowStatus.update;
+        }
+      case SheetEntity.gastos:
+        final paddock = values['paddock_name'] as String?;
+        if (paddock != null &&
+            !ctx.paddockNamesLower.contains(paddock.toLowerCase())) {
+          errors.add('Piquete "$paddock" não existe');
+        }
+        final amount = values['amount'] as double?;
+        if (amount != null && amount <= 0) {
+          errors.add('Valor deve ser maior que zero');
         }
     }
 

@@ -52,6 +52,24 @@ class BulkRepository {
       animals: r['animals'] as int,
     );
   }
+
+  Future<({int created, int updated})> upsertLots(
+      String propertyId, List<Map<String, dynamic>> rows) async {
+    final r = await _rpc('bulk_upsert_lots', propertyId, rows);
+    return (created: r['created'] as int, updated: r['updated'] as int);
+  }
+
+  Future<({int created, int updated})> upsertPaddocks(
+      String propertyId, List<Map<String, dynamic>> rows) async {
+    final r = await _rpc('bulk_upsert_paddocks', propertyId, rows);
+    return (created: r['created'] as int, updated: r['updated'] as int);
+  }
+
+  Future<({int created, int updated})> upsertExpenses(
+      String propertyId, List<Map<String, dynamic>> rows) async {
+    final r = await _rpc('bulk_upsert_expenses', propertyId, rows);
+    return (created: r['created'] as int, updated: r['updated'] as int);
+  }
 }
 
 final bulkRepositoryProvider = Provider<BulkRepository>(

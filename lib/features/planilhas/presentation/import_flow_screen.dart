@@ -15,6 +15,8 @@ import '../../../core/widgets/campo_app_bar.dart';
 import '../../../core/widgets/ui.dart';
 import '../../animais/data/animal_repository.dart';
 import '../../lotes/data/lote_repository.dart';
+import '../../piquetes/data/piquete_model.dart';
+import '../../piquetes/data/piquete_repository.dart';
 import '../../reproducao/data/iatf_model.dart';
 import '../../reproducao/data/iatf_repository.dart';
 import '../../sanitario/data/dose_repository.dart';
@@ -109,6 +111,8 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
         ? const <IatfMembershipView>[]
         : (ref.read(iatfMembershipsProvider(widget.iatfId!)).asData?.value ??
             const <IatfMembershipView>[]);
+    final paddocks =
+        ref.read(paddockListProvider).asData?.value ?? const <Paddock>[];
     return ImportContext(
       existingAnimalNumbers: {
         for (final a in animals)
@@ -120,6 +124,7 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
         for (final m in members)
           if (!m.animalDeleted) m.animalNumber,
       },
+      paddockNamesLower: {for (final p in paddocks) p.name.toLowerCase()},
     );
   }
 
@@ -196,6 +201,18 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
             ],
           );
           msg = '${valid.length} diagnósticos lançados';
+        case SheetEntity.lotes:
+          final res =
+              await bulk.upsertLots(property.id, valid.map(ser).toList());
+          msg = '${res.created} lotes criados · ${res.updated} atualizados';
+        case SheetEntity.piquetes:
+          final res =
+              await bulk.upsertPaddocks(property.id, valid.map(ser).toList());
+          msg = '${res.created} piquetes criados · ${res.updated} atualizados';
+        case SheetEntity.gastos:
+          final res =
+              await bulk.upsertExpenses(property.id, valid.map(ser).toList());
+          msg = '${res.created} gastos criados · ${res.updated} atualizados';
       }
       ref.invalidatePropertyData();
       if (!mounted) return;
@@ -203,6 +220,8 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
         SheetEntity.animais => AppRoutes.animais,
         SheetEntity.doses || SheetEntity.sanitario => AppRoutes.sanitario,
         SheetEntity.dg => null, // pop já volta para o IATF
+        SheetEntity.lotes || SheetEntity.piquetes => AppRoutes.piquetes,
+        SheetEntity.gastos => AppRoutes.gastos,
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(msg),
@@ -505,6 +524,14 @@ class FileStep extends StatelessWidget {
         SheetEntity.dg =>
           'Cada linha lança um DG para um animal deste IATF. Lançamentos '
               'são aditivos — correções ficam no histórico.',
+        SheetEntity.lotes =>
+          'Nome existente na propriedade → atualiza o lote (piquete).\n'
+              'Nome novo → cria o lote (precisa do piquete).',
+        SheetEntity.piquetes =>
+          'Nome existente → atualiza área e capacidade.\n'
+              'Nome novo → cria o piquete.',
+        SheetEntity.gastos =>
+          'Cada linha vira um gasto novo no piquete indicado.',
       };
 }
 

@@ -70,6 +70,7 @@ abstract final class AppRoutes {
   static String importarFor(String entity, {String? iatfId}) =>
       '/planilhas/importar/$entity${iatfId == null ? '' : '?iatf=$iatfId'}';
   static const sanitarioGrade = '/sanitario/grade';
+  static const planilhas = '/planilhas';
 
   // App shell branches (Phase 0)
   static const dashboard = '/dashboard';

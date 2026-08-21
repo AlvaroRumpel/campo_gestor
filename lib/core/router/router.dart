@@ -23,6 +23,7 @@ import '../../features/membros/presentation/membros_screen.dart';
 import '../../features/piquetes/presentation/piquetes_screen.dart';
 import '../../features/planilhas/domain/sheet_schema.dart';
 import '../../features/planilhas/presentation/import_flow_screen.dart';
+import '../../features/planilhas/presentation/planilhas_hub_screen.dart';
 import '../../features/planilhas/presentation/sanitario_grade_screen.dart';
 import '../../features/reproducao/presentation/iatf_detail_screen.dart';
 import '../../features/reproducao/presentation/reproducao_screen.dart';
@@ -57,6 +58,7 @@ final _shellAnimaisKey = GlobalKey<NavigatorState>(debugLabel: 'animais');
 final _shellReproducaoKey = GlobalKey<NavigatorState>(debugLabel: 'reproducao');
 final _shellSanitarioKey = GlobalKey<NavigatorState>(debugLabel: 'sanitario');
 final _shellGastosKey = GlobalKey<NavigatorState>(debugLabel: 'gastos');
+final _shellPlanilhasKey = GlobalKey<NavigatorState>(debugLabel: 'planilhas');
 
 /// Provider exposing the singleton GoRouter for the app.
 ///
@@ -304,6 +306,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoutes.gastos,
                 builder: (ctx, _) => const GastosPropertyScreen(),
+              ),
+            ],
+          ),
+          // 7a branch (fase 14): hub Planilhas — mesmo aviso posicional da 6a.
+          StatefulShellBranch(
+            navigatorKey: _shellPlanilhasKey,
+            routes: [
+              GoRoute(
+                path: AppRoutes.planilhas,
+                builder: (ctx, _) => const PlanilhasHubScreen(),
               ),
             ],
           ),

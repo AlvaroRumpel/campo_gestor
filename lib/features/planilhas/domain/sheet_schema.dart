@@ -2,8 +2,9 @@
 // export, alvos do passo "mapear colunas" do import, colunas da grade
 // editável e a planilha-modelo. Campo novo = 1 SheetColumn aqui.
 import '../../animais/data/animal_constants.dart';
+import '../../gastos/data/expense_constants.dart';
 
-enum SheetEntity { animais, doses, sanitario, dg }
+enum SheetEntity { animais, doses, sanitario, dg, lotes, piquetes, gastos }
 
 enum SheetColumnType { text, integer, decimal, date, enumeration }
 
@@ -249,9 +250,125 @@ const dgSchema = SheetSchema(
   ],
 );
 
+const lotesSchema = SheetSchema(
+  entity: SheetEntity.lotes,
+  title: 'Lotes',
+  sheetName: 'Lotes',
+  columns: [
+    SheetColumn(
+      key: 'name',
+      label: 'Nome',
+      required: true,
+      aliases: ['lote', 'nome do lote', 'grupo'],
+    ),
+    SheetColumn(
+      key: 'paddock_name',
+      label: 'Piquete',
+      required: true,
+      aliases: ['piquete', 'nome do piquete', 'pasto', 'potreiro'],
+    ),
+    SheetColumn(
+      key: 'animal_count',
+      label: 'Animais',
+      type: SheetColumnType.integer,
+      exportOnly: true,
+    ),
+    SheetColumn(
+      key: 'ua',
+      label: 'UA',
+      type: SheetColumnType.decimal,
+      exportOnly: true,
+    ),
+  ],
+  templateExamples: [
+    ['Lote 01', 'Piquete Sul'],
+    ['Terneiros', 'Chácara'],
+  ],
+);
+
+const piquetesSchema = SheetSchema(
+  entity: SheetEntity.piquetes,
+  title: 'Piquetes',
+  sheetName: 'Piquetes',
+  columns: [
+    SheetColumn(
+      key: 'name',
+      label: 'Nome',
+      required: true,
+      aliases: ['piquete', 'nome do piquete', 'pasto', 'potreiro'],
+    ),
+    SheetColumn(
+      key: 'area_ha',
+      label: 'Área (ha)',
+      type: SheetColumnType.decimal,
+      required: true,
+      aliases: ['area', 'hectares', 'ha', 'area ha'],
+    ),
+    SheetColumn(
+      key: 'ua_capacity',
+      label: 'Capacidade (UA)',
+      type: SheetColumnType.decimal,
+      required: true,
+      aliases: ['capacidade', 'ua', 'lotacao', 'capacidade ua'],
+    ),
+  ],
+  templateExamples: [
+    ['Piquete Sul', 12.5, 15],
+    ['Chácara', 8, 10],
+  ],
+);
+
+const gastosSchema = SheetSchema(
+  entity: SheetEntity.gastos,
+  title: 'Gastos',
+  sheetName: 'Gastos',
+  columns: [
+    SheetColumn(
+      key: 'expense_date',
+      label: 'Data',
+      type: SheetColumnType.date,
+      required: true,
+      aliases: ['data do gasto', 'dt', 'data'],
+    ),
+    SheetColumn(
+      key: 'paddock_name',
+      label: 'Piquete',
+      required: true,
+      aliases: ['piquete', 'nome do piquete'],
+    ),
+    SheetColumn(
+      key: 'category',
+      label: 'Categoria',
+      type: SheetColumnType.enumeration,
+      required: true,
+      enumValues: kExpenseCategoryLabels,
+      aliases: ['categ', 'tipo', 'tipo de gasto'],
+    ),
+    SheetColumn(
+      key: 'amount',
+      label: r'Valor (R$)',
+      type: SheetColumnType.decimal,
+      required: true,
+      aliases: ['valor', 'custo', 'r', 'total'],
+    ),
+    SheetColumn(
+      key: 'description',
+      label: 'Descrição',
+      aliases: ['desc', 'descricao', 'obs', 'observacao'],
+    ),
+  ],
+  templateExamples: [
+    ['19/08/2026', 'Piquete Sul', 'Manutenção', 350.0, 'Conserto de cerca'],
+    ['20/08/2026', 'Chácara', 'Ração/Suplementação', 1200.5, ''],
+  ],
+);
+
 SheetSchema schemaFor(SheetEntity e) => switch (e) {
       SheetEntity.animais => animaisSchema,
       SheetEntity.doses => dosesSchema,
       SheetEntity.sanitario => sanitarioSchema,
       SheetEntity.dg => dgSchema,
+      SheetEntity.lotes => lotesSchema,
+      SheetEntity.piquetes => piquetesSchema,
+      SheetEntity.gastos => gastosSchema,
     };
