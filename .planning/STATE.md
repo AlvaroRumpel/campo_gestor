@@ -160,6 +160,7 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 
 - Phase 9 added: Redesign UI/UX musgo evoluído — executado retroativamente (7 commits feat(redesign)), registrado via /gsd-phase add
 - Phase 10 added: Gestão de Membros e Ciclo de Vida da Propriedade (gap SaaS do review geral)
+- Phase 11 added: Planilhas e ajustes UX (retroativa 2026-08-20) — 30 commits executados fora do fluxo (planilhas export/import/grade, rename IATF, ajustes UX/QA), registrado via /gsd-phase add em 2026-08-21
 
 ## Session Continuity
 

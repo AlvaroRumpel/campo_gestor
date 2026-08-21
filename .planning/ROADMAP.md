@@ -422,17 +422,32 @@ Plans:
 
 Plans:
 
-- [ ] 10-01-PLAN.md — migration `20260814_11_membership_lifecycle.sql`: tabela `invites` (FORCE RLS, 2 policies SELECT), helpers `current_user_email` / `assert_not_last_veterinarian` (lock-then-count) e 9 RPCs SECURITY DEFINER (wave 1)
-- [ ] 10-02-PLAN.md — suíte pgTAP `supabase/tests/10_membership_test.sql` cobrindo schema, grants, os 9 RPCs e os 4 caminhos da guarda de último vet (wave 2)
-- [ ] 10-03-PLAN.md — camada de dados: `membro_models.dart`, `membro_exception.dart` (SQLSTATE → pt-BR), `membro_repository.dart` + 4 providers (wave 1)
-- [ ] 10-04-PLAN.md — peças compartilhadas de UI: gate `canManageMembers`, `InviteFormDialog`, `InviteBanner` (wave 2)
-- [ ] 10-05-PLAN.md — `MembrosScreen` mobile (ListView + FAB) e desktop (tabela + painel 380px) com as 5 ações de gestão (wave 3)
-- [ ] 10-06-PLAN.md — `fetchArchivedProperties` / `restoreProperty` / `archivedPropertyListProvider` + `ArchiveConfirmDialog` (wave 1)
-- [ ] 10-07-PLAN.md — `PropriedadesScreen`: alternador Ativas/Arquivadas, arquivar com confirmação forte, restaurar (wave 2)
-- [ ] 10-08-PLAN.md — `/sem-acesso` vira caixa de entrada de convites (wave 3)
-- [ ] 10-09-PLAN.md — banner de convite no dashboard, mobile e desktop (wave 3)
-- [ ] 10-10-PLAN.md — rota `/propriedades/:propertyId/membros` + item "Membros" no menu do cartão de fazenda (wave 4)
-- [ ] 10-11-PLAN.md — aplicar migration em PROD via MCP, verificação de catálogo, replay pgTAP e UAT humana (wave 5, orquestrador)
+- [x] 10-01-PLAN.md — migration `20260814_11_membership_lifecycle.sql`: tabela `invites` (FORCE RLS, 2 policies SELECT), helpers `current_user_email` / `assert_not_last_veterinarian` (lock-then-count) e 9 RPCs SECURITY DEFINER (wave 1)
+- [x] 10-02-PLAN.md — suíte pgTAP `supabase/tests/10_membership_test.sql` cobrindo schema, grants, os 9 RPCs e os 4 caminhos da guarda de último vet (wave 2)
+- [x] 10-03-PLAN.md — camada de dados: `membro_models.dart`, `membro_exception.dart` (SQLSTATE → pt-BR), `membro_repository.dart` + 4 providers (wave 1)
+- [x] 10-04-PLAN.md — peças compartilhadas de UI: gate `canManageMembers`, `InviteFormDialog`, `InviteBanner` (wave 2)
+- [x] 10-05-PLAN.md — `MembrosScreen` mobile (ListView + FAB) e desktop (tabela + painel 380px) com as 5 ações de gestão (wave 3)
+- [x] 10-06-PLAN.md — `fetchArchivedProperties` / `restoreProperty` / `archivedPropertyListProvider` + `ArchiveConfirmDialog` (wave 1)
+- [x] 10-07-PLAN.md — `PropriedadesScreen`: alternador Ativas/Arquivadas, arquivar com confirmação forte, restaurar (wave 2)
+- [x] 10-08-PLAN.md — `/sem-acesso` vira caixa de entrada de convites (wave 3)
+- [x] 10-09-PLAN.md — banner de convite no dashboard, mobile e desktop (wave 3)
+- [x] 10-10-PLAN.md — rota `/propriedades/:propertyId/membros` + item "Membros" no menu do cartão de fazenda (wave 4)
+- [x] 10-11-PLAN.md — aplicar migration em PROD via MCP, verificação de catálogo, replay pgTAP e UAT humana (wave 5, orquestrador)
+
+### Phase 11: Planilhas e ajustes UX (retroativa 2026-08-20)
+
+**Goal:** Trazer dados do rebanho de/para Excel (export .xlsx/.csv, import em 3 passos, edição em grade com colar do Excel) e absorver o pacote de ajustes UX/QA de 2026-08-20, incluindo o rename ATF→IATF.
+**Requirements**: nenhum ID formal — fase registrada retroativamente (trabalho executado fora do fluxo plan/execute, mesmo padrão da Fase 9)
+**Depends on:** Phase 10
+**Plans:** executado retroativamente — registro em 11-SUMMARY.md
+
+Plans:
+
+- [x] Planilhas: SheetSchema por entidade, RPCs bulk_* + pgTAP 15/15, export/import, EditableGrid, grades de animais/doses, aplicação sanitária em grade — `b896498`..`07081da`
+- [x] Rename ATF→IATF em todo o sistema + migrations com versões únicas — `e090f22`, `505b1a3`
+- [x] Ajustes UX/QA: IATF (horário/valor, DG debounce), mover em massa, R$/dose, confirmação de modais, curadoria de consistência/contraste, search-select na grade — `f42116e`..`d779cb8`
+
+**Status:** executado (pgTAP 15/15, flutter test verde, curadoria validada em sessão em 2026-08-20).
 
 ---
 
