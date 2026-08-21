@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 10
 current_plan: 1
-status: milestone-complete
+status: Awaiting next milestone
 stopped_at: Phase 10 UI-SPEC approved
-last_updated: "2026-08-15T15:54:47.884Z"
-last_activity: 2026-08-14
+last_updated: "2026-08-21T04:52:24.345Z"
+last_activity: 2026-08-21
+last_activity_desc: Milestone v1.0 completed and archived
 progress:
-  total_phases: 11
+  total_phases: 12
   completed_phases: 10
   total_plans: 76
   completed_plans: 76
-last_activity_desc: "Completed quick task 260814-g9j: findings médios do review (migration 20260814_10 pendente de aplicar)"
 ---
 
 # Project State
@@ -57,7 +57,7 @@ See: .planning/PROJECT.md
 | Plans complete | 65 of 65 across phases 0–8 |
 | Dart tests | 349 passing |
 | Migration ledger | 18 |
-| Last activity | 2026-08-19 - Quick task 260819-mk7 (ajustes QA Sturza); migration 20260819_14 aplicada em PROD |
+| Last activity | 2026-08-21 |
 
 ---
 | Phase 00 P05 | 10 | 3 tasks | 4 files |
@@ -213,3 +213,14 @@ From research/SUMMARY.md — must be resolved with stakeholder (~30 min):
 - [Phase 08]: 08-04: SC-1's 4G timing UAT (Task 4) was explicitly deferred by user decision rather than run — status flipped to complete but SC-1 stays unverified in the SUMMARY body; the 5->4 request-count reduction is proven/committed, the <1s wall-clock timing is not measured
 - [Phase 08]: 08-04: AnimalInfoCard's action-button Row overflowed by 345px at 360px width (pre-existing, uncovered by this plan's first narrow-width test) — fixed with Wrap(alignment: end) instead of Row(mainAxisAlignment: end), Rule 1 auto-fix
 - [Phase 08]: 08-04: sanitary_history_section.dart's header row overflows ~29px at 360px (D-37-locked, cannot be fixed this phase) — flagged as a known follow-up quick task, not this plan's regression
+
+## Current Position
+
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-21 — Milestone v1.0 completed and archived
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

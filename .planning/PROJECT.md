@@ -22,9 +22,15 @@ O histórico técnico do animal individual — reprodutivo e sanitário — aces
 - [x] Controlar gastos por piquete — Validated in Phase 7: lançamento vinculado a piquete, total por período (com "Ano" = ano calendário), `sanitary_applications.paddock_id/paddock_name` congelados no snapshot. UAT 7/7, pgTAP 42/42.
 - [x] **Core value entregue** — ficha consolidada do animal (ANIM-03) — Validated in Phase 8: dados do animal + lote/piquete atual (um único select embedded), histórico reprodutivo completo com todos os DGs expansíveis, e histórico sanitário completo, numa única tela; banner de baixa proeminente; layout 360px. UAT 15/15, verification 7/7.
 
-### Active
+- [x] Perfis alcançáveis + ciclo de vida da propriedade — Validated in Phase 10: convites in-app com papel (vet/proprietário/leitor), gestão de membros, guarda de último veterinário, arquivar/restaurar fazenda. pgTAP 81/81, UAT 2026-08-15.
+- [x] Redesign "musgo evoluído" — Validated in Phase 9: tokens AppColors, tema M3, shell responsivo, UAT visual 2026-08-15.
+- [x] Planilhas (export/import/grade estilo Excel) — Validated in Phase 11: .xlsx/.csv, import 3 passos, EditableGrid com colar do Excel, RPCs bulk transacionais (pgTAP 15/15).
 
-_(nenhum — todos os 26 requisitos v1 entregues; milestone v1.0 pronto para fechar)_
+### Active (v1.1 — em definição)
+
+- [ ] Acesso a edição de piquete/lote no desktop (board sem onTap; renomear/arquivar lote escondidos)
+- [ ] Consistência visual do app (auditoria 2026-08-21: históricos pré-redesign, contraste de chips, tema de botões, FABs, confirmações destrutivas) + alinhamento da tela Sanitário
+- [ ] Hub Planilhas "modo Excel" — grades para todas as entidades (lotes, piquetes, gastos, IATF) num menu próprio
 
 ### Out of Scope
 
@@ -34,6 +40,12 @@ _(nenhum — todos os 26 requisitos v1 entregues; milestone v1.0 pronto para fec
 - Histórico detalhado de composição passada do lote — apenas composição atual importa
 - Permissões granulares por módulo — perfis simples no MVP
 - Relatórios e dashboards avançados — pós-MVP
+
+## Current State
+
+**v1.0 MVP shipped 2026-08-21** — 12 fases, 76 planos. App completo em PROD (Supabase `wrdwzychjhlpwpivfhhq`): multi-tenant com RLS, módulos reprodutivo (IATF) e sanitário (snapshot imutável), ficha consolidada do animal, gastos por piquete, membros/convites, redesign musgo, planilhas export/import/grade. ~Flutter web, Riverpod 3.x, migrations ledger 24.
+
+**Débitos conhecidos ao fechar v1.0** (ver `MILESTONES.md`): Site URL do Auth em localhost; `anon` com EXECUTE em RPCs; `_canEdit` duplicado em 8 telas; fases 9/11 retroativas sem verificação formal.
 
 ## Context
 
@@ -97,4 +109,4 @@ Este documento evolui a cada transição de fase e milestone.
 4. Atualizar Context com estado atual
 
 ---
-*Last updated: 2026-08-11 after Phase 8 (Animal Dossier Consolidation) — milestone v1.0 100%*
+*Last updated: 2026-08-21 after v1.0 milestone*
