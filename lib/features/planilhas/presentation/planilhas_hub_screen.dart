@@ -122,8 +122,9 @@ class _PlanilhasHubScreenState extends ConsumerState<PlanilhasHubScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     schema.title,
@@ -131,15 +132,23 @@ class _PlanilhasHubScreenState extends ConsumerState<PlanilhasHubScreen> {
                         fontSize: 24, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Clique numa célula para editar · Ctrl+V cola do Excel '
-                      '· Tab/Enter avançam',
-                      style: TextStyle(
-                          fontSize: 12.5, color: AppColors.textSecondary),
-                      overflow: TextOverflow.ellipsis,
+                  // Grades de animais/doses trazem a própria linha de dicas —
+                  // só as entidades novas mostram a dica aqui (sem duplicar).
+                  if (_entity != SheetEntity.animais &&
+                      _entity != SheetEntity.doses)
+                    const Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          'Clique numa célula para editar · Ctrl+V cola do '
+                          'Excel · Tab/Enter avançam',
+                          style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppColors.textSecondary),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -162,7 +171,19 @@ class _PlanilhasHubScreenState extends ConsumerState<PlanilhasHubScreen> {
                         )
                       : property == null
                           ? const Center(child: CircularProgressIndicator())
-                          : _buildGrid(property),
+                          // Grade contida num card branco r16 (G-14-1) — sem
+                          // flutuar solta no fundo bege.
+                          : Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: _buildGrid(property),
+                                ),
+                              ),
+                            ),
             ),
           ],
         ),

@@ -165,36 +165,41 @@ class AnimaisTableView extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header da tela
+          // Header da tela. Responsivo (G-13-2): com o painel lateral aberto
+          // a largura cai abaixo da soma das larguras fixas dos controles e o
+          // título colapsava letra a letra — abaixo de 900px o header vira
+          // duas linhas (título em cima, controles num Wrap).
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Animais',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$ativosCount ativos · ${_fmtUa(totalUa)} UA · '
-                        '$comBaixaCount com baixa',
-                        style: monoStyle(
-                          size: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
+            child: LayoutBuilder(builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 900;
+              final title = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Animais',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$ativosCount ativos · ${_fmtUa(totalUa)} UA · '
+                    '$comBaixaCount com baixa',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: monoStyle(
+                      size: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              );
+              final controls = <Widget>[
                 SizedBox(
                   width: 300,
                   child: TextField(
@@ -206,8 +211,7 @@ class AnimaisTableView extends ConsumerWidget {
                     ),
                   ),
                 ),
-                if (onGridModeChanged != null) ...[
-                  const SizedBox(width: 10),
+                if (onGridModeChanged != null)
                   SegmentedButton<bool>(
                     segments: const [
                       ButtonSegment(
@@ -226,8 +230,6 @@ class AnimaisTableView extends ConsumerWidget {
                     onSelectionChanged: (sel) =>
                         onGridModeChanged!(sel.first),
                   ),
-                ],
-                const SizedBox(width: 10),
                 ExportButton(
                   schema: animaisSchema,
                   fileName: exportFileName('animais', propertyName),
@@ -245,24 +247,41 @@ class AnimaisTableView extends ConsumerWidget {
                       },
                   ],
                 ),
-                if (canEdit && onImport != null) ...[
-                  const SizedBox(width: 10),
+                if (canEdit && onImport != null)
                   OutlinedButton.icon(
                     onPressed: onImport,
                     icon: const Icon(Icons.upload_outlined, size: 20),
                     label: const Text('Importar'),
                   ),
-                ],
-                if (canEdit) ...[
-                  const SizedBox(width: 10),
+                if (canEdit)
                   FilledButton.icon(
                     onPressed: onCreate,
                     icon: const Icon(Icons.add, size: 20),
                     label: const Text('Novo animal'),
                   ),
+              ];
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    title,
+                    const SizedBox(height: 10),
+                    Wrap(spacing: 10, runSpacing: 10, children: controls),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: 12),
+                  for (final (i, w) in controls.indexed) ...[
+                    if (i > 0) const SizedBox(width: 10),
+                    w,
+                  ],
                 ],
-              ],
-            ),
+              );
+            }),
           ),
           // Linha de filtros
           Padding(

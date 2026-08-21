@@ -246,15 +246,25 @@ class _SanitarioScreenState extends ConsumerState<SanitarioScreen> {
     );
   }
 
-  SegmentedButton<int> _buildSegmented() {
-    return SegmentedButton<int>(
-      segments: const [
-        ButtonSegment(value: 0, label: Text('Aplicações')),
-        ButtonSegment(value: 1, label: Text('Doses')),
+  Widget _buildSegmented() {
+    return Row(
+      children: [
+        Expanded(
+          child: SegmentPill(
+            label: 'Aplicações',
+            selected: _tab == 0,
+            onTap: () => setState(() => _tab = 0),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SegmentPill(
+            label: 'Doses',
+            selected: _tab == 1,
+            onTap: () => setState(() => _tab = 1),
+          ),
+        ),
       ],
-      selected: {_tab},
-      showSelectedIcon: false,
-      onSelectionChanged: (s) => setState(() => _tab = s.first),
     );
   }
 

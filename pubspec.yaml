@@ -70,7 +70,6 @@ dependencies:
   # ─── Localization (pt-BR per D-13) ───
   intl: ^0.20.0
   excel: ^4.0.6
-  file_picker: ^12.0.0
   web: ^1.1.1
 
 dev_dependencies:

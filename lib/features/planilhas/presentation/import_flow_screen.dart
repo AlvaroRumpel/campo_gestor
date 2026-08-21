@@ -1,7 +1,6 @@
 // Fluxo de importação em 3 passos: arquivo → mapear colunas → revisar e
 // importar. Uma tela para as 4 entidades — o SheetSchema dita colunas,
 // validação e RPC de destino. Gravação é tudo-ou-nada (RPCs bulk).
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,6 +22,7 @@ import '../../sanitario/data/dose_repository.dart';
 import '../data/bulk_repository.dart';
 import '../data/column_mapping.dart';
 import '../data/download.dart';
+import '../data/pick_file.dart';
 import '../data/sheet_codec.dart';
 import '../domain/header_matcher.dart';
 import '../domain/import_preview.dart';
@@ -56,13 +56,10 @@ class _ImportFlowScreenState extends ConsumerState<ImportFlowScreen> {
   SheetSchema get schema => schemaFor(widget.entity);
 
   Future<void> _pickFile() async {
-    final f = await FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: ['xlsx', 'csv'],
-    );
-    if (f == null) return;
+    final f = await pickSheetFile();
+    if (f == null || !mounted) return;
     try {
-      final t = decodeSheet(f.name, await f.readAsBytes());
+      final t = decodeSheet(f.name, f.bytes);
       if (t.headers.isEmpty) {
         throw const FormatException(
             'Planilha vazia ou sem cabeçalho na linha 1');

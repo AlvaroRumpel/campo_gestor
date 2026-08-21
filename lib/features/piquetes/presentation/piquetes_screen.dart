@@ -91,7 +91,7 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: _SegmentButton(
+                          child: SegmentPill(
                             label: 'Piquetes',
                             count: paddockCount,
                             selected: !_showLots,
@@ -100,7 +100,7 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _SegmentButton(
+                          child: SegmentPill(
                             label: 'Lotes',
                             count: lotCount,
                             selected: _showLots,
@@ -354,61 +354,6 @@ class _PiquetesScreenState extends ConsumerState<PiquetesScreen> {
 
   Future<void> _confirmDelete(BuildContext context, Paddock paddock) =>
       confirmDeletePaddock(context, ref, paddock);
-}
-
-/// Botão do segmented control h42 r12 — label + contagem mono 11.5.
-class _SegmentButton extends StatelessWidget {
-  const _SegmentButton({
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 42,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: selected ? null : Border.all(color: AppColors.chipBorder),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: selected ? AppColors.onGreen : AppColors.ink,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '$count',
-              style: monoStyle(
-                size: 11.5,
-                color: selected
-                    ? AppColors.onGreenSecondary
-                    : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Card de piquete (spec 4.5): título + chip semáforo, 4 stats, barra de

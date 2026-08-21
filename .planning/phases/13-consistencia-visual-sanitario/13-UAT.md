@@ -54,7 +54,9 @@ skipped: 0
 
 - gap_id: G-13-2
   truth: "Com o painel lateral da ficha aberto, o header da lista de Animais continua legível (título/subtítulo em uma linha, toolbar acomodada)"
-  status: failed
+  status: resolved
+  resolved_by: fix direto (animais_table_view header responsivo <900px: título com ellipsis + controles em Wrap)
+  resolved_at: 2026-08-21
   reason: "User reported: quando abre a barra lateral olha como fica a interface, toda errada — screenshot mostra 'Animais' e '59 ativos · 42,3 UA · 5 com baixa' quebrando letra por letra e toolbar espremida"
   severity: major
   test: 2
@@ -63,7 +65,9 @@ skipped: 0
 
 - gap_id: G-13-4
   truth: "Alternador de duas abas segue um único padrão no app — Sanitário (Aplicações|Doses) usa o mesmo estilo pill de Piquetes|Lotes"
-  status: failed
+  status: resolved
+  resolved_by: fix direto (SegmentPill compartilhado em ui.dart; Sanitário e Piquetes usam o mesmo)
+  resolved_at: 2026-08-21
   reason: "User reported: 'pq isso é assim' sobre o SegmentedButton M3 (divisa interna reta); decisão: 'temos que manter um padrão'"
   severity: cosmetic
   test: 4

@@ -59,12 +59,13 @@ skipped: 0
   reason: "User reported: 'funciona, mas é completamente feio' — linha de dicas Ctrl+V aparece duas vezes, grade solta no fundo bege sem container"
   severity: cosmetic
   test: 1
+  status_update: resolved — dica única por entidade + grade contida em Card r16 (fix direto 2026-08-21)
   artifacts: []
   missing: []
 
 - gap_id: G-14-6
   truth: "Clicar 'Escolher arquivo' no import abre o seletor de arquivo em todas as entidades"
-  status: failed
+  status: resolved # root cause: file_picker_web 3.0.1 usa children.add em lista imutável do package:web -> UnsupportedError sempre; dependência removida, picker web próprio (pick_file_web.dart). resolved_at 2026-08-21
   reason: "User reported: Uncaught Error (main.dart.js, stack minificado) ao clicar em Escolher arquivo no import de Piquetes"
   severity: blocker
   test: 6

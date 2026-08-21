@@ -6,6 +6,68 @@ import '../theme/breakpoints.dart';
 /// Primitivas visuais do redesign, compartilhadas entre features.
 /// Anatomias vêm do spec "musgo evoluído" (seções 3.x).
 
+// ─── Alternador de abas em pill (padrão único do app, G-13-4) ───
+
+/// Botão de segmento h42 r12 — label + contagem mono opcional. Usado em pares
+/// via `Expanded` (Piquetes|Lotes, Aplicações|Doses); substitui o
+/// `SegmentedButton` M3 nos alternadores de aba (divisa interna reta destoava).
+class SegmentPill extends StatelessWidget {
+  const SegmentPill({
+    super.key,
+    required this.label,
+    this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int? count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: selected ? null : Border.all(color: AppColors.chipBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: selected ? AppColors.onGreen : AppColors.ink,
+              ),
+            ),
+            if (count != null) ...[
+              const SizedBox(width: 6),
+              Text(
+                '$count',
+                style: monoStyle(
+                  size: 11.5,
+                  color: selected
+                      ? AppColors.onGreenSecondary
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Chips de status ───
 
 enum StatusKind { positive, warning, danger, neutral }
